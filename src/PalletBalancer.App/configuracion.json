@@ -1,0 +1,20 @@
+{
+  "contenedor": {
+    "tipo": "53ft",
+    "largoCm": 1600,
+    "anchoCm": 260,
+    "altoCm": 250,
+    "capacidadMaximaKg": 22000,
+    "filasDisponibles": 26
+  },
+  "palletEstandar": {
+    "largoCm": 120,
+    "anchoCm": 120,
+    "altoCm": 120,
+    "pesoPalletVacioKg": 22.0,
+    "piezasPorPalletCompleto": 48
+  },
+  "reglas": {
+    "toleranciaBalanceoPorc": 5.0
+  }
+}

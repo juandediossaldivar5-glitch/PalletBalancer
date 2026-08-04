@@ -1,0 +1,31 @@
+{
+  "items": [
+    {
+      "modelNo": "K006T91071XB",
+      "descripcion": "4G-VCT MPC",
+
+      "standardPack": {
+        "piezasPorPallet": 480,
+        "peso_kg": 249.1116,
+        "largo_cm": 114.30,
+        "ancho_cm": 121.92,
+        "alto_cm": 66.04
+      },
+
+      "caja": {
+        "piezasPorCaja": 5,
+        "peso_kg": 18.6425,
+        "largo_cm": 59.995,
+        "ancho_cm": 56.337,
+        "alto_cm": 18.415
+      },
+
+      "pieza": {
+        "peso_kg": 2.4900,
+        "largo_cm": 19.507,
+        "ancho_cm": 17.018,
+        "alto_cm": 13.005
+      }
+    }
+  ]
+}

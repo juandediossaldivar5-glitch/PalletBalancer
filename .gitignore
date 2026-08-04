@@ -1,0 +1,19 @@
+## .NET
+bin/
+obj/
+*.user
+.vs/
+publish/
+
+## Configuración local con secretos (connection strings, tokens)
+appsettings.Development.json
+appsettings.Local.json
+*.local.json
+
+## macOS
+.DS_Store
+
+## JetBrains / VS Code
+.idea/
+.vscode/
+*.suo
