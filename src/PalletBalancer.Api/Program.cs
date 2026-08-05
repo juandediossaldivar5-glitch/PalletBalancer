@@ -15,11 +15,29 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
-                    ?? builder.Configuration.GetConnectionString("Default");
+var rawConnection = Environment.GetEnvironmentVariable("DATABASE_URL")
+                 ?? builder.Configuration.GetConnectionString("Default")
+                 ?? "";
+
+// Railway entrega la URL como postgresql://user:pass@host:port/db
+// Npgsql necesita formato Host=...;Username=...
+var connectionString = rawConnection.StartsWith("postgresql://") || rawConnection.StartsWith("postgres://")
+    ? ConvertirUrlAConexion(rawConnection)
+    : rawConnection;
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
+
+static string ConvertirUrlAConexion(string url)
+{
+    var uri  = new Uri(url);
+    var info = uri.UserInfo.Split(':');
+    return $"Host={uri.Host};Port={(uri.Port > 0 ? uri.Port : 5432)};" +
+           $"Database={uri.AbsolutePath.TrimStart('/')};" +
+           $"Username={Uri.UnescapeDataString(info[0])};" +
+           $"Password={Uri.UnescapeDataString(info[1])};" +
+           $"SSL Mode=Require;Trust Server Certificate=true";
+}
 
 var app = builder.Build();
 
