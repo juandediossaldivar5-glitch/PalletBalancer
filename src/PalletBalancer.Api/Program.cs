@@ -27,8 +27,22 @@ app.UseCors();
 app.UseSwagger();
 app.UseSwaggerUI();
 
-// El health endpoint responde siempre, aunque la DB no esté lista
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+
+// Endpoint temporal de diagnóstico — muestra error de DB si hay uno
+app.MapGet("/debug/db", async (AppDbContext db) =>
+{
+    try
+    {
+        var canConnect = await db.Database.CanConnectAsync();
+        var pending = (await db.Database.GetPendingMigrationsAsync()).ToList();
+        return Results.Ok(new { conectado = canConnect, migracionesPendientes = pending });
+    }
+    catch (Exception ex)
+    {
+        return Results.Ok(new { error = ex.Message });
+    }
+});
 app.MapControllers();
 
 // Migración y seed en background para no bloquear el arranque
