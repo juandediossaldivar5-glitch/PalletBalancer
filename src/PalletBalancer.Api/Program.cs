@@ -3,6 +3,10 @@ using PalletBalancer.Api.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Railway inyecta PORT; ASP.NET Core lo lee de ASPNETCORE_HTTP_PORTS
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+builder.WebHost.UseUrls($"http://+:{port}");
+
 builder.Services.AddCors(o =>
     o.AddDefaultPolicy(p =>
         p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
@@ -19,22 +23,32 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await db.Database.MigrateAsync();
-
-    var rutaJson = Path.GetFullPath(
-        Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..",
-                     "PalletBalancer.App", "catalogo_items.json"));
-    await Seed.CargarItemsDesdeJson(db, rutaJson);
-}
-
 app.UseCors();
 app.UseSwagger();
 app.UseSwaggerUI();
 
+// El health endpoint responde siempre, aunque la DB no esté lista
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 app.MapControllers();
+
+// Migración y seed en background para no bloquear el arranque
+_ = Task.Run(async () =>
+{
+    await Task.Delay(2000); // espera a que el server esté escuchando
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    try
+    {
+        await db.Database.MigrateAsync();
+        var rutaJson = Path.GetFullPath(
+            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..",
+                         "PalletBalancer.App", "catalogo_items.json"));
+        await Seed.CargarItemsDesdeJson(db, rutaJson);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error en migración: {ex.Message}");
+    }
+});
 
 app.Run();
