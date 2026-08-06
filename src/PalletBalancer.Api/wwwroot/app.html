@@ -288,6 +288,56 @@
     /* ── LOADING OVERLAY ── */
     .loading-row td { padding: 2rem; text-align: center; color: var(--muted); }
 
+    /* ── SELECTION BAR ── */
+    .sel-bar {
+      background: rgba(212,0,26,0.1);
+      border: 1px solid rgba(212,0,26,0.25);
+      border-radius: 12px;
+      padding: 0.65rem 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .sel-bar span { font-size: 0.87rem; color: #ff8090; font-weight: 600; flex:1; }
+
+    /* Checkbox custom */
+    .pb-check { width: 16px; height: 16px; accent-color: var(--red); cursor: pointer; flex-shrink:0; }
+
+    /* ── ORDEN DESTINOS ── */
+    .dest-orden-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+    .dest-orden-num {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--red-dim); color: #ff8090;
+      font-weight: 800; font-size: 0.85rem;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .dest-orden-name { flex: 1; font-weight: 600; font-size: 0.95rem; }
+    .dest-orden-hint { font-size: 0.72rem; color: var(--muted); }
+    .btn-order { background: rgba(255,255,255,0.07); border: 1px solid var(--border); border-radius: 6px; color: var(--text); width: 28px; height: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; transition: background 0.15s; }
+    .btn-order:hover { background: rgba(255,255,255,0.13); }
+    .btn-order:disabled { opacity: 0.25; cursor: not-allowed; }
+
+    /* ── ZONE SEPARATOR ── */
+    .zone-sep {
+      display: flex; align-items: center; gap: 0.5rem;
+      margin: 4px 0; color: var(--muted); font-size: 0.68rem;
+      text-transform: uppercase; letter-spacing: 0.8px;
+    }
+    .zone-sep::before, .zone-sep::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
+    }
+
     /* ── CONTENEDOR GRID ── */
     .cont-wrap {
       display: grid;
@@ -385,10 +435,27 @@
       </button>
     </div>
 
+    <!-- Barra de selección -->
+    <div class="sel-bar" x-show="seleccionados.length > 0" x-cloak>
+      <i class="bi bi-check2-square" style="color:#ff8090;font-size:1.1rem"></i>
+      <span x-text="seleccionados.length + ' FDO' + (seleccionados.length > 1 ? 's' : '') + ' seleccionado' + (seleccionados.length > 1 ? 's' : '')"></span>
+      <button class="btn-primary-grad" @click="iniciarContenedor()">
+        <i class="bi bi-box-seam"></i> Ver Contenedor
+      </button>
+      <button class="btn-ghost" @click="seleccionados = []" style="padding:0.4rem 0.75rem">
+        <i class="bi bi-x"></i> Limpiar
+      </button>
+    </div>
+
     <div class="pb-card" style="padding:0;overflow:hidden">
       <table class="pb-table">
         <thead>
           <tr>
+            <th style="width:36px">
+              <input type="checkbox" class="pb-check"
+                     :checked="fdos.length > 0 && seleccionados.length === fdos.length"
+                     @change="toggleTodos($event)">
+            </th>
             <th>FDO Slip No</th>
             <th>Cliente</th>
             <th>Consignatario</th>
@@ -398,38 +465,39 @@
         </thead>
         <tbody>
           <tr x-show="cargandoLista" class="loading-row">
-            <td colspan="5">
+            <td colspan="6">
               <span class="spinner" style="width:20px;height:20px;border-width:2.5px;margin-right:0.5rem"></span>
               Cargando FDOs...
             </td>
           </tr>
-          <template x-if="!cargandoLista">
-            <template x-if="fdos.length > 0">
-              <template x-for="f in fdos" :key="f.id">
-                <tr class="clickable" @click="verDetalle(f.id)">
-                  <td><span class="fdo-no" x-text="f.fdoSlipNo"></span></td>
-                  <td x-text="f.customer"></td>
-                  <td x-text="f.consignee"></td>
-                  <td x-text="f.shipDate"></td>
-                  <td class="chevron"><i class="bi bi-chevron-right"></i></td>
-                </tr>
-              </template>
-            </template>
-          </template>
-          <template x-if="!cargandoLista && fdos.length === 0">
-            <tr>
-              <td colspan="5">
-                <div class="empty-state">
-                  <i class="bi bi-inbox"></i>
-                  <p>Sin FDOs registrados</p>
-                  <button class="btn-ghost" style="margin: 0.75rem auto 0; display:inline-flex"
-                          @click="vista='importar'; importado=null">
-                    <i class="bi bi-file-earmark-arrow-up"></i> Importar el primero
-                  </button>
-                </div>
+          <template x-for="f in fdos" :key="f.id">
+            <tr :class="seleccionados.includes(f.id) ? 'clickable' : 'clickable'"
+                style="transition:background 0.1s"
+                :style="seleccionados.includes(f.id) ? 'background:rgba(212,0,26,0.06)' : ''">
+              <td @click.stop>
+                <input type="checkbox" class="pb-check"
+                       :checked="seleccionados.includes(f.id)"
+                       @change="toggleSeleccion(f.id)">
               </td>
+              <td @click="verDetalle(f.id)"><span class="fdo-no" x-text="f.fdoSlipNo"></span></td>
+              <td @click="verDetalle(f.id)" x-text="f.customer"></td>
+              <td @click="verDetalle(f.id)" x-text="f.consignee"></td>
+              <td @click="verDetalle(f.id)" x-text="f.shipDate"></td>
+              <td @click="verDetalle(f.id)" class="chevron"><i class="bi bi-chevron-right"></i></td>
             </tr>
           </template>
+          <tr x-show="!cargandoLista && fdos.length === 0">
+            <td colspan="6">
+              <div class="empty-state">
+                <i class="bi bi-inbox"></i>
+                <p>Sin FDOs registrados</p>
+                <button class="btn-ghost" style="margin:0.75rem auto 0;display:inline-flex"
+                        @click="vista='importar'; importado=null">
+                  <i class="bi bi-file-earmark-arrow-up"></i> Importar el primero
+                </button>
+              </div>
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -634,17 +702,69 @@
 
   </div>
   <!-- ============================================================ -->
+  <!-- VISTA: ORDENAR DESTINOS (solo MKT/ADM, multi-destino)        -->
+  <!-- ============================================================ -->
+  <div x-show="vista==='ordenarDestinos'" x-cloak>
+    <button class="back-link" @click="vista='lista'">
+      <i class="bi bi-arrow-left"></i> Volver a FDOs
+    </button>
+    <div class="pb-page-header">
+      <h1 class="pb-page-title">
+        <i class="bi bi-sort-down"></i> Orden de descarga
+      </h1>
+    </div>
+
+    <div class="pb-alert pb-alert-info mb-3">
+      <i class="bi bi-info-circle-fill" style="flex-shrink:0"></i>
+      <span style="font-size:0.87rem">
+        Define el orden en que se descargarán los destinos. El <strong>primero</strong> va cerca de las <strong>puertas</strong>;
+        el <strong>último</strong> va cerca de la <strong>cabina</strong> (se carga primero).
+      </span>
+    </div>
+
+    <div style="max-width:560px">
+      <template x-for="(dest, i) in ordenDescarga" :key="dest">
+        <div class="dest-orden-item">
+          <div class="dest-orden-num" x-text="i + 1"></div>
+          <div style="flex:1">
+            <div class="dest-orden-name" x-text="dest"></div>
+            <div class="dest-orden-hint"
+                 x-text="i === 0 ? '← Descarga primero (puertas)' : i === ordenDescarga.length - 1 ? '← Descarga último (cabina)' : ''">
+            </div>
+          </div>
+          <button class="btn-order" :disabled="i === 0" @click="moverDestino(i, -1)">
+            <i class="bi bi-chevron-up"></i>
+          </button>
+          <button class="btn-order" :disabled="i === ordenDescarga.length - 1" @click="moverDestino(i, 1)">
+            <i class="bi bi-chevron-down"></i>
+          </button>
+        </div>
+      </template>
+    </div>
+
+    <div style="display:flex;gap:0.75rem;margin-top:1.5rem">
+      <button class="btn-primary-grad" @click="calcularContenedorMulti()" :disabled="cargandoContenedor">
+        <span x-show="cargandoContenedor" class="spinner"></span>
+        <i x-show="!cargandoContenedor" class="bi bi-calculator"></i>
+        <span x-text="cargandoContenedor ? 'Calculando...' : 'Calcular Contenedor'"></span>
+      </button>
+      <button class="btn-ghost" @click="vista='lista'">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
   <!-- VISTA: CONTENEDOR                                             -->
   <!-- ============================================================ -->
   <div x-show="vista==='contenedor'" x-cloak>
-    <button class="back-link" @click="vista='detalle'">
-      <i class="bi bi-arrow-left"></i> Volver al FDO
+    <button class="back-link" @click="vista=contenedorBack">
+      <i class="bi bi-arrow-left"></i> Volver
     </button>
 
     <div class="pb-page-header">
       <h1 class="pb-page-title">
         <i class="bi bi-box-seam"></i> Plan de Contenedor
-        <span style="color:var(--muted);font-weight:400;font-size:0.85rem" x-text="'— FDO ' + (fdoActual?.fdoSlipNo ?? '')"></span>
+        <span style="color:var(--muted);font-weight:400;font-size:0.85rem"
+              x-text="seleccionados.length > 1 ? '— ' + seleccionados.length + ' FDOs' : '— FDO ' + (fdoActual?.fdoSlipNo ?? '')"></span>
       </h1>
     </div>
 
@@ -741,34 +861,42 @@
 
             <!-- Rows 1-26 (cabina → puertas) -->
             <template x-for="fila in 26" :key="fila">
-              <div class="cont-wrap" style="margin-bottom:3px">
-                <div class="cont-row-num" x-text="fila"></div>
-                <!-- Izquierdo -->
-                <template x-if="posicionEn(fila, 'Izquierdo')">
-                  <div class="cont-cell ocupada"
-                       :style="'background:' + colorModelo(posicionEn(fila,'Izquierdo').modelNo) + '22;border-color:' + colorModelo(posicionEn(fila,'Izquierdo').modelNo) + '55'"
-                       :title="posicionEn(fila,'Izquierdo').modelNo + ' — ' + posicionEn(fila,'Izquierdo').piezas + ' pzs — ' + posicionEn(fila,'Izquierdo').pesoKg + ' kg'">
-                    <span class="cn" :style="'color:' + colorModelo(posicionEn(fila,'Izquierdo').modelNo)"
-                          x-text="posicionEn(fila,'Izquierdo').modelNo.slice(-6)"></span>
-                    <span class="cw" x-text="posicionEn(fila,'Izquierdo').pesoKg.toFixed(0) + ' kg'"></span>
+              <div>
+                <!-- Separador de zona cuando empieza un nuevo destino -->
+                <template x-if="zonaEnFila(fila)">
+                  <div class="zone-sep" style="grid-column:1/-1">
+                    <span x-text="'Descarga ' + zonaEnFila(fila).ordenDescarga + ': ' + zonaEnFila(fila).consignee"></span>
                   </div>
                 </template>
-                <template x-if="!posicionEn(fila, 'Izquierdo')">
-                  <div class="cont-cell"></div>
-                </template>
-                <!-- Derecho -->
-                <template x-if="posicionEn(fila, 'Derecho')">
-                  <div class="cont-cell ocupada"
-                       :style="'background:' + colorModelo(posicionEn(fila,'Derecho').modelNo) + '22;border-color:' + colorModelo(posicionEn(fila,'Derecho').modelNo) + '55'"
-                       :title="posicionEn(fila,'Derecho').modelNo + ' — ' + posicionEn(fila,'Derecho').piezas + ' pzs — ' + posicionEn(fila,'Derecho').pesoKg + ' kg'">
-                    <span class="cn" :style="'color:' + colorModelo(posicionEn(fila,'Derecho').modelNo)"
-                          x-text="posicionEn(fila,'Derecho').modelNo.slice(-6)"></span>
-                    <span class="cw" x-text="posicionEn(fila,'Derecho').pesoKg.toFixed(0) + ' kg'"></span>
-                  </div>
-                </template>
-                <template x-if="!posicionEn(fila, 'Derecho')">
-                  <div class="cont-cell"></div>
-                </template>
+                <div class="cont-wrap" style="margin-bottom:3px">
+                  <div class="cont-row-num" x-text="fila"></div>
+                  <!-- Izquierdo -->
+                  <template x-if="posicionEn(fila, 'Izquierdo')">
+                    <div class="cont-cell ocupada"
+                         :style="'background:' + colorModelo(posicionEn(fila,'Izquierdo').modelNo) + '22;border-color:' + colorModelo(posicionEn(fila,'Izquierdo').modelNo) + '55'"
+                         :title="posicionEn(fila,'Izquierdo').modelNo + ' — ' + posicionEn(fila,'Izquierdo').piezas + ' pzs — ' + posicionEn(fila,'Izquierdo').pesoKg + ' kg'">
+                      <span class="cn" :style="'color:' + colorModelo(posicionEn(fila,'Izquierdo').modelNo)"
+                            x-text="posicionEn(fila,'Izquierdo').modelNo.slice(-6)"></span>
+                      <span class="cw" x-text="posicionEn(fila,'Izquierdo').pesoKg.toFixed(0) + ' kg'"></span>
+                    </div>
+                  </template>
+                  <template x-if="!posicionEn(fila, 'Izquierdo')">
+                    <div class="cont-cell"></div>
+                  </template>
+                  <!-- Derecho -->
+                  <template x-if="posicionEn(fila, 'Derecho')">
+                    <div class="cont-cell ocupada"
+                         :style="'background:' + colorModelo(posicionEn(fila,'Derecho').modelNo) + '22;border-color:' + colorModelo(posicionEn(fila,'Derecho').modelNo) + '55'"
+                         :title="posicionEn(fila,'Derecho').modelNo + ' — ' + posicionEn(fila,'Derecho').piezas + ' pzs — ' + posicionEn(fila,'Derecho').pesoKg + ' kg'">
+                      <span class="cn" :style="'color:' + colorModelo(posicionEn(fila,'Derecho').modelNo)"
+                            x-text="posicionEn(fila,'Derecho').modelNo.slice(-6)"></span>
+                      <span class="cw" x-text="posicionEn(fila,'Derecho').pesoKg.toFixed(0) + ' kg'"></span>
+                    </div>
+                  </template>
+                  <template x-if="!posicionEn(fila, 'Derecho')">
+                    <div class="cont-cell"></div>
+                  </template>
+                </div>
               </div>
             </template>
 
@@ -801,6 +929,9 @@ function app() {
     guardando:          false,
     editandoLinea:      null,
     editQty:            0,
+    seleccionados:      [],
+    ordenDescarga:      [],
+    contenedorBack:     'detalle',
 
     _colorCache: {},
     _paleta: ['#e05c6e','#4a9eff','#2ec27e','#f5a623','#b57cf0','#1bc8b8','#ff7c3a','#5b8dd9','#e67e98','#62c97d'],
@@ -881,11 +1012,66 @@ function app() {
       this._colorCache = {};
       this.cargandoContenedor = true;
       this.contenedor = null;
+      this.contenedorBack = 'detalle';
       this.vista = 'contenedor';
       const r = await this.api(`/api/fdos/${this.fdoActual.id}/contenedor`);
       this.cargandoContenedor = false;
       if (!r || !r.ok) { this.alerta = 'Error al calcular el contenedor.'; this.vista = 'detalle'; return; }
       this.contenedor = await r.json();
+    },
+
+    toggleSeleccion(id) {
+      const idx = this.seleccionados.indexOf(id);
+      if (idx === -1) this.seleccionados.push(id);
+      else this.seleccionados.splice(idx, 1);
+    },
+
+    toggleTodos(event) {
+      this.seleccionados = event.target.checked ? this.fdos.map(f => f.id) : [];
+    },
+
+    iniciarContenedor() {
+      if (this.seleccionados.length === 0) return;
+      const fdosSel = this.fdos.filter(f => this.seleccionados.includes(f.id));
+      const destinos = [...new Set(fdosSel.map(f => f.consignee || 'Sin destino'))];
+      const puedeOrdenar = this.usuario?.rol === 'MKT' || this.usuario?.rol === 'ADM';
+      if (destinos.length > 1 && puedeOrdenar) {
+        this.ordenDescarga = [...destinos];
+        this.vista = 'ordenarDestinos';
+      } else {
+        this.ordenDescarga = [];
+        this.calcularContenedorMulti();
+      }
+    },
+
+    moverDestino(i, dir) {
+      const j = i + dir;
+      if (j < 0 || j >= this.ordenDescarga.length) return;
+      [this.ordenDescarga[i], this.ordenDescarga[j]] = [this.ordenDescarga[j], this.ordenDescarga[i]];
+    },
+
+    async calcularContenedorMulti() {
+      this._colorCache = {};
+      this.cargandoContenedor = true;
+      this.contenedor = null;
+      this.contenedorBack = 'lista';
+      this.vista = 'contenedor';
+      const r = await this.api('/api/contenedor/calcular', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          fdoIds:        this.seleccionados,
+          ordenDescarga: this.ordenDescarga.length > 0 ? this.ordenDescarga : null
+        })
+      });
+      this.cargandoContenedor = false;
+      if (!r || !r.ok) { this.alerta = 'Error al calcular el contenedor.'; this.vista = 'lista'; return; }
+      this.contenedor = await r.json();
+    },
+
+    zonaEnFila(fila) {
+      if (!this.contenedor?.destinos) return null;
+      return this.contenedor.destinos.find(d => d.filaInicio === fila) ?? null;
     },
 
     puedeEditar() {
