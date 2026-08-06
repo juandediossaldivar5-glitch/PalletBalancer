@@ -1,9 +1,11 @@
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using PalletBalancer.Api.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Railway inyecta PORT; ASP.NET Core lo lee de ASPNETCORE_HTTP_PORTS
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
 builder.WebHost.UseUrls($"http://+:{port}");
 
@@ -19,14 +21,32 @@ var rawConnection = Environment.GetEnvironmentVariable("DATABASE_URL")
                  ?? builder.Configuration.GetConnectionString("Default")
                  ?? "";
 
-// Railway entrega la URL como postgresql://user:pass@host:port/db
-// Npgsql necesita formato Host=...;Username=...
 var connectionString = rawConnection.StartsWith("postgresql://") || rawConnection.StartsWith("postgres://")
     ? ConvertirUrlAConexion(rawConnection)
     : rawConnection;
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
+
+// JWT
+var jwtKey = builder.Configuration["Jwt:Key"]
+    ?? throw new InvalidOperationException("Jwt:Key no configurado.");
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        var key = Encoding.UTF8.GetBytes(jwtKey);
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey        = new SymmetricSecurityKey(key),
+            ValidateIssuer          = true,
+            ValidIssuer             = builder.Configuration["Jwt:Issuer"],
+            ValidateAudience        = true,
+            ValidAudience           = builder.Configuration["Jwt:Audience"],
+            ClockSkew               = TimeSpan.Zero
+        };
+    });
+builder.Services.AddAuthorization();
 
 static string ConvertirUrlAConexion(string url)
 {
@@ -41,13 +61,16 @@ static string ConvertirUrlAConexion(string url)
 
 var app = builder.Build();
 
+app.UseDefaultFiles();
+app.UseStaticFiles();
 app.UseCors();
 app.UseSwagger();
 app.UseSwaggerUI();
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok", version = "v4" }));
 
-// Muestra qué prefijo tiene la connection string (sin exponer credenciales)
 app.MapGet("/debug/env", () =>
 {
     var raw = Environment.GetEnvironmentVariable("DATABASE_URL") ?? "(no DATABASE_URL)";
@@ -55,7 +78,6 @@ app.MapGet("/debug/env", () =>
     return Results.Ok(new { DATABASE_URL_preview = preview, longitud = raw.Length });
 });
 
-// Endpoint temporal de diagnóstico — muestra error de DB si hay uno
 app.MapGet("/debug/db", async (AppDbContext db) =>
 {
     try
@@ -69,12 +91,12 @@ app.MapGet("/debug/db", async (AppDbContext db) =>
         return Results.Ok(new { error = ex.Message });
     }
 });
+
 app.MapControllers();
 
-// Migración y seed en background para no bloquear el arranque
 _ = Task.Run(async () =>
 {
-    await Task.Delay(2000); // espera a que el server esté escuchando
+    await Task.Delay(2000);
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     try
@@ -82,10 +104,11 @@ _ = Task.Run(async () =>
         await db.Database.MigrateAsync();
         var rutaJson = Path.Combine(AppContext.BaseDirectory, "catalogo_items.json");
         await Seed.CargarItemsDesdeJson(db, rutaJson);
+        await Seed.SeedUsuarioAdminAsync(db);
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Error en migración: {ex.Message}");
+        Console.WriteLine($"Error en migración/seed: {ex.Message}");
     }
 });
 

@@ -42,6 +42,12 @@ public static class Seed
         await db.SaveChangesAsync();
     }
 
+    public static Task SeedUsuarioAdminAsync(AppDbContext db)
+    {
+        // Implementado en Task 3 (AuthController + modelo Usuario)
+        return Task.CompletedTask;
+    }
+
     private class CatalogoJson { public List<EntradaJson> Items { get; set; } = []; }
     private class EntradaJson
     {
