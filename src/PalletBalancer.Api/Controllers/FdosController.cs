@@ -91,7 +91,7 @@ public class FdosController : ControllerBase
         if (fdo is null) return NotFound();
         await CargarItemsEnLineas(fdo.Lineas);
 
-        var resultado = new ContenedorService().Calcular(fdo);
+        var resultado = new ContenedorService().Calcular([fdo]);
         return Ok(resultado);
     }
 
