@@ -80,9 +80,7 @@ _ = Task.Run(async () =>
     try
     {
         await db.Database.MigrateAsync();
-        var rutaJson = Path.GetFullPath(
-            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..",
-                         "PalletBalancer.App", "catalogo_items.json"));
+        var rutaJson = Path.Combine(AppContext.BaseDirectory, "catalogo_items.json");
         await Seed.CargarItemsDesdeJson(db, rutaJson);
     }
     catch (Exception ex)

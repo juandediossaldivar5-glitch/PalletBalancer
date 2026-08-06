@@ -20,4 +20,10 @@
     <ProjectReference Include="..\PalletBalancer.Core\PalletBalancer.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="catalogo_items.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
