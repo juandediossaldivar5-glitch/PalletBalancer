@@ -67,6 +67,18 @@ public class FdosController : ControllerBase
         return Ok(dto);
     }
 
+    [HttpPost("importar/debug")]
+    [Authorize]
+    public IActionResult ImportarDebug(IFormFile archivo)
+    {
+        if (archivo is null || archivo.Length == 0)
+            return BadRequest(new { mensaje = "Se requiere un archivo PDF." });
+
+        using var stream = archivo.OpenReadStream();
+        var lineas = PdfFdoParser.ExtraerLineasPublico(stream);
+        return Ok(new { totalLineas = lineas.Count, lineas });
+    }
+
     [HttpPatch("{id:int}/lineas/{lineaId:int}")]
     [Authorize(Roles = "AMG,ADM")]
     public async Task<IActionResult> PatchCantidad(int id, int lineaId, PatchCantidadDto dto)

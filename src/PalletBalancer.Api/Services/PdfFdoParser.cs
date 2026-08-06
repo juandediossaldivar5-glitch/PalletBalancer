@@ -29,6 +29,8 @@ public static class PdfFdoParser
         return dto;
     }
 
+    public static List<string> ExtraerLineasPublico(Stream pdfStream) => ExtraerLineas(pdfStream);
+
     private static List<string> ExtraerLineas(Stream pdfStream)
     {
         using var pdf   = PdfDocument.Open(pdfStream);
