@@ -1008,6 +1008,7 @@
             <th style="text-align:right">Largo</th>
             <th style="text-align:right">Ancho</th>
             <th style="text-align:right">Alto</th>
+            <th style="text-align:center">Estiba</th>
             <th x-show="puedeEditar()" style="width:80px"></th>
           </tr>
         </thead>
@@ -1032,6 +1033,10 @@
               <td style="text-align:right;color:var(--muted);font-size:0.82rem" x-text="item.spLargoCm ? item.spLargoCm + ' cm' : '—'"></td>
               <td style="text-align:right;color:var(--muted);font-size:0.82rem" x-text="item.spAnchoCm ? item.spAnchoCm + ' cm' : '—'"></td>
               <td style="text-align:right;color:var(--muted);font-size:0.82rem" x-text="item.spAltoCm  ? item.spAltoCm  + ' cm' : '—'"></td>
+              <td style="text-align:center">
+                <span x-show="item.puedeEstibar" style="font-size:0.72rem;font-weight:700;background:rgba(26,138,69,0.15);color:#4dd884;border-radius:4px;padding:0.1rem 0.5rem">✓ Sí</span>
+                <span x-show="!item.puedeEstibar" style="font-size:0.72rem;color:var(--muted)">—</span>
+              </td>
               <td x-show="puedeEditar()">
                 <button class="btn-edit-sm" @click="editarItem(item)">
                   <i class="bi bi-pencil-fill"></i> Editar
@@ -1105,6 +1110,24 @@
         <div class="col-4 col-md-2">
           <label class="pb-label">Alto (cm)</label>
           <input class="pb-input" type="number" min="0" step="0.1" x-model.number="itemForm.spAltoCm" placeholder="66">
+        </div>
+
+        <!-- Toggle estiba -->
+        <div class="col-12">
+          <label style="display:flex;align-items:center;gap:0.75rem;cursor:pointer;user-select:none">
+            <div style="position:relative;width:42px;height:24px;flex-shrink:0">
+              <input type="checkbox" x-model="itemForm.puedeEstibar" style="opacity:0;width:0;height:0;position:absolute">
+              <div :style="itemForm.puedeEstibar
+                ? 'background:#1a8a45;border-radius:100px;width:42px;height:24px;transition:background 0.2s'
+                : 'background:rgba(255,255,255,0.12);border-radius:100px;width:42px;height:24px;transition:background 0.2s'">
+              </div>
+              <div :style="'position:absolute;top:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left 0.2s;left:' + (itemForm.puedeEstibar ? '21px' : '3px')"></div>
+            </div>
+            <div>
+              <div style="font-weight:600;font-size:0.88rem" x-text="itemForm.puedeEstibar ? 'Se puede estibar' : 'No se puede estibar'"></div>
+              <div style="font-size:0.72rem;color:var(--muted)">Permite apilar otra tarima encima al calcular el contenedor</div>
+            </div>
+          </label>
         </div>
 
         <!-- Botones -->
@@ -1317,7 +1340,12 @@ function app() {
       const scaleY = innerH / MAX_ALTO_CM;
       const floorY = PAD_T + innerH;
 
-      const pos = this.contenedor.posiciones.filter(p => p.lado === lado);
+      // Agrupar por fila: [{capa1, capa2?}]
+      const slots = {};
+      for (const p of this.contenedor.posiciones.filter(p => p.lado === lado)) {
+        if (!slots[p.fila]) slots[p.fila] = {};
+        slots[p.fila][p.capa] = p;
+      }
 
       // Fondos de zona por destino
       let fondos = '';
@@ -1337,23 +1365,37 @@ function app() {
         }
       });
 
-      // Pallets
+      // Pallets (dibujados desde piso hacia arriba; capa 2 sobre capa 1)
       let pallets = '';
-      for (const p of pos) {
-        const altoCm  = p.altoCm  > 0 ? p.altoCm  : 150;
-        const largoCm = p.largoCm > 0 ? p.largoCm : 120;
-        const h = altoCm * scaleY;
-        const w = Math.min(cellW - 2, largoCm / 120 * cellW);
-        const x = PAD_L + (p.fila - 1) * cellW + (cellW - w) / 2;
-        const y = floorY - h;
-        const color = this.colorModelo(p.modelNo);
-        const tag = p.modelNo.slice(-6);
-        pallets += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="${color}28" stroke="${color}99" stroke-width="1.2" rx="2"/>`;
-        if (h > 18) {
-          pallets += `<text x="${(x + w/2).toFixed(1)}" y="${(y + Math.min(h/2 + 4, h - 4)).toFixed(1)}" text-anchor="middle" font-size="6.5" font-weight="700" fill="${color}">${tag}</text>`;
-        }
-        if (h > 30) {
-          pallets += `<text x="${(x + w/2).toFixed(1)}" y="${(floorY - 4).toFixed(1)}" text-anchor="middle" font-size="5.5" fill="rgba(255,255,255,0.5)">${p.pesoKg.toFixed(0)}kg</text>`;
+      for (const [fila, capaMap] of Object.entries(slots)) {
+        const f = parseInt(fila);
+        const xBase = PAD_L + (f - 1) * cellW;
+
+        let yBase = floorY; // arrancamos desde el piso
+
+        for (const capa of [1, 2]) {
+          const p = capaMap[capa];
+          if (!p) continue;
+          const altoCm  = p.altoCm  > 0 ? p.altoCm  : 150;
+          const largoCm = p.largoCm > 0 ? p.largoCm : 120;
+          const h = altoCm * scaleY;
+          const w = Math.min(cellW - 2, largoCm / 120 * cellW);
+          const x = xBase + (cellW - w) / 2;
+          const y = yBase - h;
+          const color = this.colorModelo(p.modelNo);
+          const tag = p.modelNo.slice(-6);
+          // línea punteada en la base de capa 2 para indicar estiba
+          if (capa === 2) {
+            pallets += `<line x1="${x.toFixed(1)}" y1="${yBase.toFixed(1)}" x2="${(x+w).toFixed(1)}" y2="${yBase.toFixed(1)}" stroke="${color}99" stroke-width="1" stroke-dasharray="2,2"/>`;
+          }
+          pallets += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="${color}28" stroke="${color}99" stroke-width="1.2" rx="2"/>`;
+          if (h > 18) {
+            pallets += `<text x="${(x + w/2).toFixed(1)}" y="${(y + Math.min(h/2 + 4, h - 4)).toFixed(1)}" text-anchor="middle" font-size="6.5" font-weight="700" fill="${color}">${tag}</text>`;
+          }
+          if (h > 28) {
+            pallets += `<text x="${(x + w/2).toFixed(1)}" y="${(y + h - 4).toFixed(1)}" text-anchor="middle" font-size="5.5" fill="rgba(255,255,255,0.5)">${p.pesoKg.toFixed(0)}kg</text>`;
+          }
+          yBase = y; // la siguiente capa arranca donde terminó esta
         }
       }
 
@@ -1455,7 +1497,7 @@ function app() {
 
     nuevoItem() {
       this.itemActual = null;
-      this.itemForm = { modelNo:'', descripcion:'', spPiezasPorPallet:0, spPesoKg:0, spLargoCm:0, spAnchoCm:0, spAltoCm:0 };
+      this.itemForm = { modelNo:'', descripcion:'', spPiezasPorPallet:0, spPesoKg:0, spLargoCm:0, spAnchoCm:0, spAltoCm:0, puedeEstibar:false };
       this.vista = 'editarItem';
     },
 

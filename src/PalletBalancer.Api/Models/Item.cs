@@ -15,6 +15,7 @@ public class Item
     public double SpLargoCm         { get; set; }
     public double SpAnchoCm         { get; set; }
     public double SpAltoCm          { get; set; }
+    public bool   PuedeEstibar      { get; set; }
 
     // Caja (unidad intermedia)
     public int    CajaPiezasPorCaja { get; set; }

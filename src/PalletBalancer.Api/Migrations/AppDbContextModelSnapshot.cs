@@ -141,6 +141,9 @@ namespace PalletBalancer.Api.Migrations
                     b.Property<int>("SpPiezasPorPallet")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("PuedeEstibar")
+                        .HasColumnType("boolean");
+
                     b.HasKey("ModelNo");
 
                     b.ToTable("Items");

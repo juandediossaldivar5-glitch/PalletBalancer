@@ -34,7 +34,7 @@ public class PosicionResultadoDto
     public string Destino     { get; set; } = "";
     public double PesoKg      { get; set; }
     public int    Piezas      { get; set; }
-    public int    Capas       { get; set; }
+    public int    Capa        { get; set; }  // 1 = piso, 2 = encima
     public double AltoCm      { get; set; }
     public double LargoCm     { get; set; }
     public double AnchoCm     { get; set; }

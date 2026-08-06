@@ -10,6 +10,7 @@ public class ItemDto
     public double SpLargoCm         { get; set; }
     public double SpAnchoCm         { get; set; }
     public double SpAltoCm          { get; set; }
+    public bool   PuedeEstibar      { get; set; }
 
     public int    CajaPiezasPorCaja { get; set; }
     public double CajaPesoKg        { get; set; }

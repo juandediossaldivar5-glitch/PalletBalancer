@@ -14,8 +14,8 @@ public class ContenedorService
         var spec = ContenedorSpecs.Get(tipoContenedor);
         var sinDatos = new List<string>();
 
-        // Agrupar pallets y descripciones por consignee
-        var palletsPorDestino = new Dictionary<string, List<Pallet>>(StringComparer.OrdinalIgnoreCase);
+        // Agrupar pallets con flag de estiba por consignee
+        var palletsPorDestino = new Dictionary<string, List<(Pallet P, bool Apilable)>>(StringComparer.OrdinalIgnoreCase);
         var descMap           = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var fdo in fdos)
@@ -35,28 +35,29 @@ public class ContenedorService
                     continue;
                 }
 
-                var item = linea.Item;
+                var item      = linea.Item;
+                bool apilable = item.PuedeEstibar;
                 int pxp  = item.SpPiezasPorPallet;
                 int full = linea.ReqQty / pxp;
                 int rest = linea.ReqQty % pxp;
 
                 for (int i = 0; i < full; i++)
-                    palletsPorDestino[dest].Add(Build(linea.ModelNo, pxp,
-                        item.SpPesoKg, item.SpLargoCm, item.SpAnchoCm, item.SpAltoCm));
+                    palletsPorDestino[dest].Add((Build(linea.ModelNo, pxp,
+                        item.SpPesoKg, item.SpLargoCm, item.SpAnchoCm, item.SpAltoCm), apilable));
 
                 if (rest > 0)
                 {
                     double pw = Math.Round((double)rest / pxp * item.SpPesoKg, 2);
                     double ah = Math.Round((double)rest / pxp * item.SpAltoCm, 1);
-                    palletsPorDestino[dest].Add(Build(linea.ModelNo, rest,
-                        pw, item.SpLargoCm, item.SpAnchoCm, ah > 0 ? ah : item.SpAltoCm));
+                    palletsPorDestino[dest].Add((Build(linea.ModelNo, rest,
+                        pw, item.SpLargoCm, item.SpAnchoCm, ah > 0 ? ah : item.SpAltoCm), apilable));
                 }
             }
         }
 
         // Calcular filas disponibles según dimensiones reales del contenedor
         // Usamos el largo más común entre todos los pallets (moda); default 120 cm
-        var todosPallets = palletsPorDestino.Values.SelectMany(x => x).ToList();
+        var todosPallets = palletsPorDestino.Values.SelectMany(x => x).Select(x => x.P).ToList();
         double palletLargo = todosPallets
             .Where(p => p.LargoCm > 0)
             .GroupBy(p => p.LargoCm)
@@ -81,6 +82,37 @@ public class ContenedorService
             .Select(kv => kv.Key)
             .ToList();
 
+        // Crear stacks: pares de pallets apilables que caben en el alto del contenedor
+        // Resultado: Lista de (Piso, Encima?) por destino
+        var stacksPorDestino = new Dictionary<string, List<(Pallet Piso, Pallet? Encima)>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (dest, lista) in palletsPorDestino)
+        {
+            var stacks = new List<(Pallet Piso, Pallet? Encima)>();
+            var apilables    = lista.Where(x => x.Apilable).OrderByDescending(x => x.P.PesoTotalKg).Select(x => x.P).ToList();
+            var noApilables  = lista.Where(x => !x.Apilable).Select(x => x.P).ToList();
+
+            // Emparejar apilables: más pesado abajo, siguiente encima (si caben en alto)
+            int i = 0;
+            while (i < apilables.Count)
+            {
+                var piso = apilables[i];
+                if (i + 1 < apilables.Count && piso.AltoCm + apilables[i + 1].AltoCm <= spec.AltoCm)
+                {
+                    stacks.Add((piso, apilables[i + 1]));
+                    i += 2;
+                }
+                else
+                {
+                    stacks.Add((piso, null));
+                    i++;
+                }
+            }
+            foreach (var p in noApilables)
+                stacks.Add((p, null));
+
+            stacksPorDestino[dest] = stacks;
+        }
+
         List<string> ordenFinal = ordenDescarga?.Where(d => destinosConPallets.Contains(d,
                 StringComparer.OrdinalIgnoreCase)).ToList()
             ?? destinosConPallets.OrderBy(d => d).ToList();
@@ -102,26 +134,26 @@ public class ContenedorService
 
         foreach (var dest in ordenCarga)
         {
-            var pallets = palletsPorDestino.GetValueOrDefault(dest, []);
-            if (pallets.Count == 0) continue;
+            var stacks = stacksPorDestino.GetValueOrDefault(dest, []);
+            if (stacks.Count == 0) continue;
 
-            // Filas necesarias: ceil(pallets / 2) porque cada fila tiene 2 lados
-            int rowsNec  = (int)Math.Ceiling(pallets.Count / 2.0);
+            // Filas necesarias: ceil(stacks / 2) porque cada fila tiene 2 lados
+            int rowsNec  = (int)Math.Ceiling(stacks.Count / 2.0);
             int filaFin  = Math.Min(filaActual + rowsNec - 1, filasPorLado);
 
-            var (posDest, pIzq, pDer) = BalancearZona(
-                pallets, dest, filaActual, filaFin, descMap);
+            var (posDest, pIzq, pDer) = BalancearZona(stacks, dest, filaActual, filaFin, descMap);
 
             posiciones.AddRange(posDest);
             pesoIzq    += pIzq;
             pesoDer    += pDer;
 
+            int totalPallets = stacks.Sum(s => s.Encima is null ? 1 : 2);
             destinoInfos.Add(new DestinoInfoDto
             {
                 Consignee     = dest,
                 OrdenDescarga = ordenFinal.IndexOf(
                     ordenFinal.First(o => string.Equals(o, dest, StringComparison.OrdinalIgnoreCase))) + 1,
-                TotalPallets  = pallets.Count,
+                TotalPallets  = totalPallets,
                 FilaInicio    = filaActual,
                 FilaFin       = filaFin,
             });
@@ -169,19 +201,20 @@ public class ContenedorService
     }
 
     private static (List<PosicionResultadoDto> pos, double pesoIzq, double pesoDer)
-        BalancearZona(List<Pallet> pallets, string destino, int filaInicio, int filaFin,
-                      Dictionary<string, string> descMap)
+        BalancearZona(List<(Pallet Piso, Pallet? Encima)> stacks, string destino,
+                      int filaInicio, int filaFin, Dictionary<string, string> descMap)
     {
         var pos     = new List<PosicionResultadoDto>();
-        var izq     = new List<Pallet>();
-        var der     = new List<Pallet>();
+        var izq     = new List<(Pallet Piso, Pallet? Encima)>();
+        var der     = new List<(Pallet Piso, Pallet? Encima)>();
         double pIzq = 0, pDer = 0;
 
-        // Greedy L/R balance (heaviest first)
-        foreach (var p in pallets.OrderByDescending(p => p.PesoTotalKg))
+        // Greedy L/R balance por peso total del stack (más pesado primero)
+        foreach (var s in stacks.OrderByDescending(s => s.Piso.PesoTotalKg + (s.Encima?.PesoTotalKg ?? 0)))
         {
-            if (pIzq <= pDer) { izq.Add(p); pIzq += p.PesoTotalKg; }
-            else              { der.Add(p); pDer += p.PesoTotalKg; }
+            double w = s.Piso.PesoTotalKg + (s.Encima?.PesoTotalKg ?? 0);
+            if (pIzq <= pDer) { izq.Add(s); pIzq += w; }
+            else              { der.Add(s); pDer += w; }
         }
 
         int fila   = filaInicio;
@@ -192,9 +225,17 @@ public class ContenedorService
             if (fila > maxFil) break;
 
             if (i < izq.Count)
-                pos.Add(ToDto(izq[i], fila, "Izquierdo", destino, descMap));
+            {
+                pos.Add(ToDto(izq[i].Piso, fila, "Izquierdo", destino, descMap, 1));
+                if (izq[i].Encima is not null)
+                    pos.Add(ToDto(izq[i].Encima!, fila, "Izquierdo", destino, descMap, 2));
+            }
             if (i < der.Count)
-                pos.Add(ToDto(der[i], fila, "Derecho",   destino, descMap));
+            {
+                pos.Add(ToDto(der[i].Piso, fila, "Derecho", destino, descMap, 1));
+                if (der[i].Encima is not null)
+                    pos.Add(ToDto(der[i].Encima!, fila, "Derecho", destino, descMap, 2));
+            }
 
             fila++;
         }
@@ -203,7 +244,7 @@ public class ContenedorService
     }
 
     private static PosicionResultadoDto ToDto(Pallet p, int fila, string lado,
-        string destino, Dictionary<string, string> descMap) =>
+        string destino, Dictionary<string, string> descMap, int capa = 1) =>
         new()
         {
             Fila        = fila,
@@ -213,7 +254,7 @@ public class ContenedorService
             Descripcion = descMap.TryGetValue(p.Sku, out var d) ? d : "",
             PesoKg      = Math.Round(p.PesoTotalKg, 2),
             Piezas      = p.CantidadPiezas,
-            Capas       = 1,
+            Capa        = capa,
             AltoCm      = p.AltoCm,
             LargoCm     = p.LargoCm,
             AnchoCm     = p.AnchoCm,

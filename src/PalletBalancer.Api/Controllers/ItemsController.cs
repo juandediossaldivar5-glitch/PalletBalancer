@@ -64,7 +64,7 @@ public class ItemsController : ControllerBase
     {
         ModelNo           = d.ModelNo,           Descripcion       = d.Descripcion,
         SpPiezasPorPallet = d.SpPiezasPorPallet,  SpPesoKg          = d.SpPesoKg,
-        SpLargoCm         = d.SpLargoCm,          SpAnchoCm         = d.SpAnchoCm,   SpAltoCm  = d.SpAltoCm,
+        SpLargoCm         = d.SpLargoCm,          SpAnchoCm         = d.SpAnchoCm,   SpAltoCm  = d.SpAltoCm,  PuedeEstibar = d.PuedeEstibar,
         CajaPiezasPorCaja = d.CajaPiezasPorCaja,  CajaPesoKg        = d.CajaPesoKg,
         CajaLargoCm       = d.CajaLargoCm,        CajaAnchoCm       = d.CajaAnchoCm, CajaAltoCm = d.CajaAltoCm,
         PiezaPesoKg       = d.PiezaPesoKg,        PiezaLargoCm      = d.PiezaLargoCm,
@@ -75,7 +75,7 @@ public class ItemsController : ControllerBase
     {
         i.Descripcion       = d.Descripcion;
         i.SpPiezasPorPallet = d.SpPiezasPorPallet;  i.SpPesoKg   = d.SpPesoKg;
-        i.SpLargoCm         = d.SpLargoCm;           i.SpAnchoCm  = d.SpAnchoCm;   i.SpAltoCm   = d.SpAltoCm;
+        i.SpLargoCm         = d.SpLargoCm;           i.SpAnchoCm  = d.SpAnchoCm;   i.SpAltoCm   = d.SpAltoCm;  i.PuedeEstibar = d.PuedeEstibar;
         i.CajaPiezasPorCaja = d.CajaPiezasPorCaja;   i.CajaPesoKg = d.CajaPesoKg;
         i.CajaLargoCm       = d.CajaLargoCm;         i.CajaAnchoCm = d.CajaAnchoCm; i.CajaAltoCm = d.CajaAltoCm;
         i.PiezaPesoKg       = d.PiezaPesoKg;         i.PiezaLargoCm = d.PiezaLargoCm;
