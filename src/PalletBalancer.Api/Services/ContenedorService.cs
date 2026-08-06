@@ -188,6 +188,9 @@ public class ContenedorService
             PesoKg      = Math.Round(p.PesoTotalKg, 2),
             Piezas      = p.CantidadPiezas,
             Capas       = 1,
+            AltoCm      = p.AltoCm,
+            LargoCm     = p.LargoCm,
+            AnchoCm     = p.AnchoCm,
         };
 
     private static Pallet Build(string sku, int piezas, double pesoKg,

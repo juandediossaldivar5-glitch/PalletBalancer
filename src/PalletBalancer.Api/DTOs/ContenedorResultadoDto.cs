@@ -24,6 +24,9 @@ public class PosicionResultadoDto
     public double PesoKg      { get; set; }
     public int    Piezas      { get; set; }
     public int    Capas       { get; set; }
+    public double AltoCm      { get; set; }
+    public double LargoCm     { get; set; }
+    public double AnchoCm     { get; set; }
 }
 
 public class DestinoInfoDto

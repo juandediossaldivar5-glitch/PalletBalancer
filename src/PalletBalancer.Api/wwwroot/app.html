@@ -856,6 +856,33 @@
           </template>
         </div>
 
+        <!-- Vista lateral SVG -->
+        <div class="pb-card" style="padding:1.25rem">
+          <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.9px;color:var(--muted);margin-bottom:0.75rem">
+            <i class="bi bi-rulers"></i> Elevación lateral — vista de costado
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+            <!-- Lado Izquierdo -->
+            <div>
+              <div style="font-size:0.72rem;color:#88c4ff;font-weight:700;text-align:center;margin-bottom:0.35rem">
+                <i class="bi bi-arrow-left-short"></i> Lado Izquierdo
+              </div>
+              <div x-html="svgLateral('Izquierdo')" style="width:100%"></div>
+              <div style="text-align:center;margin-top:0.4rem;font-size:0.82rem;font-weight:700;color:#88c4ff"
+                   x-text="contenedor.pesoIzquierdoKg.toLocaleString('es-MX',{maximumFractionDigits:1}) + ' kg'"></div>
+            </div>
+            <!-- Lado Derecho -->
+            <div>
+              <div style="font-size:0.72rem;color:#ffb06b;font-weight:700;text-align:center;margin-bottom:0.35rem">
+                Lado Derecho <i class="bi bi-arrow-right-short"></i>
+              </div>
+              <div x-html="svgLateral('Derecho')" style="width:100%"></div>
+              <div style="text-align:center;margin-top:0.4rem;font-size:0.82rem;font-weight:700;color:#ffb06b"
+                   x-text="contenedor.pesoDerechoKg.toLocaleString('es-MX',{maximumFractionDigits:1}) + ' kg'"></div>
+            </div>
+          </div>
+        </div>
+
         <!-- Grid del contenedor -->
         <div class="pb-card" style="padding:1.25rem;overflow-x:auto">
           <div style="min-width:420px">
@@ -1244,6 +1271,80 @@ function app() {
     zonaEnFila(fila) {
       if (!this.contenedor?.destinos) return null;
       return this.contenedor.destinos.find(d => d.filaInicio === fila) ?? null;
+    },
+
+    svgLateral(lado) {
+      if (!this.contenedor) return '';
+      const FILAS = 26;
+      const VW = 780, VH = 190;
+      const PAD_L = 8, PAD_R = 8, PAD_T = 8, PAD_B = 28;
+      const innerW = VW - PAD_L - PAD_R;
+      const innerH = VH - PAD_T - PAD_B;
+      const cellW  = innerW / FILAS;
+      const MAX_ALTO_CM = 270; // altura interior contenedor
+      const scaleY = innerH / MAX_ALTO_CM;
+      const floorY = PAD_T + innerH;
+
+      const pos = this.contenedor.posiciones.filter(p => p.lado === lado);
+
+      // Fondos de zona por destino
+      let fondos = '';
+      const destColors = ['rgba(100,160,255,0.06)','rgba(255,176,107,0.06)','rgba(77,216,132,0.06)','rgba(212,0,26,0.05)'];
+      (this.contenedor.destinos || []).forEach((d, i) => {
+        const x = PAD_L + (d.filaInicio - 1) * cellW;
+        const w = (d.filaFin - d.filaInicio + 1) * cellW;
+        fondos += `<rect x="${x}" y="${PAD_T}" width="${w}" height="${innerH}" fill="${destColors[i % destColors.length]}"/>`;
+      });
+
+      // Líneas separadoras de zona
+      let separadores = '';
+      (this.contenedor.destinos || []).forEach(d => {
+        if (d.filaInicio > 1) {
+          const x = PAD_L + (d.filaInicio - 1) * cellW;
+          separadores += `<line x1="${x}" y1="${PAD_T}" x2="${x}" y2="${floorY}" stroke="rgba(255,255,255,0.18)" stroke-width="1" stroke-dasharray="4,3"/>`;
+        }
+      });
+
+      // Pallets
+      let pallets = '';
+      for (const p of pos) {
+        const altoCm  = p.altoCm  > 0 ? p.altoCm  : 150;
+        const largoCm = p.largoCm > 0 ? p.largoCm : 120;
+        const h = altoCm * scaleY;
+        const w = Math.min(cellW - 2, largoCm / 120 * cellW);
+        const x = PAD_L + (p.fila - 1) * cellW + (cellW - w) / 2;
+        const y = floorY - h;
+        const color = this.colorModelo(p.modelNo);
+        const tag = p.modelNo.slice(-6);
+        pallets += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="${color}28" stroke="${color}99" stroke-width="1.2" rx="2"/>`;
+        if (h > 18) {
+          pallets += `<text x="${(x + w/2).toFixed(1)}" y="${(y + Math.min(h/2 + 4, h - 4)).toFixed(1)}" text-anchor="middle" font-size="6.5" font-weight="700" fill="${color}">${tag}</text>`;
+        }
+        if (h > 30) {
+          pallets += `<text x="${(x + w/2).toFixed(1)}" y="${(floorY - 4).toFixed(1)}" text-anchor="middle" font-size="5.5" fill="rgba(255,255,255,0.5)">${p.pesoKg.toFixed(0)}kg</text>`;
+        }
+      }
+
+      // Números de fila (cada 5)
+      let nums = '';
+      for (let f = 1; f <= FILAS; f += 5) {
+        const x = PAD_L + (f - 1) * cellW + cellW / 2;
+        nums += `<text x="${x.toFixed(1)}" y="${(VH - 8).toFixed(1)}" text-anchor="middle" font-size="7" fill="rgba(255,255,255,0.28)">${f}</text>`;
+      }
+      nums += `<text x="${(PAD_L + innerW).toFixed(1)}" y="${(VH - 8).toFixed(1)}" text-anchor="middle" font-size="7" fill="rgba(255,255,255,0.28)">26</text>`;
+
+      // Etiquetas extremos
+      const lblY = floorY + 14;
+      const cabLabel  = `<text x="${PAD_L}" y="${lblY}" font-size="7" fill="rgba(255,255,255,0.35)">◀ Cabina</text>`;
+      const puerLabel = `<text x="${(PAD_L + innerW).toFixed(1)}" y="${lblY}" text-anchor="end" font-size="7" fill="rgba(255,255,255,0.35)">Puertas ▶</text>`;
+
+      // Piso y contorno
+      const piso    = `<line x1="${PAD_L}" y1="${floorY}" x2="${PAD_L + innerW}" y2="${floorY}" stroke="rgba(255,255,255,0.25)" stroke-width="1.5"/>`;
+      const contorno = `<rect x="${PAD_L}" y="${PAD_T}" width="${innerW}" height="${innerH}" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1" rx="4"/>`;
+
+      return `<svg viewBox="0 0 ${VW} ${VH}" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block">
+        ${contorno}${fondos}${separadores}${piso}${pallets}${nums}${cabLabel}${puerLabel}
+      </svg>`;
     },
 
     puedeEditar() {
