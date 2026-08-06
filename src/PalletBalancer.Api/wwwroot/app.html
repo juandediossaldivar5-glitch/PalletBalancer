@@ -777,6 +777,28 @@
         <span style="color:var(--muted);font-weight:400;font-size:0.85rem"
               x-text="seleccionados.length > 1 ? '— ' + seleccionados.length + ' FDOs' : '— FDO ' + (fdoActual?.fdoSlipNo ?? '')"></span>
       </h1>
+      <!-- Selector de tipo de contenedor -->
+      <div style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap">
+        <select class="pb-input" style="width:auto;padding-right:2rem" x-model="tipoContenedor">
+          <option value="20ft">20ft — 589 cm</option>
+          <option value="40ft">40ft — 1,200 cm</option>
+          <option value="40ft HC">40ft HC — 1,200 cm</option>
+          <option value="45ft HC">45ft HC — 1,351 cm</option>
+          <option value="53ft">53ft — 1,600 cm</option>
+        </select>
+        <button class="btn-ghost" style="white-space:nowrap" :disabled="cargandoContenedor"
+                @click="recalcularContenedor()">
+          <span x-show="cargandoContenedor" class="spinner"></span>
+          <i x-show="!cargandoContenedor" class="bi bi-arrow-clockwise"></i>
+          Recalcular
+        </button>
+        <template x-if="contenedor">
+          <span style="font-size:0.78rem;color:var(--muted)">
+            <span x-text="contenedor.filasDisponibles"></span> filas ·
+            <span x-text="contenedor.palletLargoCm + ' cm largo'"></span>
+          </span>
+        </template>
+      </div>
     </div>
 
     <!-- Cargando -->
@@ -898,7 +920,7 @@
             </div>
 
             <!-- Rows 1-26 (cabina → puertas) -->
-            <template x-for="fila in 26" :key="fila">
+            <template x-for="fila in (contenedor.filasDisponibles || 26)" :key="fila">
               <div>
                 <!-- Separador de zona cuando empieza un nuevo destino -->
                 <template x-if="zonaEnFila(fila)">
@@ -1126,6 +1148,7 @@ function app() {
     seleccionados:      [],
     ordenDescarga:      [],
     contenedorBack:     'detalle',
+    tipoContenedor:     '40ft HC',
     items:              [],
     itemActual:         null,
     itemForm:           {},
@@ -1213,10 +1236,18 @@ function app() {
       this.contenedor = null;
       this.contenedorBack = 'detalle';
       this.vista = 'contenedor';
-      const r = await this.api(`/api/fdos/${this.fdoActual.id}/contenedor`);
+      const r = await this.api(`/api/fdos/${this.fdoActual.id}/contenedor?tipo=${encodeURIComponent(this.tipoContenedor)}`);
       this.cargandoContenedor = false;
       if (!r || !r.ok) { this.alerta = 'Error al calcular el contenedor.'; this.vista = 'detalle'; return; }
       this.contenedor = await r.json();
+    },
+
+    async recalcularContenedor() {
+      if (this.contenedorBack === 'detalle' && this.fdoActual) {
+        await this.verContenedor();
+      } else {
+        await this.calcularContenedorMulti();
+      }
     },
 
     toggleSeleccion(id) {
@@ -1259,8 +1290,9 @@ function app() {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
-          fdoIds:        this.seleccionados,
-          ordenDescarga: this.ordenDescarga.length > 0 ? this.ordenDescarga : null
+          fdoIds:         this.seleccionados,
+          ordenDescarga:  this.ordenDescarga.length > 0 ? this.ordenDescarga : null,
+          tipoContenedor: this.tipoContenedor
         })
       });
       this.cargandoContenedor = false;
@@ -1275,13 +1307,13 @@ function app() {
 
     svgLateral(lado) {
       if (!this.contenedor) return '';
-      const FILAS = 26;
+      const FILAS = this.contenedor.filasDisponibles || 26;
       const VW = 780, VH = 190;
       const PAD_L = 8, PAD_R = 8, PAD_T = 8, PAD_B = 28;
       const innerW = VW - PAD_L - PAD_R;
       const innerH = VH - PAD_T - PAD_B;
       const cellW  = innerW / FILAS;
-      const MAX_ALTO_CM = 270; // altura interior contenedor
+      const MAX_ALTO_CM = this.contenedor.contenedorAltoCm || 270;
       const scaleY = innerH / MAX_ALTO_CM;
       const floorY = PAD_T + innerH;
 

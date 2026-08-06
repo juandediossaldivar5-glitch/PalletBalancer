@@ -12,6 +12,17 @@ public class ContenedorResultadoDto
     public List<string> Advertencias                { get; set; } = [];
     public int     TotalPallets                     { get; set; }
     public List<string> ModelosSinDatos             { get; set; } = [];
+
+    // Contenedor seleccionado
+    public string ContenedorTipo             { get; set; } = "";
+    public int    ContenedorLargoCm          { get; set; }
+    public int    ContenedorAnchoCm          { get; set; }
+    public int    ContenedorAltoCm           { get; set; }
+    public int    FilasDisponibles           { get; set; }
+
+    // Dimensión de tarima usada para el cálculo de filas
+    public double PalletLargoCm             { get; set; }
+    public double PalletAnchoCm             { get; set; }
 }
 
 public class PosicionResultadoDto

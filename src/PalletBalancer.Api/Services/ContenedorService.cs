@@ -6,16 +6,12 @@ namespace PalletBalancer.Api.Services;
 
 public class ContenedorService
 {
-    private const int FilasPorLado = 26;
-
-    /// <summary>
-    /// Calcula el plan de estiba para uno o varios FDOs.
-    /// ordenDescarga: lista de consignees en orden de descarga (índice 0 = primero en descargar,
-    /// cerca de puertas; último = último en descargar, cerca de cabina).
-    /// Si es null se ordena automáticamente (alfabético).
-    /// </summary>
-    public ContenedorResultadoDto Calcular(IEnumerable<Fdo> fdos, List<string>? ordenDescarga = null)
+    public ContenedorResultadoDto Calcular(
+        IEnumerable<Fdo> fdos,
+        List<string>? ordenDescarga  = null,
+        string?       tipoContenedor = null)
     {
+        var spec = ContenedorSpecs.Get(tipoContenedor);
         var sinDatos = new List<string>();
 
         // Agrupar pallets y descripciones por consignee
@@ -58,6 +54,27 @@ public class ContenedorService
             }
         }
 
+        // Calcular filas disponibles según dimensiones reales del contenedor
+        // Usamos el largo más común entre todos los pallets (moda); default 120 cm
+        var todosPallets = palletsPorDestino.Values.SelectMany(x => x).ToList();
+        double palletLargo = todosPallets
+            .Where(p => p.LargoCm > 0)
+            .GroupBy(p => p.LargoCm)
+            .OrderByDescending(g => g.Count())
+            .Select(g => g.Key)
+            .FirstOrDefault(120.0);
+        double palletAncho = todosPallets
+            .Where(p => p.AnchoCm > 0)
+            .GroupBy(p => p.AnchoCm)
+            .OrderByDescending(g => g.Count())
+            .Select(g => g.Key)
+            .FirstOrDefault(100.0);
+
+        int filasPorLado = palletLargo > 0
+            ? (int)Math.Floor((double)spec.LargoCm / palletLargo)
+            : 26;
+        if (filasPorLado < 1) filasPorLado = 1;
+
         // Determinar orden final (primer elemento = primero en descargar = filas de puertas)
         var destinosConPallets = palletsPorDestino
             .Where(kv => kv.Value.Count > 0)
@@ -90,7 +107,7 @@ public class ContenedorService
 
             // Filas necesarias: ceil(pallets / 2) porque cada fila tiene 2 lados
             int rowsNec  = (int)Math.Ceiling(pallets.Count / 2.0);
-            int filaFin  = Math.Min(filaActual + rowsNec - 1, FilasPorLado);
+            int filaFin  = Math.Min(filaActual + rowsNec - 1, filasPorLado);
 
             var (posDest, pIzq, pDer) = BalancearZona(
                 pallets, dest, filaActual, filaFin, descMap);
@@ -110,7 +127,7 @@ public class ContenedorService
             });
 
             filaActual = filaFin + 1;
-            if (filaActual > FilasPorLado) break;
+            if (filaActual > filasPorLado) break;
         }
 
         double mayor    = Math.Max(pesoIzq, pesoDer);
@@ -124,21 +141,30 @@ public class ContenedorService
         var pesoTotal = Math.Round(pesoIzq + pesoDer, 2);
         if (pesoTotal > 22_000)
             advertencias.Add($"Peso total ({pesoTotal} kg) excede la capacidad máxima del contenedor (22,000 kg).");
-        if (filaActual > FilasPorLado + 1)
-            advertencias.Add($"La carga requiere más posiciones de las disponibles en el contenedor.");
+        if (filaActual > filasPorLado + 1)
+            advertencias.Add($"La carga requiere más posiciones ({filaActual - 1}) de las disponibles en el contenedor {spec.Tipo} ({filasPorLado} filas).");
+        if (palletAncho * 2 > spec.AnchoCm)
+            advertencias.Add($"Dos tarimas lado a lado ({palletAncho * 2} cm) exceden el ancho interior del contenedor {spec.Tipo} ({spec.AnchoCm} cm).");
 
         return new ContenedorResultadoDto
         {
-            Posiciones          = posiciones.OrderBy(p => p.Fila).ThenBy(p => p.Lado).ToList(),
-            Destinos            = destinoInfos.OrderBy(d => d.OrdenDescarga).ToList(),
-            PesoIzquierdoKg    = Math.Round(pesoIzq, 2),
-            PesoDerechoKg      = Math.Round(pesoDer, 2),
-            PesoTotalKg        = pesoTotal,
-            DiferenciaPorcentual = difPorc,
-            DentroDeTolerancia  = difPorc <= 5,
-            Advertencias        = advertencias,
-            TotalPallets        = total,
-            ModelosSinDatos     = sinDatos,
+            Posiciones              = posiciones.OrderBy(p => p.Fila).ThenBy(p => p.Lado).ToList(),
+            Destinos                = destinoInfos.OrderBy(d => d.OrdenDescarga).ToList(),
+            PesoIzquierdoKg        = Math.Round(pesoIzq, 2),
+            PesoDerechoKg          = Math.Round(pesoDer, 2),
+            PesoTotalKg            = pesoTotal,
+            DiferenciaPorcentual   = difPorc,
+            DentroDeTolerancia     = difPorc <= 5,
+            Advertencias           = advertencias,
+            TotalPallets           = total,
+            ModelosSinDatos        = sinDatos,
+            ContenedorTipo         = spec.Tipo,
+            ContenedorLargoCm      = spec.LargoCm,
+            ContenedorAnchoCm      = spec.AnchoCm,
+            ContenedorAltoCm       = spec.AltoCm,
+            FilasDisponibles       = filasPorLado,
+            PalletLargoCm          = palletLargo,
+            PalletAnchoCm          = palletAncho,
         };
     }
 

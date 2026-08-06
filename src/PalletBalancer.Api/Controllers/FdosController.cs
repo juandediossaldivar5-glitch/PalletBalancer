@@ -117,7 +117,7 @@ public class FdosController : ControllerBase
     }
 
     [HttpGet("{id:int}/contenedor")]
-    public async Task<IActionResult> CalcularContenedor(int id)
+    public async Task<IActionResult> CalcularContenedor(int id, [FromQuery] string? tipo = null)
     {
         var fdo = await _db.Fdos
             .Include(f => f.Lineas)
@@ -126,7 +126,7 @@ public class FdosController : ControllerBase
         if (fdo is null) return NotFound();
         await CargarItemsEnLineas(fdo.Lineas);
 
-        var resultado = new ContenedorService().Calcular([fdo]);
+        var resultado = new ContenedorService().Calcular([fdo], tipoContenedor: tipo);
         return Ok(resultado);
     }
 
