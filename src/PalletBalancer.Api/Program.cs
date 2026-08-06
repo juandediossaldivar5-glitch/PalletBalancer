@@ -45,7 +45,15 @@ app.UseCors();
 app.UseSwagger();
 app.UseSwaggerUI();
 
-app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+app.MapGet("/health", () => Results.Ok(new { status = "ok", version = "v4" }));
+
+// Muestra qué prefijo tiene la connection string (sin exponer credenciales)
+app.MapGet("/debug/env", () =>
+{
+    var raw = Environment.GetEnvironmentVariable("DATABASE_URL") ?? "(no DATABASE_URL)";
+    var preview = raw.Length > 30 ? raw[..30] + "..." : raw;
+    return Results.Ok(new { DATABASE_URL_preview = preview, longitud = raw.Length });
+});
 
 // Endpoint temporal de diagnóstico — muestra error de DB si hay uno
 app.MapGet("/debug/db", async (AppDbContext db) =>
