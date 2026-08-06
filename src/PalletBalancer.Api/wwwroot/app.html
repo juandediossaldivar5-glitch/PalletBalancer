@@ -5,158 +5,482 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PalletBalancer</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>[x-cloak] { display: none !important; }</style>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <style>
+    [x-cloak] { display: none !important; }
+    *, *::before, *::after { box-sizing: border-box; }
+
+    :root {
+      --bg:       #0a0f1e;
+      --surface:  rgba(255,255,255,0.04);
+      --border:   rgba(255,255,255,0.08);
+      --text:     #e8eaf0;
+      --muted:    rgba(255,255,255,0.38);
+      --red:      #d4001a;
+      --red-dim:  rgba(212,0,26,0.15);
+      --green:    #1a8a45;
+      --green-dim:rgba(26,138,69,0.15);
+    }
+
+    html, body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+    }
+
+    /* ── NAVBAR ── */
+    .pb-nav {
+      background: rgba(10,15,30,0.95);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 0 1.5rem;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .pb-nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      text-decoration: none;
+      flex-shrink: 0;
+      margin-right: 0.5rem;
+    }
+    .pb-nav-brand img {
+      height: 36px;
+      border-radius: 6px;
+      background: #fff;
+      padding: 3px 8px;
+    }
+    .pb-nav-brand .brand-text {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: #fff;
+      letter-spacing: -0.2px;
+    }
+
+    .pb-nav-divider {
+      width: 1px;
+      height: 24px;
+      background: var(--border);
+      margin: 0 0.25rem;
+    }
+
+    .pb-nav-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 0.85rem;
+      font-weight: 500;
+      padding: 0.35rem 0.75rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      white-space: nowrap;
+    }
+    .pb-nav-btn:hover { background: rgba(255,255,255,0.06); color: #fff; }
+    .pb-nav-btn.active {
+      background: var(--red-dim);
+      border-color: rgba(212,0,26,0.3);
+      color: #ff6070;
+    }
+    .pb-nav-btn.danger { color: rgba(212,0,26,0.6); }
+    .pb-nav-btn.danger:hover { background: var(--red-dim); color: #ff6070; border-color: rgba(212,0,26,0.25); }
+
+    .pb-nav-spacer { flex: 1; }
+
+    .pb-user-chip {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 0.28rem 0.75rem;
+      font-size: 0.82rem;
+      white-space: nowrap;
+    }
+    .rol-badge {
+      font-size: 0.68rem;
+      font-weight: 700;
+      background: var(--red-dim);
+      color: #ff6070;
+      border-radius: 4px;
+      padding: 0.1rem 0.4rem;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── PAGE ── */
+    .pb-page { padding: 1.75rem 1.5rem; max-width: 1100px; margin: 0 auto; }
+
+    .pb-page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    .pb-page-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .pb-page-title i { color: #ff6070; }
+
+    /* ── CARD ── */
+    .pb-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    /* ── META GRID ── */
+    .meta-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(175px, 1fr)); gap: 1rem; }
+    .meta-item label { display: block; font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.9px; margin-bottom: 0.22rem; font-weight: 600; }
+    .meta-item span  { font-weight: 600; color: var(--text); font-size: 0.92rem; }
+
+    /* ── TABLE ── */
+    .pb-table { width: 100%; border-collapse: collapse; font-size: 0.87rem; }
+    .pb-table thead th {
+      background: rgba(255,255,255,0.03);
+      border-bottom: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.9px;
+      padding: 0.65rem 1rem;
+      text-align: left;
+    }
+    .pb-table tbody tr {
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      transition: background 0.12s;
+    }
+    .pb-table tbody tr:hover { background: rgba(255,255,255,0.03); }
+    .pb-table tbody tr:last-child { border-bottom: none; }
+    .pb-table tbody td { padding: 0.72rem 1rem; color: var(--text); vertical-align: middle; }
+    .pb-table .clickable { cursor: pointer; }
+    .pb-table .fdo-no { font-weight: 700; color: #ff8090; font-family: monospace; font-size: 0.92rem; }
+    .pb-table .model   { font-family: monospace; font-weight: 600; color: #88c4ff; font-size: 0.82rem; }
+    .pb-table .po-no   { font-family: monospace; font-size: 0.82rem; color: var(--muted); }
+    .pb-table .qty     { font-weight: 700; font-variant-numeric: tabular-nums; }
+    .pb-table .chevron { color: var(--muted); font-size: 0.75rem; }
+
+    .empty-state { text-align: center; padding: 3rem 1rem; color: var(--muted); }
+    .empty-state i { font-size: 2.2rem; display: block; margin-bottom: 0.75rem; opacity: 0.35; }
+    .empty-state p { margin: 0; font-size: 0.9rem; }
+
+    /* ── BUTTONS ── */
+    .btn-primary-grad {
+      background: linear-gradient(135deg, #d4001a, #8f0012);
+      border: none;
+      border-radius: 9px;
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.85rem;
+      padding: 0.55rem 1.15rem;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      box-shadow: 0 4px 14px rgba(212,0,26,0.25);
+    }
+    .btn-primary-grad:hover:not(:disabled) { opacity: 0.85; transform: translateY(-1px); }
+    .btn-primary-grad:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-ghost {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      color: var(--text);
+      font-size: 0.85rem;
+      font-weight: 500;
+      padding: 0.55rem 1rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .btn-ghost:hover { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.13); }
+
+    .btn-edit-sm    { background: rgba(100,160,255,0.12); color: #88c4ff; border: none; border-radius: 7px; font-size: 0.78rem; font-weight: 600; padding: 0.28rem 0.65rem; cursor: pointer; transition: opacity 0.15s; }
+    .btn-success-sm { background: var(--green-dim);       color: #4dd884; border: none; border-radius: 7px; font-size: 0.78rem; font-weight: 600; padding: 0.28rem 0.65rem; cursor: pointer; transition: opacity 0.15s; }
+    .btn-cancel-sm  { background: rgba(255,255,255,0.05); color: var(--muted); border: none; border-radius: 7px; font-size: 0.78rem; font-weight: 500; padding: 0.28rem 0.65rem; cursor: pointer; margin-left: 0.3rem; transition: opacity 0.15s; }
+    .btn-edit-sm:hover, .btn-success-sm:hover, .btn-cancel-sm:hover { opacity: 0.72; }
+
+    /* ── FORM (dark) ── */
+    .pb-input {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 9px;
+      color: #fff;
+      font-size: 0.88rem;
+      padding: 0.55rem 0.75rem;
+      width: 100%;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+    .pb-input:focus { border-color: rgba(212,0,26,0.55); box-shadow: 0 0 0 3px rgba(212,0,26,0.1); }
+    .pb-input::placeholder { color: rgba(255,255,255,0.18); }
+
+    .pb-input-sm {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 7px;
+      color: #fff;
+      font-size: 0.82rem;
+      padding: 0.3rem 0.55rem;
+      width: 100%;
+      outline: none;
+    }
+    .pb-input-sm:focus { border-color: rgba(212,0,26,0.5); }
+
+    .pb-label { display: block; font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.9px; margin-bottom: 0.35rem; font-weight: 700; }
+
+    /* ── ALERTS ── */
+    .pb-alert { border-radius: 10px; font-size: 0.87rem; padding: 0.72rem 1rem; display: flex; align-items: flex-start; gap: 0.6rem; margin-bottom: 1.25rem; }
+    .pb-alert-danger { background: var(--red-dim); border: 1px solid rgba(212,0,26,0.25); color: #ff8888; }
+    .pb-alert-info   { background: rgba(100,160,255,0.08); border: 1px solid rgba(100,160,255,0.2); color: #88b8ff; }
+
+    /* ── DROP ZONE ── */
+    .drop-zone {
+      border: 2px dashed rgba(255,255,255,0.1);
+      border-radius: 14px;
+      padding: 3rem 1.5rem;
+      text-align: center;
+      transition: all 0.2s;
+      cursor: pointer;
+      display: block;
+    }
+    .drop-zone:hover { border-color: rgba(212,0,26,0.45); background: var(--red-dim); }
+    .drop-zone i { font-size: 2.2rem; color: var(--muted); display: block; margin-bottom: 0.6rem; }
+    .drop-zone p { color: var(--muted); margin: 0; font-size: 0.87rem; }
+    .drop-zone .hint { font-size: 0.75rem; opacity: 0.5; margin-top: 0.4rem; }
+
+    /* ── SPINNER ── */
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.15); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── BACK ── */
+    .back-link { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--muted); font-size: 0.85rem; cursor: pointer; margin-bottom: 1.25rem; transition: color 0.15s; background: none; border: none; padding: 0; }
+    .back-link:hover { color: #fff; }
+
+    /* ── LOADING OVERLAY ── */
+    .loading-row td { padding: 2rem; text-align: center; color: var(--muted); }
+  </style>
 </head>
 <body x-data="app()" x-init="init()">
 
 <!-- NAVBAR -->
-<nav class="navbar navbar-dark bg-dark px-3 mb-4">
-  <span class="navbar-brand fw-bold">PalletBalancer</span>
-  <div class="d-flex gap-2 align-items-center flex-wrap">
-    <button class="btn btn-sm btn-outline-light" @click="irALista()">FDOs</button>
-    <button class="btn btn-sm btn-outline-light" @click="vista='importar'; importado=null">
-      Importar PDF
-    </button>
-    <span class="badge bg-secondary ms-2" x-text="usuario?.rol"></span>
-    <span class="text-light small" x-text="usuario?.username"></span>
-    <button class="btn btn-sm btn-outline-danger" @click="salir()">Salir</button>
+<nav class="pb-nav">
+  <a class="pb-nav-brand" href="#">
+    <img src="assets/logo-melco.jpg" alt="MELCO">
+    <span class="brand-text">PalletBalancer</span>
+  </a>
+
+  <div class="pb-nav-divider"></div>
+
+  <button class="pb-nav-btn" :class="{'active': vista==='lista'}" @click="irALista()">
+    <i class="bi bi-collection"></i> FDOs
+  </button>
+  <button class="pb-nav-btn" :class="{'active': vista==='importar'}"
+          @click="vista='importar'; importado=null">
+    <i class="bi bi-file-earmark-arrow-up"></i> Importar PDF
+  </button>
+
+  <div class="pb-nav-spacer"></div>
+
+  <div class="pb-user-chip" x-show="usuario">
+    <span class="rol-badge" x-text="usuario?.rol"></span>
+    <span x-text="usuario?.username"></span>
   </div>
+
+  <button class="pb-nav-btn danger" @click="salir()">
+    <i class="bi bi-box-arrow-right"></i> Salir
+  </button>
 </nav>
 
-<div class="container">
+<div class="pb-page">
 
   <!-- ALERTA GLOBAL -->
-  <div x-show="alerta" x-cloak class="alert alert-danger alert-dismissible mb-3" role="alert">
-    <span x-text="alerta"></span>
-    <button type="button" class="btn-close" @click="alerta=''"></button>
+  <div x-show="alerta" x-cloak class="pb-alert pb-alert-danger">
+    <i class="bi bi-exclamation-circle-fill" style="flex-shrink:0"></i>
+    <span x-text="alerta" style="flex:1"></span>
+    <button @click="alerta=''" style="background:none;border:none;color:inherit;cursor:pointer;font-size:1rem;padding:0;">
+      <i class="bi bi-x-lg"></i>
+    </button>
   </div>
 
   <!-- ============================================================ -->
   <!-- VISTA: LISTA                                                  -->
   <!-- ============================================================ -->
   <div x-show="vista==='lista'">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h5 class="mb-0">FDOs registrados</h5>
-      <button class="btn btn-primary btn-sm" @click="vista='importar'; importado=null">
-        + Importar PDF
+    <div class="pb-page-header">
+      <h1 class="pb-page-title">
+        <i class="bi bi-collection-fill"></i> FDOs registrados
+      </h1>
+      <button class="btn-primary-grad" @click="vista='importar'; importado=null">
+        <i class="bi bi-file-earmark-arrow-up"></i> Importar PDF
       </button>
     </div>
 
-    <div x-show="cargandoLista" class="text-muted mb-3">
-      <span class="spinner-border spinner-border-sm"></span> Cargando...
-    </div>
-
-    <table class="table table-hover table-bordered" x-show="!cargandoLista">
-      <thead class="table-dark">
-        <tr>
-          <th>FDO Slip No</th>
-          <th>Cliente</th>
-          <th>Consignatario</th>
-          <th>Fecha Embarque</th>
-        </tr>
-      </thead>
-      <tbody>
-        <template x-for="f in fdos" :key="f.id">
-          <tr style="cursor:pointer" @click="verDetalle(f.id)">
-            <td x-text="f.fdoSlipNo"></td>
-            <td x-text="f.customer"></td>
-            <td x-text="f.consignee"></td>
-            <td x-text="f.shipDate"></td>
+    <div class="pb-card" style="padding:0;overflow:hidden">
+      <table class="pb-table">
+        <thead>
+          <tr>
+            <th>FDO Slip No</th>
+            <th>Cliente</th>
+            <th>Consignatario</th>
+            <th>Fecha Embarque</th>
+            <th style="width:40px"></th>
           </tr>
-        </template>
-        <tr x-show="fdos.length === 0 && !cargandoLista">
-          <td colspan="4" class="text-center text-muted py-3">
-            Sin FDOs registrados. Importa el primero con el botón de arriba.
-          </td>
-        </tr>
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          <tr x-show="cargandoLista" class="loading-row">
+            <td colspan="5">
+              <span class="spinner" style="width:20px;height:20px;border-width:2.5px;margin-right:0.5rem"></span>
+              Cargando FDOs...
+            </td>
+          </tr>
+          <template x-if="!cargandoLista">
+            <template x-if="fdos.length > 0">
+              <template x-for="f in fdos" :key="f.id">
+                <tr class="clickable" @click="verDetalle(f.id)">
+                  <td><span class="fdo-no" x-text="f.fdoSlipNo"></span></td>
+                  <td x-text="f.customer"></td>
+                  <td x-text="f.consignee"></td>
+                  <td x-text="f.shipDate"></td>
+                  <td class="chevron"><i class="bi bi-chevron-right"></i></td>
+                </tr>
+              </template>
+            </template>
+          </template>
+          <template x-if="!cargandoLista && fdos.length === 0">
+            <tr>
+              <td colspan="5">
+                <div class="empty-state">
+                  <i class="bi bi-inbox"></i>
+                  <p>Sin FDOs registrados</p>
+                  <button class="btn-ghost" style="margin: 0.75rem auto 0; display:inline-flex"
+                          @click="vista='importar'; importado=null">
+                    <i class="bi bi-file-earmark-arrow-up"></i> Importar el primero
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <!-- ============================================================ -->
   <!-- VISTA: DETALLE                                                -->
   <!-- ============================================================ -->
   <div x-show="vista==='detalle'" x-cloak>
-    <button class="btn btn-secondary btn-sm mb-3" @click="irALista()">← Volver</button>
+    <button class="back-link" @click="irALista()">
+      <i class="bi bi-arrow-left"></i> Volver a FDOs
+    </button>
 
     <template x-if="fdoActual">
       <div>
-        <!-- Encabezado FDO -->
-        <div class="card mb-3">
-          <div class="card-body">
-            <div class="row g-2">
-              <div class="col-6 col-md-3">
-                <small class="text-muted d-block">FDO Slip No</small>
-                <strong x-text="fdoActual.fdoSlipNo"></strong>
-              </div>
-              <div class="col-6 col-md-3">
-                <small class="text-muted d-block">DSB Date</small>
-                <span x-text="fdoActual.dsbDate"></span>
-              </div>
-              <div class="col-6 col-md-3">
-                <small class="text-muted d-block">Ship Date</small>
-                <span x-text="fdoActual.shipDate"></span>
-              </div>
-              <div class="col-6 col-md-3">
-                <small class="text-muted d-block">Cliente</small>
-                <span x-text="fdoActual.customer"></span>
-              </div>
-              <div class="col-6 col-md-3 mt-2">
-                <small class="text-muted d-block">Consignatario</small>
-                <span x-text="fdoActual.consignee"></span>
-              </div>
+        <div class="pb-card mb-4">
+          <div class="meta-grid">
+            <div class="meta-item">
+              <label>FDO Slip No</label>
+              <span style="color:#ff8090;font-family:monospace" x-text="fdoActual.fdoSlipNo"></span>
+            </div>
+            <div class="meta-item">
+              <label>DSB Date</label>
+              <span x-text="fdoActual.dsbDate"></span>
+            </div>
+            <div class="meta-item">
+              <label>Ship Date</label>
+              <span x-text="fdoActual.shipDate"></span>
+            </div>
+            <div class="meta-item">
+              <label>Cliente</label>
+              <span x-text="fdoActual.customer"></span>
+            </div>
+            <div class="meta-item">
+              <label>Consignatario</label>
+              <span x-text="fdoActual.consignee"></span>
             </div>
           </div>
         </div>
 
-        <!-- Líneas -->
-        <table class="table table-bordered table-sm">
-          <thead class="table-secondary">
-            <tr>
-              <th>Customer PO No</th>
-              <th>Model No</th>
-              <th>Descripción</th>
-              <th>Req Qty</th>
-              <th x-show="puedeEditar()">Acción</th>
-            </tr>
-          </thead>
-          <tbody>
-            <template x-for="l in fdoActual.lineas" :key="l.id">
+        <div class="pb-page-header" style="margin-bottom:0.75rem">
+          <h2 class="pb-page-title" style="font-size:0.95rem">
+            <i class="bi bi-table"></i> Líneas de producto
+          </h2>
+        </div>
+
+        <div class="pb-card" style="padding:0;overflow:hidden">
+          <table class="pb-table">
+            <thead>
               <tr>
-                <td x-text="l.customerPoNo"></td>
-                <td x-text="l.modelNo"></td>
-                <td x-text="l.item?.descripcion ?? ''"></td>
-                <td>
-                  <span x-show="editandoLinea !== l.id" x-text="l.reqQty"></span>
-                  <input x-show="editandoLinea === l.id"
-                         x-cloak
-                         type="number" min="1"
-                         class="form-control form-control-sm d-inline-block"
-                         style="width:90px"
-                         x-model.number="editQty">
-                </td>
-                <td x-show="puedeEditar()">
-                  <button x-show="editandoLinea !== l.id"
-                          class="btn btn-outline-primary btn-sm"
-                          @click="editandoLinea = l.id; editQty = l.reqQty">
-                    Editar
-                  </button>
-                  <template x-if="editandoLinea === l.id">
-                    <span>
-                      <button class="btn btn-success btn-sm" @click="guardarCantidad(l)">
-                        Guardar
-                      </button>
-                      <button class="btn btn-secondary btn-sm ms-1"
-                              @click="editandoLinea = null">
-                        Cancelar
-                      </button>
-                    </span>
-                  </template>
-                </td>
+                <th>Customer PO No</th>
+                <th>Model No</th>
+                <th>Descripción</th>
+                <th>Req Qty</th>
+                <th x-show="puedeEditar()" style="width:140px">Acción</th>
               </tr>
-            </template>
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              <template x-for="l in fdoActual.lineas" :key="l.id">
+                <tr>
+                  <td class="po-no" x-text="l.customerPoNo"></td>
+                  <td class="model" x-text="l.modelNo"></td>
+                  <td style="color:var(--muted);font-size:0.82rem" x-text="l.item?.descripcion ?? ''"></td>
+                  <td>
+                    <span x-show="editandoLinea !== l.id" class="qty" x-text="l.reqQty.toLocaleString()"></span>
+                    <input x-show="editandoLinea === l.id"
+                           x-cloak
+                           type="number" min="1"
+                           class="pb-input-sm"
+                           style="width:90px"
+                           x-model.number="editQty">
+                  </td>
+                  <td x-show="puedeEditar()">
+                    <button x-show="editandoLinea !== l.id"
+                            class="btn-edit-sm"
+                            @click="editandoLinea = l.id; editQty = l.reqQty">
+                      <i class="bi bi-pencil-fill"></i> Editar
+                    </button>
+                    <template x-if="editandoLinea === l.id">
+                      <span>
+                        <button class="btn-success-sm" @click="guardarCantidad(l)">
+                          <i class="bi bi-check-lg"></i> Guardar
+                        </button>
+                        <button class="btn-cancel-sm" @click="editandoLinea = null">Cancelar</button>
+                      </span>
+                    </template>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
       </div>
     </template>
   </div>
@@ -165,86 +489,107 @@
   <!-- VISTA: IMPORTAR                                               -->
   <!-- ============================================================ -->
   <div x-show="vista==='importar'" x-cloak>
-    <h5 class="mb-3">Importar FDO desde PDF</h5>
+    <button class="back-link" @click="irALista()">
+      <i class="bi bi-arrow-left"></i> Volver a FDOs
+    </button>
+    <div class="pb-page-header">
+      <h1 class="pb-page-title">
+        <i class="bi bi-file-earmark-arrow-up"></i> Importar FDO desde PDF
+      </h1>
+    </div>
 
-    <!-- Paso 1: seleccionar archivo -->
+    <!-- Paso 1 -->
     <div x-show="!importado">
-      <div class="mb-3" style="max-width:400px">
-        <label class="form-label">Selecciona el PDF del FDO</label>
-        <input type="file" class="form-control" accept=".pdf"
-               @change="importarPdf($event)" :disabled="cargandoImport"
-               x-ref="inputPdf">
+      <label class="drop-zone" x-show="!cargandoImport">
+        <i class="bi bi-cloud-upload"></i>
+        <p>Arrastra el PDF aquí o haz clic para seleccionar</p>
+        <p class="hint">Formato FDO — MD Logis</p>
+        <input type="file" accept=".pdf" style="display:none"
+               @change="importarPdf($event)" x-ref="inputPdf">
+      </label>
+
+      <div class="pb-card" x-show="cargandoImport" style="text-align:center;padding:2.5rem">
+        <span class="spinner" style="width:28px;height:28px;border-width:3px"></span>
+        <p style="color:var(--muted);margin:1rem 0 0;font-size:0.88rem">Procesando PDF...</p>
       </div>
-      <div x-show="cargandoImport" class="text-muted mb-3">
-        <span class="spinner-border spinner-border-sm"></span> Procesando PDF...
-      </div>
-      <button class="btn btn-secondary btn-sm" @click="irALista()">Cancelar</button>
     </div>
 
-    <!-- Paso 2: confirmar datos parseados -->
+    <!-- Paso 2 -->
     <div x-show="importado" x-cloak>
-      <div class="alert alert-info py-2 mb-3">
-        Revisa y corrige los datos antes de guardar. Los campos en blanco no se pudieron leer del PDF.
+      <div class="pb-alert pb-alert-info">
+        <i class="bi bi-info-circle-fill" style="flex-shrink:0"></i>
+        Revisa los datos antes de guardar. Los campos vacíos no pudieron leerse del PDF.
       </div>
 
-      <div class="row g-3 mb-3">
-        <div class="col-6 col-md-3">
-          <label class="form-label">FDO Slip No</label>
-          <input class="form-control" x-model="importado.fdoSlipNo" required>
-        </div>
-        <div class="col-6 col-md-3">
-          <label class="form-label">DSB Date</label>
-          <input class="form-control" type="date" x-model="importado.dsbDate" required>
-        </div>
-        <div class="col-6 col-md-3">
-          <label class="form-label">Ship Date</label>
-          <input class="form-control" type="date" x-model="importado.shipDate" required>
-        </div>
-        <div class="col-6 col-md-3">
-          <label class="form-label">Cliente</label>
-          <input class="form-control" x-model="importado.customer">
-        </div>
-        <div class="col-6 col-md-3">
-          <label class="form-label">Consignatario</label>
-          <input class="form-control" x-model="importado.consignee">
+      <div class="pb-card mb-3">
+        <div class="row g-3">
+          <div class="col-6 col-md-2">
+            <label class="pb-label">FDO Slip No</label>
+            <input class="pb-input" x-model="importado.fdoSlipNo" required>
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="pb-label">DSB Date</label>
+            <input class="pb-input" type="date" x-model="importado.dsbDate" required>
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="pb-label">Ship Date</label>
+            <input class="pb-input" type="date" x-model="importado.shipDate" required>
+          </div>
+          <div class="col-12 col-md-3">
+            <label class="pb-label">Cliente</label>
+            <input class="pb-input" x-model="importado.customer">
+          </div>
+          <div class="col-12 col-md-3">
+            <label class="pb-label">Consignatario</label>
+            <input class="pb-input" x-model="importado.consignee">
+          </div>
         </div>
       </div>
 
-      <table class="table table-bordered table-sm mb-3">
-        <thead class="table-secondary">
-          <tr><th>Customer PO No</th><th>Model No</th><th>Req Qty</th></tr>
-        </thead>
-        <tbody>
-          <template x-for="(l, i) in importado.lineas" :key="i">
+      <div class="pb-card" style="padding:0;overflow:hidden;margin-bottom:1.25rem">
+        <table class="pb-table">
+          <thead>
             <tr>
-              <td><input class="form-control form-control-sm" x-model="l.customerPoNo"></td>
-              <td><input class="form-control form-control-sm" x-model="l.modelNo"></td>
-              <td><input class="form-control form-control-sm" type="number" min="1"
-                         x-model.number="l.reqQty"></td>
+              <th>Customer PO No</th>
+              <th>Model No</th>
+              <th>Req Qty</th>
             </tr>
-          </template>
-          <tr x-show="importado.lineas.length === 0">
-            <td colspan="3" class="text-muted text-center">
-              No se detectaron líneas de producto. Agrégalas manualmente.
-            </td>
-          </tr>
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            <template x-for="(l, i) in importado.lineas" :key="i">
+              <tr>
+                <td><input class="pb-input-sm" x-model="l.customerPoNo"></td>
+                <td><input class="pb-input-sm" x-model="l.modelNo"></td>
+                <td><input class="pb-input-sm" type="number" min="1" x-model.number="l.reqQty" style="width:100px"></td>
+              </tr>
+            </template>
+            <tr x-show="importado.lineas.length === 0">
+              <td colspan="3">
+                <div class="empty-state" style="padding:1.5rem">
+                  <i class="bi bi-table" style="font-size:1.5rem;margin-bottom:0.4rem;opacity:0.3"></i>
+                  <p>No se detectaron líneas de producto.</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-      <div class="d-flex gap-2">
-        <button class="btn btn-success" @click="confirmarImport()" :disabled="guardando">
-          <span x-show="guardando" class="spinner-border spinner-border-sm me-1"></span>
-          Confirmar y Guardar
+      <div style="display:flex;gap:0.75rem;flex-wrap:wrap">
+        <button class="btn-primary-grad" @click="confirmarImport()" :disabled="guardando">
+          <span x-show="guardando" class="spinner" style="border-top-color:#fff"></span>
+          <i x-show="!guardando" class="bi bi-cloud-check-fill"></i>
+          <span x-text="guardando ? 'Guardando...' : 'Confirmar y Guardar'"></span>
         </button>
-        <button class="btn btn-outline-secondary" @click="importado = null; $refs.inputPdf.value = ''">
-          Volver a seleccionar
+        <button class="btn-ghost" @click="importado = null; $refs.inputPdf.value = ''">
+          <i class="bi bi-arrow-counterclockwise"></i> Volver a seleccionar
         </button>
-        <button class="btn btn-secondary" @click="irALista()">Cancelar</button>
+        <button class="btn-ghost" @click="irALista()">Cancelar</button>
       </div>
     </div>
-  </div>
 
-</div><!-- /container -->
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js" defer></script>
 <script>
@@ -266,7 +611,6 @@ function app() {
       const token = localStorage.getItem('pb_token');
       if (!token) { window.location.href = 'index.html'; return; }
 
-      // Verificar expiración del token (campo "exp" en payload JWT)
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
         if (payload.exp * 1000 < Date.now()) { this.salir(); return; }
@@ -280,7 +624,6 @@ function app() {
 
     token() { return localStorage.getItem('pb_token'); },
 
-    // Helper para fetch con Authorization header; redirige a login si 401
     async api(url, opts = {}) {
       const headers = {
         'Authorization': 'Bearer ' + this.token(),
@@ -309,7 +652,7 @@ function app() {
     async verDetalle(id) {
       const r = await this.api(`/api/fdos/${id}`);
       if (!r || !r.ok) { this.alerta = 'Error al cargar el FDO.'; return; }
-      this.fdoActual    = await r.json();
+      this.fdoActual     = await r.json();
       this.editandoLinea = null;
       this.vista         = 'detalle';
     },
