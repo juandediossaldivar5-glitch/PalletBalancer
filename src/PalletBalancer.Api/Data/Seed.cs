@@ -1,4 +1,5 @@
 using System.Text.Json;
+using BCrypt.Net;
 using Microsoft.EntityFrameworkCore;
 using PalletBalancer.Api.Models;
 
@@ -42,10 +43,18 @@ public static class Seed
         await db.SaveChangesAsync();
     }
 
-    public static Task SeedUsuarioAdminAsync(AppDbContext db)
+    public static async Task SeedUsuarioAdminAsync(AppDbContext db)
     {
-        // Implementado en Task 3 (AuthController + modelo Usuario)
-        return Task.CompletedTask;
+        if (await db.Usuarios.AnyAsync()) return;
+
+        db.Usuarios.Add(new Usuario
+        {
+            Username     = "admin",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin1234!"),
+            Rol          = "ADM",
+            Activo       = true
+        });
+        await db.SaveChangesAsync();
     }
 
     private class CatalogoJson { public List<EntradaJson> Items { get; set; } = []; }
