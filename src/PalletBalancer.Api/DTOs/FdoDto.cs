@@ -14,5 +14,6 @@ public class FdoLineaDto
 {
     public string CustomerPoNo { get; set; } = string.Empty;
     public string ModelNo      { get; set; } = string.Empty;
+    public string Descripcion  { get; set; } = string.Empty;
     public int    ReqQty       { get; set; }
 }

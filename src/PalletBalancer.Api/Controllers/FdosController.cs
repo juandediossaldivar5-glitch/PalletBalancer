@@ -54,6 +54,30 @@ public class FdosController : ControllerBase
 
         _db.Fdos.Add(fdo);
         await _db.SaveChangesAsync();
+
+        // Auto-registrar modelos nuevos en el catálogo (sin datos de SP — quedan pendientes)
+        var modelNos   = dto.Lineas.Select(l => l.ModelNo).ToHashSet();
+        var existentes = await _db.Items
+            .Where(i => modelNos.Contains(i.ModelNo))
+            .Select(i => i.ModelNo)
+            .ToHashSetAsync();
+
+        var nuevosItems = dto.Lineas
+            .Where(l => !existentes.Contains(l.ModelNo))
+            .GroupBy(l => l.ModelNo)
+            .Select(g => new Item
+            {
+                ModelNo    = g.Key,
+                Descripcion = g.First().Descripcion
+            })
+            .ToList();
+
+        if (nuevosItems.Count > 0)
+        {
+            _db.Items.AddRange(nuevosItems);
+            await _db.SaveChangesAsync();
+        }
+
         return CreatedAtAction(nameof(ObtenerPorId), new { id = fdo.Id }, fdo);
     }
 

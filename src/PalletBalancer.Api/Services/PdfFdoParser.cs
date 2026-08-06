@@ -102,10 +102,15 @@ public static class PdfFdoParser
                 // Customer PO No: primer token de ≥7 dígitos puros
                 var poNo = partes.FirstOrDefault(p => p.Length >= 7 && p.All(char.IsDigit)) ?? "";
 
+                // Descripción: último segmento tras " - " en la misma línea
+                var guionIdx  = linea.LastIndexOf(" - ");
+                var descripcion = guionIdx >= 0 ? linea[(guionIdx + 3)..].Trim() : "";
+
                 pendiente = new FdoLineaDto
                 {
                     CustomerPoNo = poNo,
                     ModelNo      = m.Value,
+                    Descripcion  = descripcion,
                     ReqQty       = 0
                 };
                 continue;

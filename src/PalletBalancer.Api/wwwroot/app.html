@@ -922,11 +922,24 @@
     <div class="pb-page-header">
       <h1 class="pb-page-title">
         <i class="bi bi-box2-fill"></i> Catálogo de modelos
+        <template x-if="items.filter(i => !i.spPiezasPorPallet).length > 0">
+          <span style="background:var(--red-dim);color:#ff6070;border:1px solid rgba(212,0,26,0.3);border-radius:20px;font-size:0.72rem;font-weight:700;padding:0.15rem 0.65rem;letter-spacing:0.3px"
+                x-text="items.filter(i => !i.spPiezasPorPallet).length + ' pendiente(s)'"></span>
+        </template>
       </h1>
       <button class="btn-primary-grad" x-show="puedeEditar()" @click="nuevoItem()">
         <i class="bi bi-plus-lg"></i> Nuevo modelo
       </button>
     </div>
+
+    <template x-if="items.filter(i => !i.spPiezasPorPallet).length > 0">
+      <div class="pb-alert pb-alert-danger" style="margin-bottom:1rem">
+        <i class="bi bi-exclamation-triangle-fill" style="flex-shrink:0"></i>
+        <span style="font-size:0.87rem">
+          Hay modelos sin datos de pallet. El contenedor los excluirá del cálculo hasta que se completen.
+        </span>
+      </div>
+    </template>
 
     <div class="pb-card" style="padding:0;overflow:hidden">
       <table class="pb-table">
@@ -950,10 +963,15 @@
             </td>
           </tr>
           <template x-for="item in items" :key="item.modelNo">
-            <tr>
-              <td class="model" x-text="item.modelNo"></td>
+            <tr :style="!item.spPiezasPorPallet ? 'background:rgba(212,0,26,0.04)' : ''">
+              <td>
+                <span class="model" x-text="item.modelNo"></span>
+                <template x-if="!item.spPiezasPorPallet">
+                  <span style="margin-left:0.4rem;font-size:0.65rem;font-weight:700;background:var(--red-dim);color:#ff6070;border-radius:4px;padding:0.1rem 0.4rem;vertical-align:middle">INCOMPLETO</span>
+                </template>
+              </td>
               <td style="font-size:0.85rem" x-text="item.descripcion"></td>
-              <td style="text-align:right;font-variant-numeric:tabular-nums" x-text="item.spPiezasPorPallet || '—'"></td>
+              <td style="text-align:right;font-variant-numeric:tabular-nums" :style="!item.spPiezasPorPallet ? 'color:#ff6070;font-weight:700' : ''" x-text="item.spPiezasPorPallet || '—'"></td>
               <td style="text-align:right;font-variant-numeric:tabular-nums" x-text="item.spPesoKg || '—'"></td>
               <td style="text-align:right;color:var(--muted);font-size:0.82rem" x-text="item.spLargoCm ? item.spLargoCm + ' cm' : '—'"></td>
               <td style="text-align:right;color:var(--muted);font-size:0.82rem" x-text="item.spAnchoCm ? item.spAnchoCm + ' cm' : '—'"></td>
