@@ -81,6 +81,17 @@ public class FdosController : ControllerBase
         return CreatedAtAction(nameof(ObtenerPorId), new { id = fdo.Id }, fdo);
     }
 
+    [HttpDelete("{id:int}")]
+    [Authorize(Roles = "ADM")]
+    public async Task<IActionResult> Eliminar(int id)
+    {
+        var fdo = await _db.Fdos.Include(f => f.Lineas).FirstOrDefaultAsync(f => f.Id == id);
+        if (fdo is null) return NotFound();
+        _db.Fdos.Remove(fdo);
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
     [HttpPost("importar")]
     [Authorize]
     public IActionResult Importar(IFormFile archivo)

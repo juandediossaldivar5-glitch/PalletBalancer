@@ -546,9 +546,16 @@
           <h2 class="pb-page-title" style="font-size:0.95rem">
             <i class="bi bi-table"></i> Líneas de producto
           </h2>
-          <button class="btn-primary-grad" @click="verContenedor()">
-            <i class="bi bi-box-seam"></i> Ver Contenedor
-          </button>
+          <div style="display:flex;gap:0.6rem;align-items:center">
+            <button class="btn-primary-grad" @click="verContenedor()">
+              <i class="bi bi-box-seam"></i> Ver Contenedor
+            </button>
+            <button x-show="usuario?.rol === 'ADM'" class="btn-ghost"
+                    style="color:#ff6070;border-color:rgba(212,0,26,0.25)"
+                    @click="eliminarFdo()">
+              <i class="bi bi-trash3"></i> Eliminar FDO
+            </button>
+          </div>
         </div>
 
         <div class="pb-card" style="padding:0;overflow:hidden">
@@ -1293,6 +1300,13 @@ function app() {
         return;
       }
       this.importado = null;
+      this.irALista();
+    },
+
+    async eliminarFdo() {
+      if (!confirm(`¿Eliminar FDO ${this.fdoActual.fdoSlipNo}? Esta acción no se puede deshacer.`)) return;
+      const r = await this.api(`/api/fdos/${this.fdoActual.id}`, { method: 'DELETE' });
+      if (!r || !r.ok) { this.alerta = 'Error al eliminar el FDO.'; return; }
       this.irALista();
     },
 
