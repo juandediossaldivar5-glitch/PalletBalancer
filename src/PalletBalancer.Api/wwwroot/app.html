@@ -115,6 +115,7 @@
             <tr>
               <th>Customer PO No</th>
               <th>Model No</th>
+              <th>Descripción</th>
               <th>Req Qty</th>
               <th x-show="puedeEditar()">Acción</th>
             </tr>
@@ -124,6 +125,7 @@
               <tr>
                 <td x-text="l.customerPoNo"></td>
                 <td x-text="l.modelNo"></td>
+                <td x-text="l.item?.descripcion ?? ''"></td>
                 <td>
                   <span x-show="editandoLinea !== l.id" x-text="l.reqQty"></span>
                   <input x-show="editandoLinea === l.id"

@@ -29,6 +29,7 @@ public class FdosController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize]
     public async Task<IActionResult> Crear(FdoDto dto)
     {
         if (await _db.Fdos.AnyAsync(f => f.FdoSlipNo == dto.FdoSlipNo))
