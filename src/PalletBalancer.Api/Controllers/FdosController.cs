@@ -65,4 +65,18 @@ public class FdosController : ControllerBase
         var dto = PdfFdoParser.Parsear(stream);
         return Ok(dto);
     }
+
+    [HttpPatch("{id:int}/lineas/{lineaId:int}")]
+    [Authorize(Roles = "AMG,ADM")]
+    public async Task<IActionResult> PatchCantidad(int id, int lineaId, PatchCantidadDto dto)
+    {
+        var linea = await _db.FdoLineas
+            .FirstOrDefaultAsync(l => l.Id == lineaId && l.FdoId == id);
+
+        if (linea is null) return NotFound();
+
+        linea.ReqQty = dto.ReqQty;
+        await _db.SaveChangesAsync();
+        return Ok(linea);
+    }
 }
