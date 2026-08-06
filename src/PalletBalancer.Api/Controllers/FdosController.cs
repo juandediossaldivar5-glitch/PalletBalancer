@@ -1,8 +1,10 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PalletBalancer.Api.Data;
 using PalletBalancer.Api.DTOs;
 using PalletBalancer.Api.Models;
+using PalletBalancer.Api.Services;
 
 namespace PalletBalancer.Api.Controllers;
 
@@ -50,5 +52,17 @@ public class FdosController : ControllerBase
         _db.Fdos.Add(fdo);
         await _db.SaveChangesAsync();
         return CreatedAtAction(nameof(ObtenerPorId), new { id = fdo.Id }, fdo);
+    }
+
+    [HttpPost("importar")]
+    [Authorize]
+    public IActionResult Importar(IFormFile archivo)
+    {
+        if (archivo is null || archivo.Length == 0)
+            return BadRequest(new { mensaje = "Se requiere un archivo PDF." });
+
+        using var stream = archivo.OpenReadStream();
+        var dto = PdfFdoParser.Parsear(stream);
+        return Ok(dto);
     }
 }
