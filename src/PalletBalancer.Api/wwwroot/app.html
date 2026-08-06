@@ -398,6 +398,10 @@
           @click="vista='importar'; importado=null">
     <i class="bi bi-file-earmark-arrow-up"></i> Importar PDF
   </button>
+  <button class="pb-nav-btn" :class="{'active': vista==='catalogo' || vista==='editarItem'}"
+          @click="verCatalogo()">
+    <i class="bi bi-box2"></i> Catálogo
+  </button>
 
   <div class="pb-nav-spacer"></div>
 
@@ -910,6 +914,144 @@
     </template>
   </div>
 
+
+  <!-- ============================================================ -->
+  <!-- VISTA: CATÁLOGO DE MODELOS                                    -->
+  <!-- ============================================================ -->
+  <div x-show="vista==='catalogo'" x-cloak>
+    <div class="pb-page-header">
+      <h1 class="pb-page-title">
+        <i class="bi bi-box2-fill"></i> Catálogo de modelos
+      </h1>
+      <button class="btn-primary-grad" x-show="puedeEditar()" @click="nuevoItem()">
+        <i class="bi bi-plus-lg"></i> Nuevo modelo
+      </button>
+    </div>
+
+    <div class="pb-card" style="padding:0;overflow:hidden">
+      <table class="pb-table">
+        <thead>
+          <tr>
+            <th>Model No</th>
+            <th>Descripción</th>
+            <th style="text-align:right">Pzs/Pallet</th>
+            <th style="text-align:right">Peso SP (kg)</th>
+            <th style="text-align:right">Largo</th>
+            <th style="text-align:right">Ancho</th>
+            <th style="text-align:right">Alto</th>
+            <th x-show="puedeEditar()" style="width:80px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr x-show="cargandoCatalogo" class="loading-row">
+            <td colspan="8">
+              <span class="spinner" style="width:18px;height:18px;border-width:2px;margin-right:0.5rem"></span>
+              Cargando catálogo...
+            </td>
+          </tr>
+          <template x-for="item in items" :key="item.modelNo">
+            <tr>
+              <td class="model" x-text="item.modelNo"></td>
+              <td style="font-size:0.85rem" x-text="item.descripcion"></td>
+              <td style="text-align:right;font-variant-numeric:tabular-nums" x-text="item.spPiezasPorPallet || '—'"></td>
+              <td style="text-align:right;font-variant-numeric:tabular-nums" x-text="item.spPesoKg || '—'"></td>
+              <td style="text-align:right;color:var(--muted);font-size:0.82rem" x-text="item.spLargoCm ? item.spLargoCm + ' cm' : '—'"></td>
+              <td style="text-align:right;color:var(--muted);font-size:0.82rem" x-text="item.spAnchoCm ? item.spAnchoCm + ' cm' : '—'"></td>
+              <td style="text-align:right;color:var(--muted);font-size:0.82rem" x-text="item.spAltoCm  ? item.spAltoCm  + ' cm' : '—'"></td>
+              <td x-show="puedeEditar()">
+                <button class="btn-edit-sm" @click="editarItem(item)">
+                  <i class="bi bi-pencil-fill"></i> Editar
+                </button>
+              </td>
+            </tr>
+          </template>
+          <tr x-show="!cargandoCatalogo && items.length === 0">
+            <td colspan="8">
+              <div class="empty-state">
+                <i class="bi bi-box2"></i>
+                <p>Sin modelos en el catálogo</p>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- VISTA: EDITAR / NUEVO MODELO                                  -->
+  <!-- ============================================================ -->
+  <div x-show="vista==='editarItem'" x-cloak>
+    <button class="back-link" @click="verCatalogo()">
+      <i class="bi bi-arrow-left"></i> Volver al catálogo
+    </button>
+    <div class="pb-page-header">
+      <h1 class="pb-page-title">
+        <i class="bi bi-pencil-square"></i>
+        <span x-text="itemActual ? 'Editar modelo — ' + itemActual.modelNo : 'Nuevo modelo'"></span>
+      </h1>
+    </div>
+
+    <div class="pb-card" style="max-width:680px">
+      <div class="row g-3">
+        <!-- Model No — solo editable en creación -->
+        <div class="col-12 col-md-4">
+          <label class="pb-label">Model No <span style="color:#ff6070">*</span></label>
+          <input class="pb-input" x-model="itemForm.modelNo" :disabled="!!itemActual"
+                 placeholder="K006T91071XB"
+                 :style="itemActual ? 'opacity:0.5' : ''">
+        </div>
+        <div class="col-12 col-md-8">
+          <label class="pb-label">Descripción <span style="color:#ff6070">*</span></label>
+          <input class="pb-input" x-model="itemForm.descripcion" placeholder="Ej. 4G-VCT MPC">
+        </div>
+
+        <!-- Separador Standard Pack -->
+        <div class="col-12">
+          <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.9px;color:var(--muted);padding-top:0.5rem;border-top:1px solid var(--border)">
+            Standard Pack (por pallet)
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="pb-label">Piezas/Pallet <span style="color:#ff6070">*</span></label>
+          <input class="pb-input" type="number" min="1" x-model.number="itemForm.spPiezasPorPallet" placeholder="0">
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="pb-label">Peso (kg)</label>
+          <input class="pb-input" type="number" min="0" step="0.01" x-model.number="itemForm.spPesoKg" placeholder="0.00">
+        </div>
+        <div class="col-4 col-md-2">
+          <label class="pb-label">Largo (cm)</label>
+          <input class="pb-input" type="number" min="0" step="0.1" x-model.number="itemForm.spLargoCm" placeholder="120">
+        </div>
+        <div class="col-4 col-md-2">
+          <label class="pb-label">Ancho (cm)</label>
+          <input class="pb-input" type="number" min="0" step="0.1" x-model.number="itemForm.spAnchoCm" placeholder="120">
+        </div>
+        <div class="col-4 col-md-2">
+          <label class="pb-label">Alto (cm)</label>
+          <input class="pb-input" type="number" min="0" step="0.1" x-model.number="itemForm.spAltoCm" placeholder="66">
+        </div>
+
+        <!-- Botones -->
+        <div class="col-12" style="display:flex;gap:0.75rem;padding-top:0.25rem">
+          <button class="btn-primary-grad" @click="guardarItem()" :disabled="guardandoItem">
+            <span x-show="guardandoItem" class="spinner" style="border-top-color:#fff"></span>
+            <i x-show="!guardandoItem" class="bi bi-cloud-check-fill"></i>
+            <span x-text="guardandoItem ? 'Guardando...' : 'Guardar'"></span>
+          </button>
+          <button class="btn-ghost" @click="verCatalogo()">Cancelar</button>
+          <div style="flex:1"></div>
+          <button x-show="itemActual && usuario?.rol === 'ADM'" class="btn-ghost"
+                  style="color:#ff6070;border-color:rgba(212,0,26,0.25)"
+                  @click="eliminarItem(itemActual.modelNo)">
+            <i class="bi bi-trash3"></i> Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js" defer></script>
@@ -932,6 +1074,11 @@ function app() {
     seleccionados:      [],
     ordenDescarga:      [],
     contenedorBack:     'detalle',
+    items:              [],
+    itemActual:         null,
+    itemForm:           {},
+    cargandoCatalogo:   false,
+    guardandoItem:      false,
 
     _colorCache: {},
     _paleta: ['#e05c6e','#4a9eff','#2ec27e','#f5a623','#b57cf0','#1bc8b8','#ff7c3a','#5b8dd9','#e67e98','#62c97d'],
@@ -1129,6 +1276,59 @@ function app() {
       }
       this.importado = null;
       this.irALista();
+    },
+
+    async verCatalogo() {
+      this.vista = 'catalogo';
+      this.alerta = '';
+      this.cargandoCatalogo = true;
+      const r = await this.api('/api/items');
+      this.cargandoCatalogo = false;
+      if (!r || !r.ok) { this.alerta = 'Error al cargar el catálogo.'; return; }
+      this.items = await r.json();
+    },
+
+    nuevoItem() {
+      this.itemActual = null;
+      this.itemForm = { modelNo:'', descripcion:'', spPiezasPorPallet:0, spPesoKg:0, spLargoCm:0, spAnchoCm:0, spAltoCm:0 };
+      this.vista = 'editarItem';
+    },
+
+    editarItem(item) {
+      this.itemActual = item;
+      this.itemForm = { ...item };
+      this.vista = 'editarItem';
+    },
+
+    async guardarItem() {
+      if (!this.itemForm.modelNo || !this.itemForm.descripcion || this.itemForm.spPiezasPorPallet < 1) {
+        this.alerta = 'Model No, Descripción y Piezas/Pallet son obligatorios.';
+        return;
+      }
+      this.guardandoItem = true;
+      this.alerta = '';
+      const esNuevo = !this.itemActual;
+      const url    = esNuevo ? '/api/items' : `/api/items/${this.itemActual.modelNo}`;
+      const method = esNuevo ? 'POST' : 'PUT';
+      const r = await this.api(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(this.itemForm)
+      });
+      this.guardandoItem = false;
+      if (!r || !r.ok) {
+        const txt = await r?.text().catch(() => '');
+        this.alerta = txt || 'Error al guardar el modelo.';
+        return;
+      }
+      this.verCatalogo();
+    },
+
+    async eliminarItem(modelNo) {
+      if (!confirm(`¿Eliminar el modelo ${modelNo}? Esta acción no se puede deshacer.`)) return;
+      const r = await this.api(`/api/items/${modelNo}`, { method: 'DELETE' });
+      if (!r || !r.ok) { this.alerta = 'Error al eliminar el modelo.'; return; }
+      this.verCatalogo();
     },
 
     salir() {

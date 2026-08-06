@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PalletBalancer.Api.Data;
@@ -25,6 +26,7 @@ public class ItemsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "AMG,ADM")]
     public async Task<IActionResult> Crear(ItemDto dto)
     {
         if (await _db.Items.AnyAsync(i => i.ModelNo == dto.ModelNo))
@@ -37,6 +39,7 @@ public class ItemsController : ControllerBase
     }
 
     [HttpPut("{modelNo}")]
+    [Authorize(Roles = "AMG,ADM")]
     public async Task<IActionResult> Actualizar(string modelNo, ItemDto dto)
     {
         var item = await _db.Items.FindAsync(modelNo);
@@ -47,6 +50,7 @@ public class ItemsController : ControllerBase
     }
 
     [HttpDelete("{modelNo}")]
+    [Authorize(Roles = "ADM")]
     public async Task<IActionResult> Eliminar(string modelNo)
     {
         var item = await _db.Items.FindAsync(modelNo);
