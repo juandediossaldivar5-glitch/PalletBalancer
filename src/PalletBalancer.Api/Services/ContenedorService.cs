@@ -6,15 +6,28 @@ namespace PalletBalancer.Api.Services;
 
 public class ContenedorService
 {
+    // Límites NOM-012 México (kg)
+    private const double NOM_W1  =  6_500;
+    private const double NOM_W2  = 16_000;
+    private const double NOM_Wr  = 16_000;
+    private const double NOM_GVW = 48_500;
+
+    // Límites FHWA EE.UU. (kg)
+    private const double FHWA_W1  =  5_443;
+    private const double FHWA_W2  = 15_422;
+    private const double FHWA_Wr  = 15_422;
+    private const double FHWA_GVW = 36_287;
+
     public ContenedorResultadoDto Calcular(
         IEnumerable<Fdo> fdos,
-        List<string>? ordenDescarga  = null,
-        string?       tipoContenedor = null)
+        List<string>? ordenDescarga    = null,
+        string?       tipoContenedor   = null,
+        string?       tipoTractocamion = null)
     {
         var spec = ContenedorSpecs.Get(tipoContenedor);
+        var trac = TractocamionSpecs.Get(tipoTractocamion);
         var sinDatos = new List<string>();
 
-        // Agrupar pallets con flag de estiba por consignee
         var palletsPorDestino = new Dictionary<string, List<(Pallet P, bool Apilable)>>(StringComparer.OrdinalIgnoreCase);
         var descMap           = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
@@ -55,8 +68,7 @@ public class ContenedorService
             }
         }
 
-        // Calcular filas disponibles según dimensiones reales del contenedor
-        // Usamos el largo más común entre todos los pallets (moda); default 120 cm
+        // Dimensión modal de tarima (para cálculo de filas y CG)
         var todosPallets = palletsPorDestino.Values.SelectMany(x => x).Select(x => x.P).ToList();
         double palletLargo = todosPallets
             .Where(p => p.LargoCm > 0)
@@ -76,22 +88,19 @@ public class ContenedorService
             : 26;
         if (filasPorLado < 1) filasPorLado = 1;
 
-        // Determinar orden final (primer elemento = primero en descargar = filas de puertas)
         var destinosConPallets = palletsPorDestino
             .Where(kv => kv.Value.Count > 0)
             .Select(kv => kv.Key)
             .ToList();
 
         // Crear stacks: pares de pallets apilables que caben en el alto del contenedor
-        // Resultado: Lista de (Piso, Encima?) por destino
         var stacksPorDestino = new Dictionary<string, List<(Pallet Piso, Pallet? Encima)>>(StringComparer.OrdinalIgnoreCase);
         foreach (var (dest, lista) in palletsPorDestino)
         {
-            var stacks = new List<(Pallet Piso, Pallet? Encima)>();
+            var stacks       = new List<(Pallet Piso, Pallet? Encima)>();
             var apilables    = lista.Where(x => x.Apilable).OrderByDescending(x => x.P.PesoTotalKg).Select(x => x.P).ToList();
             var noApilables  = lista.Where(x => !x.Apilable).Select(x => x.P).ToList();
 
-            // Emparejar apilables: más pesado abajo, siguiente encima (si caben en alto)
             int i = 0;
             while (i < apilables.Count)
             {
@@ -113,39 +122,35 @@ public class ContenedorService
             stacksPorDestino[dest] = stacks;
         }
 
+        // Orden de descarga (índice 0 = primero en descargar = cerca de puertas)
         List<string> ordenFinal = ordenDescarga?.Where(d => destinosConPallets.Contains(d,
                 StringComparer.OrdinalIgnoreCase)).ToList()
             ?? destinosConPallets.OrderBy(d => d).ToList();
 
-        // Agregar cualquier destino no incluido en el orden (al final)
         foreach (var d in destinosConPallets.Where(d =>
             !ordenFinal.Any(o => string.Equals(o, d, StringComparison.OrdinalIgnoreCase))))
             ordenFinal.Add(d);
 
-        // Asignar zonas de filas:
-        // ordenFinal[0] → primero en descargar → filas ALTAS (cerca de puertas, fila 26 hacia arriba)
-        // ordenFinal[last] → último en descargar → filas BAJAS (cerca de cabina, fila 1)
-        // Invertimos para asignar desde la cabina hacia las puertas.
-        var ordenCarga    = ((IEnumerable<string>)ordenFinal).Reverse().ToList(); // último descarga primero en cargarse
-        var posiciones    = new List<PosicionResultadoDto>();
-        var destinoInfos  = new List<DestinoInfoDto>();
-        double pesoIzq    = 0, pesoDer = 0;
-        int filaActual    = 1;
+        // Asignar filas: ordenFinal[last] → fila 1 (cabina), ordenFinal[0] → filas altas (puertas)
+        var ordenCarga   = ((IEnumerable<string>)ordenFinal).Reverse().ToList();
+        var posiciones   = new List<PosicionResultadoDto>();
+        var destinoInfos = new List<DestinoInfoDto>();
+        double pesoIzq   = 0, pesoDer = 0;
+        int filaActual   = 1;
 
         foreach (var dest in ordenCarga)
         {
             var stacks = stacksPorDestino.GetValueOrDefault(dest, []);
             if (stacks.Count == 0) continue;
 
-            // Filas necesarias: ceil(stacks / 2) porque cada fila tiene 2 lados
-            int rowsNec  = (int)Math.Ceiling(stacks.Count / 2.0);
-            int filaFin  = Math.Min(filaActual + rowsNec - 1, filasPorLado);
+            int rowsNec = (int)Math.Ceiling(stacks.Count / 2.0);
+            int filaFin = Math.Min(filaActual + rowsNec - 1, filasPorLado);
 
             var (posDest, pIzq, pDer) = BalancearZona(stacks, dest, filaActual, filaFin, descMap);
 
             posiciones.AddRange(posDest);
-            pesoIzq    += pIzq;
-            pesoDer    += pDer;
+            pesoIzq  += pIzq;
+            pesoDer  += pDer;
 
             int totalPallets = stacks.Sum(s => s.Encima is null ? 1 : 2);
             destinoInfos.Add(new DestinoInfoDto
@@ -162,10 +167,11 @@ public class ContenedorService
             if (filaActual > filasPorLado) break;
         }
 
-        double mayor    = Math.Max(pesoIzq, pesoDer);
-        double menor    = Math.Min(pesoIzq, pesoDer);
-        double difPorc  = mayor == 0 ? 0 : Math.Round((mayor - menor) / mayor * 100, 2);
-        int    total    = posiciones.Count;
+        // Balance L/R
+        double mayor   = Math.Max(pesoIzq, pesoDer);
+        double menor   = Math.Min(pesoIzq, pesoDer);
+        double difPorc = mayor == 0 ? 0 : Math.Round((mayor - menor) / mayor * 100, 2);
+        int    total   = posiciones.Count;
 
         var advertencias = new List<string>();
         if (difPorc > 5)
@@ -178,9 +184,21 @@ public class ContenedorService
         if (palletAncho * 2 > spec.AnchoCm)
             advertencias.Add($"Dos tarimas lado a lado ({palletAncho * 2} cm) exceden el ancho interior del contenedor {spec.Tipo} ({spec.AnchoCm} cm).");
 
+        // Cálculo de ejes
+        var ejes = CalcularEjes(posiciones, palletLargo, spec, trac);
+
+        if (ejes.w1 > FHWA_W1)  advertencias.Add($"Eje delantero ({ejes.w1:N0} kg) excede límite FHWA ({FHWA_W1:N0} kg).");
+        if (ejes.w2 > FHWA_W2)  advertencias.Add($"Eje tractor ({ejes.w2:N0} kg) excede límite FHWA ({FHWA_W2:N0} kg).");
+        if (ejes.wr > FHWA_Wr)  advertencias.Add($"Eje remolque ({ejes.wr:N0} kg) excede límite FHWA ({FHWA_Wr:N0} kg).");
+        if (ejes.gvw > FHWA_GVW) advertencias.Add($"Peso bruto total GVW ({ejes.gvw:N0} kg) excede límite FHWA ({FHWA_GVW:N0} kg).");
+        if (ejes.w1 > NOM_W1)   advertencias.Add($"Eje delantero ({ejes.w1:N0} kg) excede límite NOM-012 ({NOM_W1:N0} kg).");
+        if (ejes.w2 > NOM_W2)   advertencias.Add($"Eje tractor ({ejes.w2:N0} kg) excede límite NOM-012 ({NOM_W2:N0} kg).");
+        if (ejes.wr > NOM_Wr)   advertencias.Add($"Eje remolque ({ejes.wr:N0} kg) excede límite NOM-012 ({NOM_Wr:N0} kg).");
+        if (ejes.gvw > NOM_GVW) advertencias.Add($"Peso bruto total GVW ({ejes.gvw:N0} kg) excede límite NOM-012 ({NOM_GVW:N0} kg).");
+
         return new ContenedorResultadoDto
         {
-            Posiciones              = posiciones.OrderBy(p => p.Fila).ThenBy(p => p.Lado).ToList(),
+            Posiciones              = posiciones.OrderBy(p => p.Fila).ThenBy(p => p.Lado).ThenBy(p => p.Capa).ToList(),
             Destinos                = destinoInfos.OrderBy(d => d.OrdenDescarga).ToList(),
             PesoIzquierdoKg        = Math.Round(pesoIzq, 2),
             PesoDerechoKg          = Math.Round(pesoDer, 2),
@@ -197,7 +215,50 @@ public class ContenedorService
             FilasDisponibles       = filasPorLado,
             PalletLargoCm          = palletLargo,
             PalletAnchoCm          = palletAncho,
+            // Ejes
+            TractocamionTipo       = trac.Tipo,
+            CgLongitudinalCm       = ejes.cgCm,
+            CgLongitudinalPct      = ejes.cgPct,
+            PesoEjeDelanteroKg     = ejes.w1,
+            PesoEjeTractorKg       = ejes.w2,
+            PesoEjeRemolqueKg      = ejes.wr,
+            PesoTotalGVWKg         = ejes.gvw,
         };
+    }
+
+    // Calcula CG longitudinal y cargas por eje
+    private static (double w1, double w2, double wr, double gvw, double cgCm, double cgPct)
+        CalcularEjes(List<PosicionResultadoDto> posiciones, double palletLargo,
+                     ContenedorSpec spec, TractocamionSpec trac)
+    {
+        double wCargo = posiciones.Sum(p => p.PesoKg);
+
+        // CG de la carga medido desde el king pin
+        // fila 1 = cabina (cerca del king pin), fila N = puertas (lejos)
+        // centro de fila F = KingPinOffset + (F - 0.5) × palletLargo
+        double cgCm = wCargo > 0
+            ? posiciones.Sum(p => p.PesoKg * (spec.KingPinOffsetCm + (p.Fila - 0.5) * palletLargo)) / wCargo
+            : spec.KingPinAEjeCm / 2.0;
+
+        double wTara = spec.TaraChassisKg + spec.TaraContenedorKg;
+        double L     = spec.KingPinAEjeCm;
+
+        // Modelo de viga simplemente apoyada: king pin (x=0) y eje remolque (x=L)
+        // Carga de la tara del chassis+contenedor asumida en el centro (L/2)
+        double wr  = (wCargo * cgCm + wTara * (L / 2.0)) / L;
+        double fkp = wCargo + wTara - wr;   // reacción en quinta rueda
+
+        // Modelo tractor: eje delantero (x=0), eje trasero (x=WB), quinta rueda (x=WB-Q)
+        double wb  = trac.WheelbaseCm;
+        double q   = trac.QuintaRuedaCm;    // distancia quinta rueda ADELANTE del eje trasero
+        double w2  = trac.TaraEjeTraseroKg  + fkp * (wb - q) / wb;
+        double w1  = trac.TaraEjeDelanteroKg + fkp * q / wb;
+        double gvw = w1 + w2 + wr;
+
+        double cgPct = L > 0 ? Math.Round(cgCm / L * 100, 1) : 50.0;
+
+        return (Math.Round(w1, 0), Math.Round(w2, 0), Math.Round(wr, 0),
+                Math.Round(gvw, 0), Math.Round(cgCm, 0), cgPct);
     }
 
     private static (List<PosicionResultadoDto> pos, double pesoIzq, double pesoDer)
@@ -209,7 +270,6 @@ public class ContenedorService
         var der     = new List<(Pallet Piso, Pallet? Encima)>();
         double pIzq = 0, pDer = 0;
 
-        // Greedy L/R balance por peso total del stack (más pesado primero)
         foreach (var s in stacks.OrderByDescending(s => s.Piso.PesoTotalKg + (s.Encima?.PesoTotalKg ?? 0)))
         {
             double w = s.Piso.PesoTotalKg + (s.Encima?.PesoTotalKg ?? 0);

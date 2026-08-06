@@ -23,6 +23,15 @@ public class ContenedorResultadoDto
     // Dimensión de tarima usada para el cálculo de filas
     public double PalletLargoCm             { get; set; }
     public double PalletAnchoCm             { get; set; }
+
+    // Tractocamión y cargas por eje
+    public string TractocamionTipo          { get; set; } = "";
+    public double CgLongitudinalCm          { get; set; }  // desde king pin
+    public double CgLongitudinalPct         { get; set; }  // % de king pin a eje remolque
+    public double PesoEjeDelanteroKg        { get; set; }  // W1 – steer
+    public double PesoEjeTractorKg          { get; set; }  // W2 – drive tándem
+    public double PesoEjeRemolqueKg         { get; set; }  // Wr – trailer tándem
+    public double PesoTotalGVWKg            { get; set; }  // GVW completo
 }
 
 public class PosicionResultadoDto

@@ -1,16 +1,25 @@
 namespace PalletBalancer.Api.Models;
 
-public record ContenedorSpec(string Tipo, int LargoCm, int AnchoCm, int AltoCm);
+public record ContenedorSpec(
+    string Tipo,
+    int    LargoCm,
+    int    AnchoCm,
+    int    AltoCm,
+    int    KingPinOffsetCm,    // distancia frente del contenedor → king pin
+    int    KingPinAEjeCm,      // distancia king pin → eje del remolque
+    double TaraChassisKg,      // tara del chassis/semirremolque
+    double TaraContenedorKg);  // tara del contenedor vacío
 
 public static class ContenedorSpecs
 {
-    public static readonly Dictionary<string, ContenedorSpec> Todos = new(StringComparer.OrdinalIgnoreCase)
+    public static readonly Dictionary<string, ContenedorSpec> Todos =
+        new(StringComparer.OrdinalIgnoreCase)
     {
-        ["20ft"]    = new("20ft",     589, 235, 239),
-        ["40ft"]    = new("40ft",   1_200, 235, 239),
-        ["40ft HC"] = new("40ft HC",1_200, 235, 269),
-        ["45ft HC"] = new("45ft HC",1_351, 235, 269),
-        ["53ft"]    = new("53ft",   1_600, 260, 274),
+        ["20ft"]    = new("20ft",       589, 235, 239, 91,   549, 2_800, 2_200),
+        ["40ft"]    = new("40ft",     1_200, 235, 239, 91, 1_082, 4_500, 3_900),
+        ["40ft HC"] = new("40ft HC",  1_200, 235, 269, 91, 1_082, 4_500, 3_900),
+        ["45ft HC"] = new("45ft HC",  1_351, 235, 269, 91, 1_219, 4_800, 4_200),
+        ["53ft"]    = new("53ft",     1_600, 260, 274, 91, 1_372, 5_200, 3_900),
     };
 
     public static ContenedorSpec Default => Todos["40ft HC"];

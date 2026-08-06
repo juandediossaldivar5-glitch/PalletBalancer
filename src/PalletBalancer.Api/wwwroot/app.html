@@ -786,6 +786,11 @@
           <option value="45ft HC">45ft HC — 1,351 cm</option>
           <option value="53ft">53ft — 1,600 cm</option>
         </select>
+        <select class="pb-input" style="width:auto;padding-right:2rem" x-model="tipoTractocamion">
+          <option value="T3-S2 Estándar">T3-S2 Estándar</option>
+          <option value="T3-S2 Cabina Larga">T3-S2 Cabina Larga</option>
+          <option value="T3-S2 Day Cab">T3-S2 Day Cab</option>
+        </select>
         <button class="btn-ghost" style="white-space:nowrap" :disabled="cargandoContenedor"
                 @click="recalcularContenedor()">
           <span x-show="cargandoContenedor" class="spinner"></span>
@@ -864,6 +869,46 @@
           <div class="stat-card">
             <label><i class="bi bi-stack"></i> Total Pallets</label>
             <div class="val" x-text="contenedor.totalPallets"></div>
+          </div>
+        </div>
+
+        <!-- Panel de cargas por eje -->
+        <div class="pb-card" style="padding:1.25rem">
+          <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.9px;color:var(--muted);margin-bottom:0.9rem">
+            <i class="bi bi-truck"></i> Cargas por eje —
+            <span x-text="contenedor.tractocamionTipo" style="text-transform:none;font-weight:600;color:var(--text)"></span>
+            <span style="font-weight:400;margin-left:0.6rem">
+              · CG: <span x-text="contenedor.cgLongitudinalPct?.toFixed(1)"></span>% del largo
+            </span>
+          </div>
+          <div style="display:grid;gap:0.7rem">
+            <template x-for="eje in [
+              {label:'Eje delantero (steer)',       kg: contenedor.pesoEjeDelanteroKg, fhwa: 5443,  nom: 6500},
+              {label:'Eje tractor (drive tándem)',  kg: contenedor.pesoEjeTractorKg,   fhwa: 15422, nom: 16000},
+              {label:'Eje remolque (trailer tándem)',kg: contenedor.pesoEjeRemolqueKg, fhwa: 15422, nom: 16000},
+              {label:'GVW total',                   kg: contenedor.pesoTotalGVWKg,     fhwa: 36287, nom: 48500}
+            ]" :key="eje.label">
+              <div style="display:grid;grid-template-columns:1fr 90px 110px;gap:0.5rem;align-items:center">
+                <div>
+                  <div style="font-size:0.75rem;color:var(--muted);margin-bottom:0.25rem" x-text="eje.label"></div>
+                  <div class="balance-bar-wrap">
+                    <div class="balance-bar-fill"
+                         :style="'width:' + Math.min(eje.kg / eje.fhwa * 100, 100) + '%;background:' +
+                                 (eje.kg > eje.fhwa ? '#e54c4c' : eje.kg > eje.fhwa * 0.88 ? '#f5a623' : '#4dd884')">
+                    </div>
+                  </div>
+                </div>
+                <div style="text-align:right">
+                  <span style="font-size:0.88rem;font-weight:700"
+                        :style="'color:' + (eje.kg > eje.fhwa ? '#e54c4c' : eje.kg > eje.fhwa * 0.88 ? '#f5a623' : '#4dd884')"
+                        x-text="eje.kg?.toLocaleString('es-MX',{maximumFractionDigits:0}) + ' kg'"></span>
+                </div>
+                <div style="text-align:right;font-size:0.68rem;color:var(--muted);line-height:1.5">
+                  <div>FHWA: <strong x-text="eje.fhwa.toLocaleString('es-MX')"></strong></div>
+                  <div>NOM-012: <strong x-text="eje.nom.toLocaleString('es-MX')"></strong></div>
+                </div>
+              </div>
+            </template>
           </div>
         </div>
 
@@ -1172,6 +1217,7 @@ function app() {
     ordenDescarga:      [],
     contenedorBack:     'detalle',
     tipoContenedor:     '40ft HC',
+    tipoTractocamion:   'T3-S2 Estándar',
     items:              [],
     itemActual:         null,
     itemForm:           {},
@@ -1259,7 +1305,7 @@ function app() {
       this.contenedor = null;
       this.contenedorBack = 'detalle';
       this.vista = 'contenedor';
-      const r = await this.api(`/api/fdos/${this.fdoActual.id}/contenedor?tipo=${encodeURIComponent(this.tipoContenedor)}`);
+      const r = await this.api(`/api/fdos/${this.fdoActual.id}/contenedor?tipo=${encodeURIComponent(this.tipoContenedor)}&tractocamion=${encodeURIComponent(this.tipoTractocamion)}`);
       this.cargandoContenedor = false;
       if (!r || !r.ok) { this.alerta = 'Error al calcular el contenedor.'; this.vista = 'detalle'; return; }
       this.contenedor = await r.json();
@@ -1315,7 +1361,8 @@ function app() {
         body:    JSON.stringify({
           fdoIds:         this.seleccionados,
           ordenDescarga:  this.ordenDescarga.length > 0 ? this.ordenDescarga : null,
-          tipoContenedor: this.tipoContenedor
+          tipoContenedor:  this.tipoContenedor,
+          tipoTractocamion: this.tipoTractocamion
         })
       });
       this.cargandoContenedor = false;
