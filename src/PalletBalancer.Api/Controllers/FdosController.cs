@@ -23,9 +23,11 @@ public class FdosController : ControllerBase
     public async Task<IActionResult> ObtenerPorId(int id)
     {
         var fdo = await _db.Fdos
-            .Include(f => f.Lineas).ThenInclude(l => l.Item)
+            .Include(f => f.Lineas)
             .FirstOrDefaultAsync(f => f.Id == id);
-        return fdo is null ? NotFound() : Ok(fdo);
+        if (fdo is null) return NotFound();
+        await CargarItemsEnLineas(fdo.Lineas);
+        return Ok(fdo);
     }
 
     [HttpPost]
@@ -83,13 +85,24 @@ public class FdosController : ControllerBase
     public async Task<IActionResult> CalcularContenedor(int id)
     {
         var fdo = await _db.Fdos
-            .Include(f => f.Lineas).ThenInclude(l => l.Item)
+            .Include(f => f.Lineas)
             .FirstOrDefaultAsync(f => f.Id == id);
 
         if (fdo is null) return NotFound();
+        await CargarItemsEnLineas(fdo.Lineas);
 
         var resultado = new ContenedorService().Calcular(fdo);
         return Ok(resultado);
+    }
+
+    private async Task CargarItemsEnLineas(IEnumerable<FdoLinea> lineas)
+    {
+        var modelNos = lineas.Select(l => l.ModelNo).ToHashSet();
+        var items    = await _db.Items
+            .Where(i => modelNos.Contains(i.ModelNo))
+            .ToDictionaryAsync(i => i.ModelNo);
+        foreach (var linea in lineas)
+            linea.Item = items.GetValueOrDefault(linea.ModelNo);
     }
 
     [HttpPatch("{id:int}/lineas/{lineaId:int}")]

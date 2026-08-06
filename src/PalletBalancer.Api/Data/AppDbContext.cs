@@ -17,5 +17,6 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Usuario>()
             .HasIndex(u => u.Username)
             .IsUnique();
+
     }
 }
