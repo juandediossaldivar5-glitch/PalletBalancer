@@ -287,6 +287,47 @@
 
     /* ── LOADING OVERLAY ── */
     .loading-row td { padding: 2rem; text-align: center; color: var(--muted); }
+
+    /* ── CONTENEDOR GRID ── */
+    .cont-wrap {
+      display: grid;
+      grid-template-columns: 28px 1fr 1fr;
+      gap: 3px;
+    }
+    .cont-header { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); text-align: center; padding: 0.3rem 0; }
+    .cont-row-num { font-size: 0.68rem; color: rgba(255,255,255,0.2); text-align: right; padding-right: 6px; display: flex; align-items: center; justify-content: flex-end; font-variant-numeric: tabular-nums; }
+    .cont-cell {
+      border-radius: 6px;
+      padding: 0.3rem 0.45rem;
+      min-height: 36px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.05);
+      transition: transform 0.1s;
+      cursor: default;
+      position: relative;
+    }
+    .cont-cell.ocupada { border-color: transparent; }
+    .cont-cell.ocupada:hover { transform: scale(1.03); z-index: 2; }
+    .cont-cell .cn  { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.3px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cont-cell .cw  { font-size: 0.62rem; color: rgba(255,255,255,0.55); }
+
+    /* Balance bar */
+    .balance-bar-wrap { background: rgba(255,255,255,0.05); border-radius: 100px; height: 8px; overflow: hidden; margin-top: 0.5rem; }
+    .balance-bar-fill { height: 100%; border-radius: 100px; transition: width 0.6s; }
+
+    /* Stat cards */
+    .stat-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.75rem; margin-bottom: 1.25rem; }
+    .stat-card  { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 0.85rem 1rem; }
+    .stat-card label { display: block; font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.9px; margin-bottom: 0.3rem; font-weight: 700; }
+    .stat-card .val  { font-size: 1.25rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+    /* Legend */
+    .leyenda { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+    .leyenda-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; color: var(--text); }
+    .leyenda-dot  { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
   </style>
 </head>
 <body x-data="app()" x-init="init()">
@@ -433,6 +474,9 @@
           <h2 class="pb-page-title" style="font-size:0.95rem">
             <i class="bi bi-table"></i> Líneas de producto
           </h2>
+          <button class="btn-primary-grad" @click="verContenedor()">
+            <i class="bi bi-box-seam"></i> Ver Contenedor
+          </button>
         </div>
 
         <div class="pb-card" style="padding:0;overflow:hidden">
@@ -589,23 +633,199 @@
     </div>
 
   </div>
+  <!-- ============================================================ -->
+  <!-- VISTA: CONTENEDOR                                             -->
+  <!-- ============================================================ -->
+  <div x-show="vista==='contenedor'" x-cloak>
+    <button class="back-link" @click="vista='detalle'">
+      <i class="bi bi-arrow-left"></i> Volver al FDO
+    </button>
+
+    <div class="pb-page-header">
+      <h1 class="pb-page-title">
+        <i class="bi bi-box-seam"></i> Plan de Contenedor
+        <span style="color:var(--muted);font-weight:400;font-size:0.85rem" x-text="'— FDO ' + (fdoActual?.fdoSlipNo ?? '')"></span>
+      </h1>
+    </div>
+
+    <!-- Cargando -->
+    <div x-show="cargandoContenedor" class="pb-card" style="text-align:center;padding:2.5rem">
+      <span class="spinner" style="width:28px;height:28px;border-width:3px"></span>
+      <p style="color:var(--muted);margin:1rem 0 0;font-size:0.88rem">Calculando distribución...</p>
+    </div>
+
+    <template x-if="contenedor && !cargandoContenedor">
+      <div>
+        <!-- Advertencias -->
+        <template x-if="contenedor.advertencias.length > 0">
+          <div class="pb-alert pb-alert-danger mb-3">
+            <i class="bi bi-exclamation-triangle-fill" style="flex-shrink:0"></i>
+            <ul style="margin:0;padding-left:1.1rem">
+              <template x-for="a in contenedor.advertencias" :key="a">
+                <li x-text="a" style="font-size:0.85rem"></li>
+              </template>
+            </ul>
+          </div>
+        </template>
+        <template x-if="contenedor.modelosSinDatos.length > 0">
+          <div class="pb-alert pb-alert-info mb-3">
+            <i class="bi bi-info-circle-fill" style="flex-shrink:0"></i>
+            <span style="font-size:0.85rem">
+              Modelos sin datos de catálogo (excluidos del cálculo):
+              <strong x-text="contenedor.modelosSinDatos.join(', ')"></strong>
+            </span>
+          </div>
+        </template>
+
+        <!-- Stat cards -->
+        <div class="stat-cards">
+          <div class="stat-card">
+            <label><i class="bi bi-arrow-left-short"></i> Lado Izquierdo</label>
+            <div class="val" style="color:#88c4ff"
+                 x-text="contenedor.pesoIzquierdoKg.toLocaleString('es-MX', {maximumFractionDigits:1}) + ' kg'"></div>
+          </div>
+          <div class="stat-card">
+            <label><i class="bi bi-arrow-right-short"></i> Lado Derecho</label>
+            <div class="val" style="color:#ffb06b"
+                 x-text="contenedor.pesoDerechoKg.toLocaleString('es-MX', {maximumFractionDigits:1}) + ' kg'"></div>
+          </div>
+          <div class="stat-card">
+            <label><i class="bi bi-box-seam"></i> Peso Total</label>
+            <div class="val" style="color:var(--text)"
+                 x-text="contenedor.pesoTotalKg.toLocaleString('es-MX', {maximumFractionDigits:1}) + ' kg'"></div>
+          </div>
+          <div class="stat-card">
+            <label><i class="bi bi-distribute-horizontal"></i> Balance</label>
+            <div class="val" :style="contenedor.dentroDeTolerancia ? 'color:#4dd884' : 'color:#ff8080'"
+                 x-text="contenedor.diferenciaPorcentual.toFixed(1) + '%'"></div>
+            <div class="balance-bar-wrap mt-1">
+              <div class="balance-bar-fill"
+                   :style="'width:' + Math.min(contenedor.diferenciaPorcentual * 10, 100) + '%;background:' +
+                           (contenedor.dentroDeTolerancia ? '#4dd884' : '#e54c4c')">
+              </div>
+            </div>
+            <div style="font-size:0.7rem;color:var(--muted);margin-top:0.3rem"
+                 x-text="contenedor.dentroDeTolerancia ? '✓ Dentro de tolerancia (5%)' : '✗ Fuera de tolerancia'">
+            </div>
+          </div>
+          <div class="stat-card">
+            <label><i class="bi bi-stack"></i> Total Pallets</label>
+            <div class="val" x-text="contenedor.totalPallets"></div>
+          </div>
+        </div>
+
+        <!-- Leyenda de modelos -->
+        <div class="leyenda">
+          <template x-for="(modelo, i) in modelosUnicos()" :key="modelo.modelNo">
+            <div class="leyenda-item">
+              <div class="leyenda-dot" :style="'background:' + colorModelo(modelo.modelNo)"></div>
+              <span x-text="modelo.modelNo"></span>
+              <span style="color:var(--muted);font-size:0.72rem" x-text="modelo.descripcion ? '— ' + modelo.descripcion : ''"></span>
+            </div>
+          </template>
+        </div>
+
+        <!-- Grid del contenedor -->
+        <div class="pb-card" style="padding:1.25rem;overflow-x:auto">
+          <div style="min-width:420px">
+            <!-- Header -->
+            <div class="cont-wrap" style="margin-bottom:4px">
+              <div></div>
+              <div class="cont-header" style="text-align:center">
+                <i class="bi bi-arrow-left-short"></i> Izquierdo
+              </div>
+              <div class="cont-header" style="text-align:center">
+                Derecho <i class="bi bi-arrow-right-short"></i>
+              </div>
+            </div>
+
+            <!-- Rows 1-26 (cabina → puertas) -->
+            <template x-for="fila in 26" :key="fila">
+              <div class="cont-wrap" style="margin-bottom:3px">
+                <div class="cont-row-num" x-text="fila"></div>
+                <!-- Izquierdo -->
+                <template x-if="posicionEn(fila, 'Izquierdo')">
+                  <div class="cont-cell ocupada"
+                       :style="'background:' + colorModelo(posicionEn(fila,'Izquierdo').modelNo) + '22;border-color:' + colorModelo(posicionEn(fila,'Izquierdo').modelNo) + '55'"
+                       :title="posicionEn(fila,'Izquierdo').modelNo + ' — ' + posicionEn(fila,'Izquierdo').piezas + ' pzs — ' + posicionEn(fila,'Izquierdo').pesoKg + ' kg'">
+                    <span class="cn" :style="'color:' + colorModelo(posicionEn(fila,'Izquierdo').modelNo)"
+                          x-text="posicionEn(fila,'Izquierdo').modelNo.slice(-6)"></span>
+                    <span class="cw" x-text="posicionEn(fila,'Izquierdo').pesoKg.toFixed(0) + ' kg'"></span>
+                  </div>
+                </template>
+                <template x-if="!posicionEn(fila, 'Izquierdo')">
+                  <div class="cont-cell"></div>
+                </template>
+                <!-- Derecho -->
+                <template x-if="posicionEn(fila, 'Derecho')">
+                  <div class="cont-cell ocupada"
+                       :style="'background:' + colorModelo(posicionEn(fila,'Derecho').modelNo) + '22;border-color:' + colorModelo(posicionEn(fila,'Derecho').modelNo) + '55'"
+                       :title="posicionEn(fila,'Derecho').modelNo + ' — ' + posicionEn(fila,'Derecho').piezas + ' pzs — ' + posicionEn(fila,'Derecho').pesoKg + ' kg'">
+                    <span class="cn" :style="'color:' + colorModelo(posicionEn(fila,'Derecho').modelNo)"
+                          x-text="posicionEn(fila,'Derecho').modelNo.slice(-6)"></span>
+                    <span class="cw" x-text="posicionEn(fila,'Derecho').pesoKg.toFixed(0) + ' kg'"></span>
+                  </div>
+                </template>
+                <template x-if="!posicionEn(fila, 'Derecho')">
+                  <div class="cont-cell"></div>
+                </template>
+              </div>
+            </template>
+
+            <!-- Footer label -->
+            <div style="text-align:center;margin-top:0.75rem;font-size:0.72rem;color:var(--muted)">
+              ← Fila 1: cabina &nbsp;|&nbsp; Fila 26: puertas →
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+  </div>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js" defer></script>
 <script>
 function app() {
   return {
-    vista:          'lista',
-    usuario:        null,
-    fdos:           [],
-    fdoActual:      null,
-    importado:      null,
-    alerta:         '',
-    cargandoLista:  false,
-    cargandoImport: false,
-    guardando:      false,
-    editandoLinea:  null,
-    editQty:        0,
+    vista:              'lista',
+    usuario:            null,
+    fdos:               [],
+    fdoActual:          null,
+    importado:          null,
+    contenedor:         null,
+    cargandoContenedor: false,
+    alerta:             '',
+    cargandoLista:      false,
+    cargandoImport:     false,
+    guardando:          false,
+    editandoLinea:      null,
+    editQty:            0,
+
+    _colorCache: {},
+    _paleta: ['#e05c6e','#4a9eff','#2ec27e','#f5a623','#b57cf0','#1bc8b8','#ff7c3a','#5b8dd9','#e67e98','#62c97d'],
+
+    colorModelo(modelNo) {
+      if (!this._colorCache[modelNo]) {
+        const keys = Object.keys(this._colorCache);
+        this._colorCache[modelNo] = this._paleta[keys.length % this._paleta.length];
+      }
+      return this._colorCache[modelNo];
+    },
+
+    posicionEn(fila, lado) {
+      return this.contenedor?.posiciones.find(p => p.fila === fila && p.lado === lado) ?? null;
+    },
+
+    modelosUnicos() {
+      if (!this.contenedor) return [];
+      const seen = new Set();
+      return this.contenedor.posiciones.filter(p => {
+        if (seen.has(p.modelNo)) return false;
+        seen.add(p.modelNo);
+        return true;
+      });
+    },
 
     init() {
       const token = localStorage.getItem('pb_token');
@@ -655,6 +875,17 @@ function app() {
       this.fdoActual     = await r.json();
       this.editandoLinea = null;
       this.vista         = 'detalle';
+    },
+
+    async verContenedor() {
+      this._colorCache = {};
+      this.cargandoContenedor = true;
+      this.contenedor = null;
+      this.vista = 'contenedor';
+      const r = await this.api(`/api/fdos/${this.fdoActual.id}/contenedor`);
+      this.cargandoContenedor = false;
+      if (!r || !r.ok) { this.alerta = 'Error al calcular el contenedor.'; this.vista = 'detalle'; return; }
+      this.contenedor = await r.json();
     },
 
     puedeEditar() {

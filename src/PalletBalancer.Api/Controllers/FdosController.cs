@@ -79,6 +79,19 @@ public class FdosController : ControllerBase
         return Ok(new { totalLineas = lineas.Count, lineas });
     }
 
+    [HttpGet("{id:int}/contenedor")]
+    public async Task<IActionResult> CalcularContenedor(int id)
+    {
+        var fdo = await _db.Fdos
+            .Include(f => f.Lineas).ThenInclude(l => l.Item)
+            .FirstOrDefaultAsync(f => f.Id == id);
+
+        if (fdo is null) return NotFound();
+
+        var resultado = new ContenedorService().Calcular(fdo);
+        return Ok(resultado);
+    }
+
     [HttpPatch("{id:int}/lineas/{lineaId:int}")]
     [Authorize(Roles = "AMG,ADM")]
     public async Task<IActionResult> PatchCantidad(int id, int lineaId, PatchCantidadDto dto)
