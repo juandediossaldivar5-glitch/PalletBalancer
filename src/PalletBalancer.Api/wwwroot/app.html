@@ -378,6 +378,35 @@
     .leyenda { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
     .leyenda-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; color: var(--text); }
     .leyenda-dot  { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+
+    /* Modal */
+    .modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:1000;display:flex;align-items:flex-start;justify-content:center;padding:1.5rem;overflow-y:auto; }
+    .modal-box     { background:#0d1629;border:1px solid var(--border);border-radius:16px;width:100%;max-width:860px;padding:1.5rem;margin:auto; }
+    .rec-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:0.75rem;margin-top:1rem; }
+    .rec-card { border:1px solid var(--border);border-radius:10px;padding:0.85rem 1rem; }
+    .rec-card.viable { border-color:rgba(77,216,132,0.35);background:rgba(77,216,132,0.05); }
+    .rec-card.inviable { border-color:rgba(229,76,76,0.25);background:rgba(229,76,76,0.04);opacity:0.75; }
+
+    /* Print */
+    .print-only { display:none; }
+    @media print {
+      * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+      body { background:white !important; color:#111 !important; font-family:'Segoe UI',sans-serif; margin:0; padding:0; }
+      .no-print { display:none !important; }
+      .print-only { display:block !important; }
+      .pr-page { padding:20mm 18mm; font-size:9pt; line-height:1.4; }
+      .pr-title { font-size:16pt;font-weight:800;text-align:center;border-bottom:2pt solid #111;padding-bottom:6pt;margin-bottom:10pt; }
+      .pr-sub   { font-size:10pt;font-weight:700;color:#333;margin:10pt 0 4pt; }
+      .pr-table { width:100%;border-collapse:collapse;margin-bottom:8pt; }
+      .pr-table th { background:#eee;font-size:7.5pt;padding:3pt 5pt;border:0.5pt solid #ccc;text-align:left; }
+      .pr-table td { font-size:8pt;padding:3pt 5pt;border:0.5pt solid #ddd; }
+      .pr-ok  { color:#1a7a3a;font-weight:700; }
+      .pr-err { color:#c0392b;font-weight:700; }
+      .pr-svgs { display:grid;grid-template-columns:1fr 1fr;gap:10pt;margin:8pt 0; }
+      .pr-sign { display:grid;grid-template-columns:1fr 1fr;gap:20pt;margin-top:20pt; }
+      .pr-sign-box { border-top:1pt solid #666;padding-top:4pt;font-size:7.5pt;color:#555; }
+      .pr-warn { background:#fff3cd;border:0.5pt solid #e6a817;padding:4pt 6pt;border-radius:3pt;font-size:7.5pt;margin-bottom:6pt; }
+    }
   </style>
 </head>
 <body x-data="app()" x-init="init()">
@@ -797,6 +826,19 @@
           <i x-show="!cargandoContenedor" class="bi bi-arrow-clockwise"></i>
           Recalcular
         </button>
+        <button class="btn-ghost" style="white-space:nowrap;color:#f5a623;border-color:rgba(245,166,35,0.3)"
+                :disabled="cargandoRecomendaciones" @click="sugerirEquipo()">
+          <span x-show="cargandoRecomendaciones" class="spinner"></span>
+          <i x-show="!cargandoRecomendaciones" class="bi bi-stars"></i>
+          Sugerir equipo
+        </button>
+        <template x-if="contenedor">
+          <button class="btn-ghost" style="white-space:nowrap;color:#4dd884;border-color:rgba(77,216,132,0.3)"
+                  @click="exportarPDF()">
+            <i class="bi bi-file-earmark-pdf"></i>
+            Exportar PDF
+          </button>
+        </template>
         <template x-if="contenedor">
           <span style="font-size:0.78rem;color:var(--muted)">
             <span x-text="contenedor.filasDisponibles"></span> filas ·
@@ -1217,7 +1259,10 @@ function app() {
     ordenDescarga:      [],
     contenedorBack:     'detalle',
     tipoContenedor:     '40ft HC',
-    tipoTractocamion:   'T3-S2 Estándar',
+    tipoTractocamion:        'T3-S2 Estándar',
+    mostrandoRecomendaciones: false,
+    recomendaciones:          [],
+    cargandoRecomendaciones:  false,
     items:              [],
     itemActual:         null,
     itemForm:           {},
@@ -1368,6 +1413,40 @@ function app() {
       this.cargandoContenedor = false;
       if (!r || !r.ok) { this.alerta = 'Error al calcular el contenedor.'; this.vista = 'lista'; return; }
       this.contenedor = await r.json();
+    },
+
+    async sugerirEquipo() {
+      const ids = this.seleccionados.length > 0
+        ? this.seleccionados
+        : this.fdoActual ? [this.fdoActual.id] : [];
+      if (ids.length === 0) return;
+      this.recomendaciones = [];
+      this.mostrandoRecomendaciones = true;
+      this.cargandoRecomendaciones  = true;
+      const r = await this.api('/api/contenedor/recomendar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fdoIds: ids })
+      });
+      this.cargandoRecomendaciones = false;
+      if (r?.ok) this.recomendaciones = await r.json();
+    },
+
+    usarRecomendacion(rec) {
+      this.tipoContenedor   = rec.contenedor;
+      this.tipoTractocamion = rec.tractocamion;
+      this.mostrandoRecomendaciones = false;
+      this.recalcularContenedor();
+    },
+
+    exportarPDF() {
+      window.print();
+    },
+
+    fdosDelContenedor() {
+      if (this.seleccionados.length > 0)
+        return this.fdos.filter(f => this.seleccionados.includes(f.id));
+      return this.fdoActual ? [this.fdoActual] : [];
     },
 
     zonaEnFila(fila) {
@@ -1593,5 +1672,244 @@ function app() {
   };
 }
 </script>
+
+<!-- ═══════════════════════════════ MODAL RECOMENDACIONES ═══════════════════════════════ -->
+<div class="modal-overlay no-print" x-show="mostrandoRecomendaciones" x-cloak
+     @click.self="mostrandoRecomendaciones=false">
+  <div class="modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <div style="font-size:1rem;font-weight:800">
+        <i class="bi bi-stars" style="color:#f5a623"></i> Sugerencia de equipo idóneo
+      </div>
+      <button class="btn-ghost" style="padding:0.3rem 0.6rem" @click="mostrandoRecomendaciones=false">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div x-show="cargandoRecomendaciones" style="text-align:center;padding:2rem">
+      <span class="spinner" style="width:28px;height:28px;border-width:3px"></span>
+      <p style="color:var(--muted);margin:1rem 0 0;font-size:0.85rem">Evaluando 15 combinaciones...</p>
+    </div>
+
+    <template x-if="!cargandoRecomendaciones && recomendaciones.length > 0">
+      <div>
+        <p style="font-size:0.8rem;color:var(--muted);margin-bottom:0.75rem">
+          Combinaciones válidas primero — contenedor más pequeño que cumpla FHWA + NOM-012 sin infringir ningún eje.
+        </p>
+        <div class="rec-grid">
+          <template x-for="(r, i) in recomendaciones" :key="r.contenedor+r.tractocamion">
+            <div class="rec-card" :class="r.viable ? 'viable' : 'inviable'">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.5rem">
+                <div>
+                  <div style="font-size:0.85rem;font-weight:800" x-text="r.contenedor"></div>
+                  <div style="font-size:0.72rem;color:var(--muted)" x-text="r.tractocamion"></div>
+                </div>
+                <span style="font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:20px"
+                      :style="r.viable ? 'background:rgba(77,216,132,0.2);color:#4dd884' : 'background:rgba(229,76,76,0.15);color:#e54c4c'"
+                      x-text="r.viable ? '✓ Viable' : '✗ Problemas'"></span>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.3rem;font-size:0.72rem;margin-bottom:0.5rem">
+                <div style="color:var(--muted)">GVW: <strong x-text="r.gvwKg?.toLocaleString('es-MX',{maximumFractionDigits:0})+' kg'"></strong></div>
+                <div style="color:var(--muted)">Filas: <strong x-text="r.filasUsadas+'/'+r.filasDisponibles"></strong></div>
+                <div style="color:var(--muted)">W1: <strong x-text="r.w1Kg?.toLocaleString('es-MX',{maximumFractionDigits:0})+' kg'"></strong></div>
+                <div style="color:var(--muted)">Balance: <strong x-text="r.balancePct?.toFixed(1)+'%'"></strong></div>
+              </div>
+              <template x-if="r.problemas.length > 0">
+                <ul style="font-size:0.68rem;color:#ff8080;margin:0 0 0.5rem;padding-left:1rem">
+                  <template x-for="p in r.problemas" :key="p">
+                    <li x-text="p"></li>
+                  </template>
+                </ul>
+              </template>
+              <template x-if="r.viable">
+                <button class="btn-primary-grad" style="width:100%;padding:0.35rem"
+                        @click="usarRecomendacion(r)">
+                  Usar esta configuración
+                </button>
+              </template>
+            </div>
+          </template>
+        </div>
+      </div>
+    </template>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════ REPORTE IMPRIMIBLE (solo print) ═══════════════════════════════ -->
+<div class="print-only" x-show="contenedor">
+  <div class="pr-page">
+    <!-- Encabezado -->
+    <div class="pr-title">
+      <div>PLAN DE CARGA DE CONTENEDOR</div>
+      <div style="font-size:9pt;font-weight:400;margin-top:3pt"
+           x-text="'Generado: ' + new Date().toLocaleString('es-MX')"></div>
+    </div>
+
+    <!-- Info del embarque -->
+    <table class="pr-table">
+      <tr>
+        <th>FDOs</th>
+        <td x-text="fdosDelContenedor().map(f=>f.fdoSlipNo).join(', ')"></td>
+        <th>Contenedor</th>
+        <td x-text="contenedor?.contenedorTipo + ' — ' + contenedor?.contenedorLargoCm + '×' + contenedor?.contenedorAnchoCm + '×' + contenedor?.contenedorAltoCm + ' cm'"></td>
+      </tr>
+      <tr>
+        <th>Cliente</th>
+        <td x-text="fdosDelContenedor().map(f=>f.customer).filter((v,i,a)=>a.indexOf(v)===i).join(', ')"></td>
+        <th>Tractocamión</th>
+        <td x-text="contenedor?.tractocamionTipo"></td>
+      </tr>
+      <tr>
+        <th>Consignee</th>
+        <td x-text="fdosDelContenedor().map(f=>f.consignee).filter((v,i,a)=>a.indexOf(v)===i).join(', ')"></td>
+        <th>Filas usadas</th>
+        <td x-text="(contenedor?.destinos?.at(-1)?.filaFin ?? '—') + ' de ' + (contenedor?.filasDisponibles ?? '—')"></td>
+      </tr>
+    </table>
+
+    <!-- Advertencias -->
+    <template x-if="contenedor?.advertencias?.length > 0">
+      <div>
+        <template x-for="adv in contenedor.advertencias" :key="adv">
+          <div class="pr-warn">⚠ <span x-text="adv"></span></div>
+        </template>
+      </div>
+    </template>
+
+    <!-- Cargas por eje -->
+    <div class="pr-sub">Cargas por Eje</div>
+    <table class="pr-table">
+      <thead>
+        <tr>
+          <th>Eje</th>
+          <th>Calculado (kg)</th>
+          <th>Límite FHWA (kg)</th>
+          <th>Límite NOM-012 (kg)</th>
+          <th>FHWA</th>
+          <th>NOM-012</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Delantero (steer)</td>
+          <td x-text="contenedor?.pesoEjeDelanteroKg?.toLocaleString('es-MX',{maximumFractionDigits:0})"></td>
+          <td>5,443</td><td>6,500</td>
+          <td :class="contenedor?.pesoEjeDelanteroKg > 5443 ? 'pr-err' : 'pr-ok'"
+              x-text="contenedor?.pesoEjeDelanteroKg > 5443 ? '✗ EXCEDE' : '✓ OK'"></td>
+          <td :class="contenedor?.pesoEjeDelanteroKg > 6500 ? 'pr-err' : 'pr-ok'"
+              x-text="contenedor?.pesoEjeDelanteroKg > 6500 ? '✗ EXCEDE' : '✓ OK'"></td>
+        </tr>
+        <tr>
+          <td>Tractor tándem</td>
+          <td x-text="contenedor?.pesoEjeTractorKg?.toLocaleString('es-MX',{maximumFractionDigits:0})"></td>
+          <td>15,422</td><td>16,000</td>
+          <td :class="contenedor?.pesoEjeTractorKg > 15422 ? 'pr-err' : 'pr-ok'"
+              x-text="contenedor?.pesoEjeTractorKg > 15422 ? '✗ EXCEDE' : '✓ OK'"></td>
+          <td :class="contenedor?.pesoEjeTractorKg > 16000 ? 'pr-err' : 'pr-ok'"
+              x-text="contenedor?.pesoEjeTractorKg > 16000 ? '✗ EXCEDE' : '✓ OK'"></td>
+        </tr>
+        <tr>
+          <td>Remolque tándem</td>
+          <td x-text="contenedor?.pesoEjeRemolqueKg?.toLocaleString('es-MX',{maximumFractionDigits:0})"></td>
+          <td>15,422</td><td>16,000</td>
+          <td :class="contenedor?.pesoEjeRemolqueKg > 15422 ? 'pr-err' : 'pr-ok'"
+              x-text="contenedor?.pesoEjeRemolqueKg > 15422 ? '✗ EXCEDE' : '✓ OK'"></td>
+          <td :class="contenedor?.pesoEjeRemolqueKg > 16000 ? 'pr-err' : 'pr-ok'"
+              x-text="contenedor?.pesoEjeRemolqueKg > 16000 ? '✗ EXCEDE' : '✓ OK'"></td>
+        </tr>
+        <tr style="font-weight:700">
+          <td>GVW Total</td>
+          <td x-text="contenedor?.pesoTotalGVWKg?.toLocaleString('es-MX',{maximumFractionDigits:0})"></td>
+          <td>36,287</td><td>48,500</td>
+          <td :class="contenedor?.pesoTotalGVWKg > 36287 ? 'pr-err' : 'pr-ok'"
+              x-text="contenedor?.pesoTotalGVWKg > 36287 ? '✗ EXCEDE' : '✓ OK'"></td>
+          <td :class="contenedor?.pesoTotalGVWKg > 48500 ? 'pr-err' : 'pr-ok'"
+              x-text="contenedor?.pesoTotalGVWKg > 48500 ? '✗ EXCEDE' : '✓ OK'"></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Peso y balance -->
+    <div class="pr-sub">Distribución de Peso</div>
+    <table class="pr-table">
+      <tr>
+        <th>Lado Izquierdo</th>
+        <td x-text="contenedor?.pesoIzquierdoKg?.toLocaleString('es-MX',{maximumFractionDigits:1})+' kg'"></td>
+        <th>Lado Derecho</th>
+        <td x-text="contenedor?.pesoDerechoKg?.toLocaleString('es-MX',{maximumFractionDigits:1})+' kg'"></td>
+        <th>Balance L/R</th>
+        <td :class="contenedor?.dentroDeTolerancia ? 'pr-ok' : 'pr-err'"
+            x-text="contenedor?.diferenciaPorcentual?.toFixed(1)+'% '+(contenedor?.dentroDeTolerancia?'✓':'✗')"></td>
+      </tr>
+      <tr>
+        <th>Peso de carga</th>
+        <td x-text="contenedor?.pesoTotalKg?.toLocaleString('es-MX',{maximumFractionDigits:1})+' kg'"></td>
+        <th>CG longitudinal</th>
+        <td x-text="contenedor?.cgLongitudinalPct?.toFixed(1)+'% del largo'"></td>
+        <th>Total pallets</th>
+        <td x-text="contenedor?.totalPallets"></td>
+      </tr>
+    </table>
+
+    <!-- Vistas laterales SVG -->
+    <div class="pr-sub">Elevación Lateral — Vista de Costado</div>
+    <div class="pr-svgs">
+      <div>
+        <div style="font-size:7.5pt;font-weight:700;margin-bottom:3pt">← Lado Izquierdo</div>
+        <div x-html="svgLateral('Izquierdo')"></div>
+        <div style="font-size:8pt;font-weight:700;text-align:center;margin-top:3pt"
+             x-text="contenedor?.pesoIzquierdoKg?.toLocaleString('es-MX',{maximumFractionDigits:1})+' kg'"></div>
+      </div>
+      <div>
+        <div style="font-size:7.5pt;font-weight:700;margin-bottom:3pt">Lado Derecho →</div>
+        <div x-html="svgLateral('Derecho')"></div>
+        <div style="font-size:8pt;font-weight:700;text-align:center;margin-top:3pt"
+             x-text="contenedor?.pesoDerechoKg?.toLocaleString('es-MX',{maximumFractionDigits:1})+' kg'"></div>
+      </div>
+    </div>
+
+    <!-- Plan de carga -->
+    <div class="pr-sub">Plan de Carga por Posición</div>
+    <table class="pr-table">
+      <thead>
+        <tr>
+          <th style="width:40pt">Fila</th>
+          <th>Lado Izquierdo — Modelo / Piezas / Peso</th>
+          <th>Lado Derecho — Modelo / Piezas / Peso</th>
+        </tr>
+      </thead>
+      <tbody>
+        <template x-for="fila in (contenedor?.filasDisponibles || 26)" :key="fila">
+          <template x-if="posicionEn(fila,'Izquierdo') || posicionEn(fila,'Derecho')">
+            <tr>
+              <td style="text-align:center;font-weight:700" x-text="fila"></td>
+              <td>
+                <template x-if="posicionEn(fila,'Izquierdo')">
+                  <span x-text="posicionEn(fila,'Izquierdo').modelNo + ' · ' + posicionEn(fila,'Izquierdo').piezas + ' pzs · ' + posicionEn(fila,'Izquierdo').pesoKg + ' kg'"></span>
+                </template>
+              </td>
+              <td>
+                <template x-if="posicionEn(fila,'Derecho')">
+                  <span x-text="posicionEn(fila,'Derecho').modelNo + ' · ' + posicionEn(fila,'Derecho').piezas + ' pzs · ' + posicionEn(fila,'Derecho').pesoKg + ' kg'"></span>
+                </template>
+              </td>
+            </tr>
+          </template>
+        </template>
+      </tbody>
+    </table>
+
+    <!-- Firma del operador -->
+    <div class="pr-sign">
+      <div class="pr-sign-box">
+        Nombre del operador: ___________________________
+      </div>
+      <div class="pr-sign-box">
+        Firma y fecha: ___________________________
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

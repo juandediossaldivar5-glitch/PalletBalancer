@@ -40,6 +40,73 @@ public class ContenedorController : ControllerBase
         return Ok(resultado);
     }
 
+    /// <summary>
+    /// Evalúa las 15 combinaciones contenedor×tractocamión y devuelve las viables ordenadas
+    /// de más eficiente (contenedor más pequeño) a menos.
+    /// </summary>
+    [HttpPost("recomendar")]
+    public async Task<IActionResult> Recomendar(RecomendarDto dto)
+    {
+        if (dto.FdoIds == null || dto.FdoIds.Count == 0)
+            return BadRequest(new { mensaje = "Se requiere al menos un FDO." });
+
+        var fdos = await _db.Fdos
+            .Include(f => f.Lineas)
+            .Where(f => dto.FdoIds.Contains(f.Id))
+            .ToListAsync();
+
+        if (fdos.Count == 0) return NotFound();
+        await CargarItemsEnFdos(fdos);
+
+        string[] contenedores   = ["20ft", "40ft", "40ft HC", "45ft HC", "53ft"];
+        string[] tractocamiones = ["T3-S2 Estándar", "T3-S2 Cabina Larga", "T3-S2 Day Cab"];
+
+        var resultados = new List<RecomendacionItemDto>();
+
+        foreach (var cont in contenedores)
+        {
+            foreach (var trac in tractocamiones)
+            {
+                var r = new ContenedorService().Calcular(fdos, null, cont, trac);
+
+                var problemas = new List<string>();
+                if (r.Advertencias.Any(a => a.Contains("posiciones")))
+                    problemas.Add("La carga no cabe en el contenedor.");
+                problemas.AddRange(r.Advertencias
+                    .Where(a => a.Contains("FHWA") || a.Contains("NOM-012")));
+                if (r.DiferenciaPorcentual > 5)
+                    problemas.Add($"Balance L/R: {r.DiferenciaPorcentual:F1}%.");
+
+                int filasUsadas = r.Destinos.Count > 0
+                    ? r.Destinos.Max(d => d.FilaFin) : 0;
+
+                resultados.Add(new RecomendacionItemDto
+                {
+                    Contenedor       = cont,
+                    Tractocamion     = trac,
+                    Viable           = problemas.Count == 0,
+                    GVWKg            = r.PesoTotalGVWKg,
+                    W1Kg             = r.PesoEjeDelanteroKg,
+                    W2Kg             = r.PesoEjeTractorKg,
+                    WrKg             = r.PesoEjeRemolqueKg,
+                    FilasUsadas      = filasUsadas,
+                    FilasDisponibles = r.FilasDisponibles,
+                    BalancePct       = r.DiferenciaPorcentual,
+                    Problemas        = problemas,
+                });
+            }
+        }
+
+        var orden = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+            { ["20ft"]=0, ["40ft"]=1, ["40ft HC"]=2, ["45ft HC"]=3, ["53ft"]=4 };
+
+        return Ok(resultados
+            .OrderBy(r => r.Viable ? 0 : 1)
+            .ThenBy(r => orden.GetValueOrDefault(r.Contenedor, 9))
+            .ThenBy(r => r.GVWKg)
+            .ToList());
+    }
+
     private async Task CargarItemsEnFdos(List<Fdo> fdos)
     {
         var modelNos = fdos.SelectMany(f => f.Lineas)
