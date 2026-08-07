@@ -973,24 +973,24 @@
           <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.9px;color:var(--muted);margin-bottom:0.75rem">
             <i class="bi bi-rulers"></i> Elevación lateral — vista de costado
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+          <div style="display:flex;flex-direction:column;gap:1.25rem">
             <!-- Lado Izquierdo -->
             <div>
-              <div style="font-size:0.72rem;color:#88c4ff;font-weight:700;text-align:center;margin-bottom:0.35rem">
-                <i class="bi bi-arrow-left-short"></i> Lado Izquierdo
+              <div style="font-size:0.75rem;color:#88c4ff;font-weight:700;margin-bottom:0.4rem;display:flex;justify-content:space-between;align-items:center">
+                <span><i class="bi bi-arrow-left-short"></i> Lado Izquierdo</span>
+                <span x-text="contenedor.pesoIzquierdoKg.toLocaleString('es-MX',{maximumFractionDigits:1}) + ' kg'"
+                      style="font-size:0.88rem"></span>
               </div>
               <div x-html="svgLateral('Izquierdo')" style="width:100%"></div>
-              <div style="text-align:center;margin-top:0.4rem;font-size:0.82rem;font-weight:700;color:#88c4ff"
-                   x-text="contenedor.pesoIzquierdoKg.toLocaleString('es-MX',{maximumFractionDigits:1}) + ' kg'"></div>
             </div>
             <!-- Lado Derecho -->
             <div>
-              <div style="font-size:0.72rem;color:#ffb06b;font-weight:700;text-align:center;margin-bottom:0.35rem">
-                Lado Derecho <i class="bi bi-arrow-right-short"></i>
+              <div style="font-size:0.75rem;color:#ffb06b;font-weight:700;margin-bottom:0.4rem;display:flex;justify-content:space-between;align-items:center">
+                <span>Lado Derecho <i class="bi bi-arrow-right-short"></i></span>
+                <span x-text="contenedor.pesoDerechoKg.toLocaleString('es-MX',{maximumFractionDigits:1}) + ' kg'"
+                      style="font-size:0.88rem"></span>
               </div>
               <div x-html="svgLateral('Derecho')" style="width:100%"></div>
-              <div style="text-align:center;margin-top:0.4rem;font-size:0.82rem;font-weight:700;color:#ffb06b"
-                   x-text="contenedor.pesoDerechoKg.toLocaleString('es-MX',{maximumFractionDigits:1}) + ' kg'"></div>
             </div>
           </div>
         </div>
@@ -1470,8 +1470,8 @@ function app() {
     svgLateral(lado) {
       if (!this.contenedor) return '';
       const FILAS = this.contenedor.filasDisponibles || 26;
-      const VW = 780, VH = 190;
-      const PAD_L = 8, PAD_R = 8, PAD_T = 8, PAD_B = 28;
+      const VW = 1200, VH = 320;
+      const PAD_L = 12, PAD_R = 12, PAD_T = 10, PAD_B = 36;
       const innerW = VW - PAD_L - PAD_R;
       const innerH = VH - PAD_T - PAD_B;
       const cellW  = innerW / FILAS;
@@ -1522,34 +1522,46 @@ function app() {
           const x = xBase + (cellW - w) / 2;
           const y = yBase - h;
           const color = this.colorModelo(p.modelNo);
-          const tag = p.modelNo.slice(-6);
-          // línea punteada en la base de capa 2 para indicar estiba
+          const tag = p.modelNo.length > 10 ? p.modelNo.slice(-10) : p.modelNo;
           if (capa === 2) {
-            pallets += `<line x1="${x.toFixed(1)}" y1="${yBase.toFixed(1)}" x2="${(x+w).toFixed(1)}" y2="${yBase.toFixed(1)}" stroke="${color}99" stroke-width="1" stroke-dasharray="2,2"/>`;
+            pallets += `<line x1="${x.toFixed(1)}" y1="${yBase.toFixed(1)}" x2="${(x+w).toFixed(1)}" y2="${yBase.toFixed(1)}" stroke="${color}99" stroke-width="1.5" stroke-dasharray="3,3"/>`;
           }
-          pallets += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="${color}28" stroke="${color}99" stroke-width="1.2" rx="2"/>`;
-          if (h > 18) {
-            pallets += `<text x="${(x + w/2).toFixed(1)}" y="${(y + Math.min(h/2 + 4, h - 4)).toFixed(1)}" text-anchor="middle" font-size="6.5" font-weight="700" fill="${color}">${tag}</text>`;
+          pallets += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="${color}30" stroke="${color}bb" stroke-width="1.5" rx="3"/>`;
+          // Modelo
+          if (h > 16) {
+            const midY = y + h / 2;
+            const hasQty = h > 42;
+            const hasKg  = h > 28;
+            const lines  = 1 + (hasQty ? 1 : 0) + (hasKg ? 1 : 0);
+            const lineH  = Math.min(h / (lines + 1), 14);
+            let textY = hasQty || hasKg ? midY - lineH * (lines - 1) / 2 : midY + 4;
+            pallets += `<text x="${(x + w/2).toFixed(1)}" y="${textY.toFixed(1)}" text-anchor="middle" font-size="9.5" font-weight="800" fill="${color}">${tag}</text>`;
+            if (hasQty) {
+              textY += lineH;
+              pallets += `<text x="${(x + w/2).toFixed(1)}" y="${textY.toFixed(1)}" text-anchor="middle" font-size="8.5" font-weight="600" fill="rgba(255,255,255,0.82)">${p.piezas} pzs</text>`;
+            }
+            if (hasKg) {
+              textY += lineH;
+              pallets += `<text x="${(x + w/2).toFixed(1)}" y="${textY.toFixed(1)}" text-anchor="middle" font-size="8" fill="rgba(255,255,255,0.55)">${p.pesoKg.toFixed(0)} kg</text>`;
+            }
           }
-          if (h > 28) {
-            pallets += `<text x="${(x + w/2).toFixed(1)}" y="${(y + h - 4).toFixed(1)}" text-anchor="middle" font-size="5.5" fill="rgba(255,255,255,0.5)">${p.pesoKg.toFixed(0)}kg</text>`;
-          }
-          yBase = y; // la siguiente capa arranca donde terminó esta
+          yBase = y;
         }
       }
 
       // Números de fila (cada 5)
       let nums = '';
-      for (let f = 1; f <= FILAS; f += 5) {
+      const step = FILAS > 20 ? 5 : FILAS > 10 ? 2 : 1;
+      for (let f = 1; f <= FILAS; f += step) {
         const x = PAD_L + (f - 1) * cellW + cellW / 2;
-        nums += `<text x="${x.toFixed(1)}" y="${(VH - 8).toFixed(1)}" text-anchor="middle" font-size="7" fill="rgba(255,255,255,0.28)">${f}</text>`;
+        nums += `<text x="${x.toFixed(1)}" y="${(VH - 14).toFixed(1)}" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.35)">${f}</text>`;
       }
-      nums += `<text x="${(PAD_L + innerW).toFixed(1)}" y="${(VH - 8).toFixed(1)}" text-anchor="middle" font-size="7" fill="rgba(255,255,255,0.28)">26</text>`;
+      nums += `<text x="${(PAD_L + innerW).toFixed(1)}" y="${(VH - 14).toFixed(1)}" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.35)">${FILAS}</text>`;
 
       // Etiquetas extremos
-      const lblY = floorY + 14;
-      const cabLabel  = `<text x="${PAD_L}" y="${lblY}" font-size="7" fill="rgba(255,255,255,0.35)">◀ Cabina</text>`;
-      const puerLabel = `<text x="${(PAD_L + innerW).toFixed(1)}" y="${lblY}" text-anchor="end" font-size="7" fill="rgba(255,255,255,0.35)">Puertas ▶</text>`;
+      const lblY = floorY + 22;
+      const cabLabel  = `<text x="${PAD_L}" y="${lblY}" font-size="9.5" font-weight="600" fill="rgba(255,255,255,0.4)">◀ Cabina</text>`;
+      const puerLabel = `<text x="${(PAD_L + innerW).toFixed(1)}" y="${lblY}" text-anchor="end" font-size="9.5" font-weight="600" fill="rgba(255,255,255,0.4)">Puertas ▶</text>`;
 
       // Piso y contorno
       const piso    = `<line x1="${PAD_L}" y1="${floorY}" x2="${PAD_L + innerW}" y2="${floorY}" stroke="rgba(255,255,255,0.25)" stroke-width="1.5"/>`;
