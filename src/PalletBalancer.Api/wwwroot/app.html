@@ -348,11 +348,12 @@
     .cont-row-num { font-size: 0.68rem; color: rgba(255,255,255,0.2); text-align: right; padding-right: 6px; display: flex; align-items: center; justify-content: flex-end; font-variant-numeric: tabular-nums; }
     .cont-cell {
       border-radius: 6px;
-      padding: 0.3rem 0.45rem;
-      min-height: 36px;
+      padding: 0.45rem 0.6rem;
+      min-height: 60px;
       display: flex;
       flex-direction: column;
       justify-content: center;
+      gap: 1px;
       background: rgba(255,255,255,0.03);
       border: 1px solid rgba(255,255,255,0.05);
       transition: transform 0.1s;
@@ -361,8 +362,10 @@
     }
     .cont-cell.ocupada { border-color: transparent; }
     .cont-cell.ocupada:hover { transform: scale(1.03); z-index: 2; }
-    .cont-cell .cn  { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.3px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .cont-cell .cw  { font-size: 0.62rem; color: rgba(255,255,255,0.55); }
+    .cont-cell .cn  { font-size: 0.8rem; font-weight: 800; letter-spacing: 0.2px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; }
+    .cont-cell .cq  { font-size: 0.73rem; font-weight: 600; color: rgba(255,255,255,0.75); line-height: 1.2; }
+    .cont-cell .cw  { font-size: 0.72rem; font-weight: 500; color: rgba(255,255,255,0.5); line-height: 1.2; }
+    .cont-cell .cs  { position:absolute;top:3px;right:4px;font-size:0.58rem;font-weight:700;color:rgba(255,255,255,0.4);letter-spacing:0.3px; }
 
     /* Balance bar */
     .balance-bar-wrap { background: rgba(255,255,255,0.05); border-radius: 100px; height: 8px; overflow: hidden; margin-top: 0.5rem; }
@@ -1020,10 +1023,13 @@
                   <!-- Izquierdo -->
                   <template x-if="posicionEn(fila, 'Izquierdo')">
                     <div class="cont-cell ocupada"
-                         :style="'background:' + colorModelo(posicionEn(fila,'Izquierdo').modelNo) + '22;border-color:' + colorModelo(posicionEn(fila,'Izquierdo').modelNo) + '55'"
-                         :title="posicionEn(fila,'Izquierdo').modelNo + ' — ' + posicionEn(fila,'Izquierdo').piezas + ' pzs — ' + posicionEn(fila,'Izquierdo').pesoKg + ' kg'">
+                         :style="'background:' + colorModelo(posicionEn(fila,'Izquierdo').modelNo) + '22;border-color:' + colorModelo(posicionEn(fila,'Izquierdo').modelNo) + '66'">
+                      <template x-if="posicion2En(fila,'Izquierdo')">
+                        <span class="cs">×2 ESTIB.</span>
+                      </template>
                       <span class="cn" :style="'color:' + colorModelo(posicionEn(fila,'Izquierdo').modelNo)"
-                            x-text="posicionEn(fila,'Izquierdo').modelNo.slice(-6)"></span>
+                            x-text="posicionEn(fila,'Izquierdo').modelNo"></span>
+                      <span class="cq" x-text="posicionEn(fila,'Izquierdo').piezas + ' pzs'"></span>
                       <span class="cw" x-text="posicionEn(fila,'Izquierdo').pesoKg.toFixed(0) + ' kg'"></span>
                     </div>
                   </template>
@@ -1033,10 +1039,13 @@
                   <!-- Derecho -->
                   <template x-if="posicionEn(fila, 'Derecho')">
                     <div class="cont-cell ocupada"
-                         :style="'background:' + colorModelo(posicionEn(fila,'Derecho').modelNo) + '22;border-color:' + colorModelo(posicionEn(fila,'Derecho').modelNo) + '55'"
-                         :title="posicionEn(fila,'Derecho').modelNo + ' — ' + posicionEn(fila,'Derecho').piezas + ' pzs — ' + posicionEn(fila,'Derecho').pesoKg + ' kg'">
+                         :style="'background:' + colorModelo(posicionEn(fila,'Derecho').modelNo) + '22;border-color:' + colorModelo(posicionEn(fila,'Derecho').modelNo) + '66'">
+                      <template x-if="posicion2En(fila,'Derecho')">
+                        <span class="cs">×2 ESTIB.</span>
+                      </template>
                       <span class="cn" :style="'color:' + colorModelo(posicionEn(fila,'Derecho').modelNo)"
-                            x-text="posicionEn(fila,'Derecho').modelNo.slice(-6)"></span>
+                            x-text="posicionEn(fila,'Derecho').modelNo"></span>
+                      <span class="cq" x-text="posicionEn(fila,'Derecho').piezas + ' pzs'"></span>
                       <span class="cw" x-text="posicionEn(fila,'Derecho').pesoKg.toFixed(0) + ' kg'"></span>
                     </div>
                   </template>
@@ -1281,7 +1290,11 @@ function app() {
     },
 
     posicionEn(fila, lado) {
-      return this.contenedor?.posiciones.find(p => p.fila === fila && p.lado === lado) ?? null;
+      return this.contenedor?.posiciones.find(p => p.fila === fila && p.lado === lado && p.capa === 1) ?? null;
+    },
+
+    posicion2En(fila, lado) {
+      return this.contenedor?.posiciones.find(p => p.fila === fila && p.lado === lado && p.capa === 2) ?? null;
     },
 
     modelosUnicos() {
