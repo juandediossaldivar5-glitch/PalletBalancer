@@ -73,7 +73,7 @@ public class ContenedorController : ControllerBase
                 if (r.Advertencias.Any(a => a.Contains("posiciones")))
                     problemas.Add("La carga no cabe en el contenedor.");
                 problemas.AddRange(r.Advertencias
-                    .Where(a => a.Contains("FHWA") || a.Contains("NOM-012")));
+                    .Where(a => a.Contains("FHWA") || a.Contains("NOM-012") || a.Contains("capacidad de carga")));
                 if (r.DiferenciaPorcentual > 5)
                     problemas.Add($"Balance L/R: {r.DiferenciaPorcentual:F1}%.");
 

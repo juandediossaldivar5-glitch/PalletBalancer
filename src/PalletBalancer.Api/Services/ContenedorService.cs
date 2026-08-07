@@ -6,11 +6,11 @@ namespace PalletBalancer.Api.Services;
 
 public class ContenedorService
 {
-    // Límites NOM-012 México (kg)
-    private const double NOM_W1  =  6_500;
+    // Límites NOM-012 México (kg) — carreteras federales estándar
+    private const double NOM_W1  =  6_000;
     private const double NOM_W2  = 16_000;
     private const double NOM_Wr  = 16_000;
-    private const double NOM_GVW = 48_500;
+    private const double NOM_GVW = 40_500;
 
     // Límites FHWA EE.UU. (kg)
     private const double FHWA_W1  =  5_443;
@@ -177,8 +177,8 @@ public class ContenedorService
         if (difPorc > 5)
             advertencias.Add($"Diferencia de peso entre lados ({difPorc}%) excede la tolerancia (5%).");
         var pesoTotal = Math.Round(pesoIzq + pesoDer, 2);
-        if (pesoTotal > 22_000)
-            advertencias.Add($"Peso total ({pesoTotal} kg) excede la capacidad máxima del contenedor (22,000 kg).");
+        if (pesoTotal > spec.PayloadMaxKg)
+            advertencias.Add($"Peso total de carga ({pesoTotal} kg) excede la capacidad de carga del contenedor {spec.Tipo} ({spec.PayloadMaxKg:N0} kg ISO).");
         if (filaActual > filasPorLado + 1)
             advertencias.Add($"La carga requiere más posiciones ({filaActual - 1}) de las disponibles en el contenedor {spec.Tipo} ({filasPorLado} filas).");
         if (palletAncho * 2 > spec.AnchoCm)
