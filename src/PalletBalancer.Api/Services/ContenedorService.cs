@@ -138,10 +138,16 @@ public class ContenedorService
         double pesoIzq   = 0, pesoDer = 0;
         int filaActual   = 1;
 
+        // Total de filas requeridas por toda la carga
+        int rowsTotalesNecesarios = stacksPorDestino.Values
+            .Sum(sl => (int)Math.Ceiling(sl.Count / 2.0));
+
         foreach (var dest in ordenCarga)
         {
             var stacks = stacksPorDestino.GetValueOrDefault(dest, []);
             if (stacks.Count == 0) continue;
+
+            if (filaActual > filasPorLado) break;
 
             int rowsNec = (int)Math.Ceiling(stacks.Count / 2.0);
             int filaFin = Math.Min(filaActual + rowsNec - 1, filasPorLado);
@@ -164,7 +170,6 @@ public class ContenedorService
             });
 
             filaActual = filaFin + 1;
-            if (filaActual > filasPorLado) break;
         }
 
         // Balance L/R
@@ -179,8 +184,8 @@ public class ContenedorService
         var pesoTotal = Math.Round(pesoIzq + pesoDer, 2);
         if (pesoTotal > spec.PayloadMaxKg)
             advertencias.Add($"Peso total de carga ({pesoTotal} kg) excede la capacidad de carga del contenedor {spec.Tipo} ({spec.PayloadMaxKg:N0} kg ISO).");
-        if (filaActual > filasPorLado + 1)
-            advertencias.Add($"La carga requiere más posiciones ({filaActual - 1}) de las disponibles en el contenedor {spec.Tipo} ({filasPorLado} filas).");
+        if (rowsTotalesNecesarios > filasPorLado)
+            advertencias.Add($"La carga requiere más posiciones ({rowsTotalesNecesarios}) de las disponibles en el contenedor {spec.Tipo} ({filasPorLado} filas).");
         if (palletAncho * 2 > spec.AnchoCm)
             advertencias.Add($"Dos tarimas lado a lado ({palletAncho * 2} cm) exceden el ancho interior del contenedor {spec.Tipo} ({spec.AnchoCm} cm).");
 
