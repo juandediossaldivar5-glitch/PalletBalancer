@@ -414,8 +414,9 @@
                      border:0.5pt solid #1a3a6b;text-align:left; }
       .pr-table td { font-size:8pt;padding:3pt 5pt;border:0.5pt solid #ccc; }
       .pr-table tr:nth-child(even) td { background:#f4f6fa; }
-      .pr-ok  { color:#1a7a3a;font-weight:700; }
-      .pr-err { color:#c0392b;font-weight:700; }
+      .pr-ok   { color:#1a7a3a;font-weight:700; }
+      .pr-err  { color:#c0392b;font-weight:700; }
+      .pr-warn { color:#b8860b;font-weight:700; }
       .pr-svgs { display:grid;grid-template-columns:1fr 1fr;gap:10pt;margin:8pt 0; }
       .pr-sign { display:grid;grid-template-columns:1fr 1fr 1fr;gap:15pt;margin-top:18pt; }
       .pr-sign-box { border-top:1pt solid #888;padding-top:5pt;font-size:7.5pt;color:#555; }
@@ -945,17 +946,17 @@
                  x-text="contenedor.pesoTotalKg.toLocaleString('es-MX', {maximumFractionDigits:1}) + ' kg'"></div>
           </div>
           <div class="stat-card">
-            <label><i class="bi bi-distribute-horizontal"></i> Balance</label>
-            <div class="val" :style="contenedor.dentroDeTolerancia ? 'color:#4dd884' : 'color:#ff8080'"
+            <label><i class="bi bi-distribute-horizontal"></i> Balance L/R</label>
+            <div class="val" :style="contenedor.diferenciaPorcentual <= 5 ? 'color:#4dd884' : 'color:#ffc107'"
                  x-text="contenedor.diferenciaPorcentual.toFixed(1) + '%'"></div>
             <div class="balance-bar-wrap mt-1">
               <div class="balance-bar-fill"
                    :style="'width:' + Math.min(contenedor.diferenciaPorcentual * 10, 100) + '%;background:' +
-                           (contenedor.dentroDeTolerancia ? '#4dd884' : '#e54c4c')">
+                           (contenedor.diferenciaPorcentual <= 5 ? '#4dd884' : '#ffc107')">
               </div>
             </div>
             <div style="font-size:0.7rem;color:var(--muted);margin-top:0.3rem"
-                 x-text="contenedor.dentroDeTolerancia ? '✓ Dentro de tolerancia (5%)' : '✗ Fuera de tolerancia'">
+                 x-text="contenedor.diferenciaPorcentual <= 5 ? '✓ Balanceado' : '⚠ Desbalance — revisar distribución'">
             </div>
           </div>
           <div class="stat-card">
@@ -1450,12 +1451,10 @@ function app() {
       const noCabe  = recs.every(rec => rec.problemas.some(p => p.includes('no cabe') || p.includes('posiciones')));
       const excPeso = recs.every(rec => rec.problemas.some(p => p.includes('FHWA') || p.includes('NOM-012')));
       const excCap  = recs.every(rec => rec.problemas.some(p => p.includes('capacidad de carga')));
-      const malBal  = recs.every(rec => rec.balancePct > 5);
 
       if (noCabe)  razones.push('La cantidad de pallets supera la capacidad física de todos los contenedores disponibles. Reduzca las cantidades en el FDO.');
       if (excPeso) razones.push('El peso excede los límites normativos FHWA / NOM-012 en todas las configuraciones. Reduzca las cantidades o corrija los datos de peso en el catálogo.');
       if (excCap && !excPeso) razones.push('El peso de la carga excede la capacidad de carga ISO de los contenedores. Reduzca las cantidades.');
-      if (malBal)  razones.push('El balance lateral L/R supera el 5% en todas las configuraciones. Revise la distribución de los items.');
       if (razones.length === 0) razones.push('No existe ninguna combinación de contenedor y tractocamión que cumpla las normas para este embarque.');
 
       this.ningunViable     = true;
@@ -2057,8 +2056,8 @@ function app() {
         <th>Lado Derecho</th>
         <td x-text="contenedor?.pesoDerechoKg?.toLocaleString('es-MX',{maximumFractionDigits:1})+' kg'"></td>
         <th>Balance L/R</th>
-        <td :class="contenedor?.dentroDeTolerancia ? 'pr-ok' : 'pr-err'"
-            x-text="contenedor?.diferenciaPorcentual?.toFixed(1)+'% '+(contenedor?.dentroDeTolerancia?'✓ OK':'✗ FUERA')"></td>
+        <td :class="contenedor?.diferenciaPorcentual <= 5 ? 'pr-ok' : 'pr-warn'"
+            x-text="contenedor?.diferenciaPorcentual?.toFixed(1)+'% '+(contenedor?.diferenciaPorcentual <= 5 ? '✓ Balanceado' : '⚠ Revisar')"></td>
         <th>CG longitudinal</th>
         <td x-text="contenedor?.cgLongitudinalPct?.toFixed(1)+'% del KP→eje'"></td>
       </tr>
