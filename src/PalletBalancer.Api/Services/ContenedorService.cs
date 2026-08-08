@@ -28,7 +28,7 @@ public class ContenedorService
         var trac = TractocamionSpecs.Get(tipoTractocamion);
         var sinDatos = new List<string>();
 
-        var palletsPorDestino = new Dictionary<string, List<(Pallet P, bool Apilable)>>(StringComparer.OrdinalIgnoreCase);
+        var palletsPorDestino = new Dictionary<string, List<(Pallet P, bool Apilable, bool EsParcial)>>(StringComparer.OrdinalIgnoreCase);
         var descMap           = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var fdo in fdos)
@@ -56,14 +56,14 @@ public class ContenedorService
 
                 for (int i = 0; i < full; i++)
                     palletsPorDestino[dest].Add((Build(linea.ModelNo, pxp,
-                        item.SpPesoKg, item.SpLargoCm, item.SpAnchoCm, item.SpAltoCm), apilable));
+                        item.SpPesoKg, item.SpLargoCm, item.SpAnchoCm, item.SpAltoCm), apilable, false));
 
                 if (rest > 0)
                 {
                     double pw = Math.Round((double)rest / pxp * item.SpPesoKg, 2);
                     double ah = Math.Round((double)rest / pxp * item.SpAltoCm, 1);
                     palletsPorDestino[dest].Add((Build(linea.ModelNo, rest,
-                        pw, item.SpLargoCm, item.SpAnchoCm, ah > 0 ? ah : item.SpAltoCm), apilable));
+                        pw, item.SpLargoCm, item.SpAnchoCm, ah > 0 ? ah : item.SpAltoCm), apilable, true));
                 }
             }
         }
@@ -94,30 +94,30 @@ public class ContenedorService
             .ToList();
 
         // Crear stacks: pares de pallets apilables que caben en el alto del contenedor
-        var stacksPorDestino = new Dictionary<string, List<(Pallet Piso, Pallet? Encima)>>(StringComparer.OrdinalIgnoreCase);
+        var stacksPorDestino = new Dictionary<string, List<(Pallet Piso, Pallet? Encima, bool Apilable, bool PisoEsParcial, bool EncimaEsParcial)>>(StringComparer.OrdinalIgnoreCase);
         foreach (var (dest, lista) in palletsPorDestino)
         {
-            var stacks       = new List<(Pallet Piso, Pallet? Encima)>();
-            var apilables    = lista.Where(x => x.Apilable).OrderByDescending(x => x.P.PesoTotalKg).Select(x => x.P).ToList();
-            var noApilables  = lista.Where(x => !x.Apilable).Select(x => x.P).ToList();
+            var stacks      = new List<(Pallet Piso, Pallet? Encima, bool Apilable, bool PisoEsParcial, bool EncimaEsParcial)>();
+            var apilables   = lista.Where(x => x.Apilable).OrderByDescending(x => x.P.PesoTotalKg).ToList();
+            var noApilables = lista.Where(x => !x.Apilable).ToList();
 
             int i = 0;
             while (i < apilables.Count)
             {
                 var piso = apilables[i];
-                if (i + 1 < apilables.Count && piso.AltoCm + apilables[i + 1].AltoCm <= spec.AltoCm)
+                if (i + 1 < apilables.Count && piso.P.AltoCm + apilables[i + 1].P.AltoCm <= spec.AltoCm)
                 {
-                    stacks.Add((piso, apilables[i + 1]));
+                    stacks.Add((piso.P, apilables[i + 1].P, true, piso.EsParcial, apilables[i + 1].EsParcial));
                     i += 2;
                 }
                 else
                 {
-                    stacks.Add((piso, null));
+                    stacks.Add((piso.P, null, true, piso.EsParcial, false));
                     i++;
                 }
             }
             foreach (var p in noApilables)
-                stacks.Add((p, null));
+                stacks.Add((p.P, null, false, p.EsParcial, false));
 
             stacksPorDestino[dest] = stacks;
         }
@@ -262,12 +262,12 @@ public class ContenedorService
     }
 
     private static (List<PosicionResultadoDto> pos, double pesoIzq, double pesoDer)
-        BalancearZona(List<(Pallet Piso, Pallet? Encima)> stacks, string destino,
-                      int filaInicio, int filaFin, Dictionary<string, string> descMap)
+        BalancearZona(List<(Pallet Piso, Pallet? Encima, bool Apilable, bool PisoEsParcial, bool EncimaEsParcial)> stacks,
+                      string destino, int filaInicio, int filaFin, Dictionary<string, string> descMap)
     {
         var pos     = new List<PosicionResultadoDto>();
-        var izq     = new List<(Pallet Piso, Pallet? Encima)>();
-        var der     = new List<(Pallet Piso, Pallet? Encima)>();
+        var izq     = new List<(Pallet Piso, Pallet? Encima, bool Apilable, bool PisoEsParcial, bool EncimaEsParcial)>();
+        var der     = new List<(Pallet Piso, Pallet? Encima, bool Apilable, bool PisoEsParcial, bool EncimaEsParcial)>();
         double pIzq = 0, pDer = 0;
 
         foreach (var s in stacks.OrderByDescending(s => s.Piso.PesoTotalKg + (s.Encima?.PesoTotalKg ?? 0)))
@@ -286,15 +286,15 @@ public class ContenedorService
 
             if (i < izq.Count)
             {
-                pos.Add(ToDto(izq[i].Piso, fila, "Izquierdo", destino, descMap, 1));
+                pos.Add(ToDto(izq[i].Piso, fila, "Izquierdo", destino, descMap, 1, izq[i].PisoEsParcial, izq[i].Apilable));
                 if (izq[i].Encima is not null)
-                    pos.Add(ToDto(izq[i].Encima!, fila, "Izquierdo", destino, descMap, 2));
+                    pos.Add(ToDto(izq[i].Encima!, fila, "Izquierdo", destino, descMap, 2, izq[i].EncimaEsParcial, izq[i].Apilable));
             }
             if (i < der.Count)
             {
-                pos.Add(ToDto(der[i].Piso, fila, "Derecho", destino, descMap, 1));
+                pos.Add(ToDto(der[i].Piso, fila, "Derecho", destino, descMap, 1, der[i].PisoEsParcial, der[i].Apilable));
                 if (der[i].Encima is not null)
-                    pos.Add(ToDto(der[i].Encima!, fila, "Derecho", destino, descMap, 2));
+                    pos.Add(ToDto(der[i].Encima!, fila, "Derecho", destino, descMap, 2, der[i].EncimaEsParcial, der[i].Apilable));
             }
 
             fila++;
@@ -304,7 +304,8 @@ public class ContenedorService
     }
 
     private static PosicionResultadoDto ToDto(Pallet p, int fila, string lado,
-        string destino, Dictionary<string, string> descMap, int capa = 1) =>
+        string destino, Dictionary<string, string> descMap, int capa = 1,
+        bool esParcial = false, bool apilable = true) =>
         new()
         {
             Fila        = fila,
@@ -318,6 +319,8 @@ public class ContenedorService
             AltoCm      = p.AltoCm,
             LargoCm     = p.LargoCm,
             AnchoCm     = p.AnchoCm,
+            EsParcial   = esParcial,
+            Apilable    = apilable,
         };
 
     private static Pallet Build(string sku, int piezas, double pesoKg,

@@ -1023,11 +1023,14 @@
                   <!-- Izquierdo -->
                   <template x-if="posicionEn(fila, 'Izquierdo')">
                     <div class="cont-cell ocupada"
-                         :style="'background:' + colorModelo(posicionEn(fila,'Izquierdo').modelNo) + '22;border-color:' + colorModelo(posicionEn(fila,'Izquierdo').modelNo) + '66'">
+                         :style="'background:' + palletColor(posicionEn(fila,'Izquierdo')) + '22;border-color:' + palletColor(posicionEn(fila,'Izquierdo')) + '99'">
                       <template x-if="posicion2En(fila,'Izquierdo')">
                         <span class="cs">×2 ESTIB.</span>
                       </template>
-                      <span class="cn" :style="'color:' + colorModelo(posicionEn(fila,'Izquierdo').modelNo)"
+                      <template x-if="!posicionEn(fila,'Izquierdo').apilable">
+                        <span class="cs" style="color:rgba(255,100,100,0.8)">NO APILAR</span>
+                      </template>
+                      <span class="cn" :style="'color:' + palletColor(posicionEn(fila,'Izquierdo'))"
                             x-text="posicionEn(fila,'Izquierdo').modelNo"></span>
                       <span class="cq" x-text="posicionEn(fila,'Izquierdo').piezas + ' pzs'"></span>
                       <span class="cw" x-text="posicionEn(fila,'Izquierdo').pesoKg.toFixed(0) + ' kg'"></span>
@@ -1039,11 +1042,14 @@
                   <!-- Derecho -->
                   <template x-if="posicionEn(fila, 'Derecho')">
                     <div class="cont-cell ocupada"
-                         :style="'background:' + colorModelo(posicionEn(fila,'Derecho').modelNo) + '22;border-color:' + colorModelo(posicionEn(fila,'Derecho').modelNo) + '66'">
+                         :style="'background:' + palletColor(posicionEn(fila,'Derecho')) + '22;border-color:' + palletColor(posicionEn(fila,'Derecho')) + '99'">
                       <template x-if="posicion2En(fila,'Derecho')">
                         <span class="cs">×2 ESTIB.</span>
                       </template>
-                      <span class="cn" :style="'color:' + colorModelo(posicionEn(fila,'Derecho').modelNo)"
+                      <template x-if="!posicionEn(fila,'Derecho').apilable">
+                        <span class="cs" style="color:rgba(255,100,100,0.8)">NO APILAR</span>
+                      </template>
+                      <span class="cn" :style="'color:' + palletColor(posicionEn(fila,'Derecho'))"
                             x-text="posicionEn(fila,'Derecho').modelNo"></span>
                       <span class="cq" x-text="posicionEn(fila,'Derecho').piezas + ' pzs'"></span>
                       <span class="cw" x-text="posicionEn(fila,'Derecho').pesoKg.toFixed(0) + ' kg'"></span>
@@ -1059,6 +1065,22 @@
             <!-- Footer label -->
             <div style="text-align:center;margin-top:0.75rem;font-size:0.72rem;color:var(--muted)">
               ← Fila 1: cabina &nbsp;|&nbsp; Fila 26: puertas →
+            </div>
+
+            <!-- Leyenda de colores -->
+            <div style="display:flex;gap:1rem;justify-content:center;margin-top:0.6rem;flex-wrap:wrap">
+              <span style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:var(--muted)">
+                <span style="width:12px;height:12px;border-radius:3px;background:#28a74522;border:2px solid #28a74599;flex-shrink:0"></span>
+                Pallet completo
+              </span>
+              <span style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:var(--muted)">
+                <span style="width:12px;height:12px;border-radius:3px;background:#ffc10722;border:2px solid #ffc10799;flex-shrink:0"></span>
+                Pallet parcial
+              </span>
+              <span style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:var(--muted)">
+                <span style="width:12px;height:12px;border-radius:3px;background:#dc354522;border:2px solid #dc354599;flex-shrink:0"></span>
+                No se puede estibar
+              </span>
             </div>
           </div>
         </div>
@@ -1287,6 +1309,13 @@ function app() {
         this._colorCache[modelNo] = this._paleta[keys.length % this._paleta.length];
       }
       return this._colorCache[modelNo];
+    },
+
+    palletColor(p) {
+      if (!p) return '#6c757d';
+      if (!p.apilable)  return '#dc3545';   // rojo  — no se puede estibar
+      if (p.esParcial)  return '#ffc107';   // amarillo — pallet parcial
+      return '#28a745';                      // verde — pallet completo
     },
 
     posicionEn(fila, lado) {

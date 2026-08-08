@@ -47,6 +47,8 @@ public class PosicionResultadoDto
     public double AltoCm      { get; set; }
     public double LargoCm     { get; set; }
     public double AnchoCm     { get; set; }
+    public bool   EsParcial   { get; set; }  // true = pallet con cantidad incompleta
+    public bool   Apilable    { get; set; }  // false = no se puede estibar (no poner encima)
 }
 
 public class DestinoInfoDto
