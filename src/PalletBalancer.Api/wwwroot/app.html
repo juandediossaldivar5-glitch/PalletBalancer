@@ -397,25 +397,41 @@
       body { background:white !important; color:#111 !important; font-family:'Segoe UI',sans-serif; margin:0; padding:0; }
       .no-print { display:none !important; }
       .print-only { display:block !important; }
-      .pr-page { padding:20mm 18mm; font-size:9pt; line-height:1.4; }
-      .pr-title { font-size:16pt;font-weight:800;text-align:center;border-bottom:2pt solid #111;padding-bottom:6pt;margin-bottom:10pt; }
-      .pr-sub   { font-size:10pt;font-weight:700;color:#333;margin:10pt 0 4pt; }
+      .pr-page { padding:10mm 15mm; font-size:9pt; line-height:1.4; position:relative; }
+      .pr-watermark { position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+                      width:50%;opacity:0.04;pointer-events:none;z-index:0; }
+      .pr-header { display:flex;align-items:center;gap:12pt;border-bottom:2.5pt solid #1a3a6b;
+                   padding-bottom:8pt;margin-bottom:10pt; }
+      .pr-header-logo { height:38pt;object-fit:contain;flex-shrink:0; }
+      .pr-header-center { flex:1;text-align:center; }
+      .pr-header-center h1 { font-size:13pt;font-weight:800;color:#1a3a6b;margin:0;letter-spacing:0.3pt; }
+      .pr-header-center p  { font-size:7.5pt;color:#555;margin:2pt 0 0; }
+      .pr-header-meta { text-align:right;font-size:7pt;color:#666;min-width:70pt;line-height:1.6; }
+      .pr-sub { font-size:9.5pt;font-weight:700;color:#1a3a6b;margin:9pt 0 4pt;
+                border-left:3pt solid #1a3a6b;padding-left:5pt; }
       .pr-table { width:100%;border-collapse:collapse;margin-bottom:8pt; }
-      .pr-table th { background:#eee;font-size:7.5pt;padding:3pt 5pt;border:0.5pt solid #ccc;text-align:left; }
-      .pr-table td { font-size:8pt;padding:3pt 5pt;border:0.5pt solid #ddd; }
+      .pr-table th { background:#1a3a6b;color:white;font-size:7.5pt;padding:3pt 5pt;
+                     border:0.5pt solid #1a3a6b;text-align:left; }
+      .pr-table td { font-size:8pt;padding:3pt 5pt;border:0.5pt solid #ccc; }
+      .pr-table tr:nth-child(even) td { background:#f4f6fa; }
       .pr-ok  { color:#1a7a3a;font-weight:700; }
       .pr-err { color:#c0392b;font-weight:700; }
       .pr-svgs { display:grid;grid-template-columns:1fr 1fr;gap:10pt;margin:8pt 0; }
-      .pr-sign { display:grid;grid-template-columns:1fr 1fr;gap:20pt;margin-top:20pt; }
-      .pr-sign-box { border-top:1pt solid #666;padding-top:4pt;font-size:7.5pt;color:#555; }
-      .pr-warn { background:#fff3cd;border:0.5pt solid #e6a817;padding:4pt 6pt;border-radius:3pt;font-size:7.5pt;margin-bottom:6pt; }
+      .pr-sign { display:grid;grid-template-columns:1fr 1fr 1fr;gap:15pt;margin-top:18pt; }
+      .pr-sign-box { border-top:1pt solid #888;padding-top:5pt;font-size:7.5pt;color:#555; }
+      .pr-warn { background:#fff8dc;border:0.5pt solid #e6a817;padding:4pt 6pt;
+                 border-radius:3pt;font-size:7.5pt;margin-bottom:5pt; }
+      .pr-truck { margin:8pt 0 6pt;border:0.5pt solid #ccc;border-radius:4pt;padding:6pt;background:#fafbfd; }
+      .pr-legend { display:flex;gap:14pt;margin:5pt 0 8pt;align-items:center;flex-wrap:wrap; }
+      .pr-legend-item { display:flex;align-items:center;gap:4pt;font-size:7.5pt;color:#333; }
+      .pr-legend-dot { width:11pt;height:11pt;border-radius:2pt;border:2pt solid;flex-shrink:0; }
     }
   </style>
 </head>
 <body x-data="app()" x-init="init()">
 
 <!-- NAVBAR -->
-<nav class="pb-nav">
+<nav class="pb-nav no-print">
   <a class="pb-nav-brand" href="#">
     <img src="assets/logo-melco.jpg" alt="MELCO">
     <span class="brand-text">PalletBalancer</span>
@@ -447,7 +463,7 @@
   </button>
 </nav>
 
-<div class="pb-page">
+<div class="pb-page no-print">
 
   <!-- ALERTA GLOBAL -->
   <div x-show="alerta" x-cloak class="pb-alert pb-alert-danger">
@@ -1496,7 +1512,59 @@ function app() {
       return this.contenedor.destinos.find(d => d.filaInicio === fila) ?? null;
     },
 
-    svgLateral(lado) {
+    svgCamion() {
+      if (!this.contenedor) return '';
+      const fmt = n => (n ?? 0).toLocaleString('es-MX', {maximumFractionDigits:0});
+      const w1  = fmt(this.contenedor.pesoEjeDelanteroKg);
+      const w2  = fmt(this.contenedor.pesoEjeTractorKg);
+      const wr  = fmt(this.contenedor.pesoEjeRemolqueKg);
+      const gvw = fmt(this.contenedor.pesoTotalGVWKg);
+      const tipo  = this.contenedor.contenedorTipo ?? '';
+      const cargo = fmt(this.contenedor.pesoTotalKg);
+      const cgPct = +(this.contenedor.cgLongitudinalPct ?? 50);
+      const kpX = 110, trailerX = 605;
+      const cgX  = Math.round(kpX + (cgPct / 100) * (trailerX - kpX));
+      const ok   = (v, lim) => v <= lim ? '#1a7a3a' : '#c0392b';
+      const w1ok = ok(this.contenedor.pesoEjeDelanteroKg ?? 0, 5443);
+      const w2ok = ok(this.contenedor.pesoEjeTractorKg  ?? 0, 15422);
+      const wrok = ok(this.contenedor.pesoEjeRemolqueKg ?? 0, 15422);
+      const wheel = cx => `<circle cx="${cx}" cy="96" r="12" fill="#555" stroke="#222" stroke-width="1.5"/><circle cx="${cx}" cy="96" r="5" fill="#888" stroke="#555" stroke-width="1"/>`;
+      const ribs  = [1,2,3,4,5,6,7,8,9].map(i=>`<line x1="${Math.round(110+i*570/10)}" y1="8" x2="${Math.round(110+i*570/10)}" y2="78" stroke="#2255aa" stroke-width="0.5" opacity="0.3"/>`).join('');
+      return `<svg viewBox="0 0 720 125" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-height:75pt;font-family:'Segoe UI',sans-serif">
+        <rect x="18" y="77" width="662" height="7" rx="2" fill="#aaa" stroke="#777" stroke-width="1"/>
+        <rect x="110" y="5" width="570" height="75" rx="3" fill="#dce8f5" stroke="#2255aa" stroke-width="2"/>
+        ${ribs}
+        <text x="395" y="37" text-anchor="middle" font-size="13" font-weight="800" fill="#1a3a6b">${tipo}</text>
+        <text x="395" y="52" text-anchor="middle" font-size="9" fill="#2255aa">Carga: ${cargo} kg · ${this.contenedor.totalPallets} pallets</text>
+        <text x="118" y="17" font-size="7.5" fill="#999">CABINA</text>
+        <text x="672" y="17" text-anchor="end" font-size="7.5" fill="#999">PUERTAS</text>
+        <rect x="20" y="22" width="90" height="58" rx="5" fill="#e0e6ee" stroke="#2255aa" stroke-width="1.5"/>
+        <rect x="26" y="27" width="42" height="22" rx="2" fill="#a8c8e8" stroke="#5588bb" stroke-width="1" opacity="0.85"/>
+        <rect x="72" y="32" width="30" height="14" rx="1" fill="#a8c8e8" stroke="#5588bb" stroke-width="0.5" opacity="0.7"/>
+        <text x="65" y="72" text-anchor="middle" font-size="7.5" fill="#555">TRACTOR</text>
+        <line x1="${kpX}" y1="5" x2="${kpX}" y2="81" stroke="#cc2200" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <circle cx="${kpX}" cy="78" r="4" fill="#cc2200"/>
+        <text x="${kpX+4}" y="15" font-size="7" fill="#cc2200" font-weight="700">KP</text>
+        <line x1="${cgX}" y1="5" x2="${cgX}" y2="81" stroke="#e67700" stroke-width="2" stroke-dasharray="3,2"/>
+        <circle cx="${cgX}" cy="9" r="4" fill="#e67700"/>
+        <text x="${cgX}" y="3" text-anchor="middle" font-size="7" fill="#e67700" font-weight="700">CG ${cgPct.toFixed(1)}%</text>
+        <line x1="75" y1="81" x2="75" y2="108" stroke="${w1ok}" stroke-width="2"/>
+        ${wheel(75)}
+        <text x="75" y="113" text-anchor="middle" font-size="6.5" fill="#444">W1 steer</text>
+        <text x="75" y="122" text-anchor="middle" font-size="7.5" font-weight="800" fill="${w1ok}">${w1} kg</text>
+        <line x1="131" y1="81" x2="131" y2="108" stroke="${w2ok}" stroke-width="2"/>
+        ${wheel(119)} ${wheel(143)}
+        <text x="131" y="113" text-anchor="middle" font-size="6.5" fill="#444">W2 drive</text>
+        <text x="131" y="122" text-anchor="middle" font-size="7.5" font-weight="800" fill="${w2ok}">${w2} kg</text>
+        <line x1="605" y1="81" x2="605" y2="108" stroke="${wrok}" stroke-width="2"/>
+        ${wheel(593)} ${wheel(617)}
+        <text x="605" y="113" text-anchor="middle" font-size="6.5" fill="#444">Wr remolque</text>
+        <text x="605" y="122" text-anchor="middle" font-size="7.5" font-weight="800" fill="${wrok}">${wr} kg</text>
+        <text x="360" y="122" text-anchor="middle" font-size="7.5" fill="#333">GVW Total: <tspan font-weight="800">${gvw} kg</tspan></text>
+      </svg>`;
+    },
+
+    svgLateral(lado, forPrint = false) {
       if (!this.contenedor) return '';
       const FILAS = this.contenedor.filasDisponibles || 26;
       const VW = 1200, VH = 320;
@@ -1507,6 +1575,15 @@ function app() {
       const MAX_ALTO_CM = this.contenedor.contenedorAltoCm || 270;
       const scaleY = innerH / MAX_ALTO_CM;
       const floorY = PAD_T + innerH;
+      // colores ajustados para impresión en blanco
+      const tC1 = forPrint ? 'rgba(0,0,0,0.75)'  : 'rgba(255,255,255,0.82)';
+      const tC2 = forPrint ? 'rgba(0,0,0,0.5)'   : 'rgba(255,255,255,0.55)';
+      const tCN = forPrint ? 'rgba(0,0,0,0.4)'   : 'rgba(255,255,255,0.35)';
+      const tCL = forPrint ? 'rgba(0,0,0,0.55)'  : 'rgba(255,255,255,0.4)';
+      const sPs = forPrint ? 'rgba(0,0,0,0.2)'   : 'rgba(255,255,255,0.25)';
+      const sCt = forPrint ? 'rgba(0,0,0,0.12)'  : 'rgba(255,255,255,0.08)';
+      const fPl = forPrint ? '50' : '30';
+      const sPl = forPrint ? 'dd' : 'bb';
 
       // Agrupar por fila: [{capa1, capa2?}]
       const slots = {};
@@ -1555,7 +1632,7 @@ function app() {
           if (capa === 2) {
             pallets += `<line x1="${x.toFixed(1)}" y1="${yBase.toFixed(1)}" x2="${(x+w).toFixed(1)}" y2="${yBase.toFixed(1)}" stroke="${color}99" stroke-width="1.5" stroke-dasharray="3,3"/>`;
           }
-          pallets += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="${color}30" stroke="${color}bb" stroke-width="1.5" rx="3"/>`;
+          pallets += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="${color}${fPl}" stroke="${color}${sPl}" stroke-width="1.5" rx="3"/>`;
           // Modelo
           if (h > 16) {
             const midY = y + h / 2;
@@ -1567,11 +1644,11 @@ function app() {
             pallets += `<text x="${(x + w/2).toFixed(1)}" y="${textY.toFixed(1)}" text-anchor="middle" font-size="9.5" font-weight="800" fill="${color}">${tag}</text>`;
             if (hasQty) {
               textY += lineH;
-              pallets += `<text x="${(x + w/2).toFixed(1)}" y="${textY.toFixed(1)}" text-anchor="middle" font-size="8.5" font-weight="600" fill="rgba(255,255,255,0.82)">${p.piezas} pzs</text>`;
+              pallets += `<text x="${(x + w/2).toFixed(1)}" y="${textY.toFixed(1)}" text-anchor="middle" font-size="8.5" font-weight="600" fill="${tC1}">${p.piezas} pzs</text>`;
             }
             if (hasKg) {
               textY += lineH;
-              pallets += `<text x="${(x + w/2).toFixed(1)}" y="${textY.toFixed(1)}" text-anchor="middle" font-size="8" fill="rgba(255,255,255,0.55)">${p.pesoKg.toFixed(0)} kg</text>`;
+              pallets += `<text x="${(x + w/2).toFixed(1)}" y="${textY.toFixed(1)}" text-anchor="middle" font-size="8" fill="${tC2}">${p.pesoKg.toFixed(0)} kg</text>`;
             }
           }
           yBase = y;
@@ -1583,18 +1660,18 @@ function app() {
       const step = FILAS > 20 ? 5 : FILAS > 10 ? 2 : 1;
       for (let f = 1; f <= FILAS; f += step) {
         const x = PAD_L + (f - 1) * cellW + cellW / 2;
-        nums += `<text x="${x.toFixed(1)}" y="${(VH - 14).toFixed(1)}" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.35)">${f}</text>`;
+        nums += `<text x="${x.toFixed(1)}" y="${(VH - 14).toFixed(1)}" text-anchor="middle" font-size="9" fill="${tCN}">${f}</text>`;
       }
-      nums += `<text x="${(PAD_L + innerW).toFixed(1)}" y="${(VH - 14).toFixed(1)}" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.35)">${FILAS}</text>`;
+      nums += `<text x="${(PAD_L + innerW).toFixed(1)}" y="${(VH - 14).toFixed(1)}" text-anchor="middle" font-size="9" fill="${tCN}">${FILAS}</text>`;
 
       // Etiquetas extremos
       const lblY = floorY + 22;
-      const cabLabel  = `<text x="${PAD_L}" y="${lblY}" font-size="9.5" font-weight="600" fill="rgba(255,255,255,0.4)">◀ Cabina</text>`;
-      const puerLabel = `<text x="${(PAD_L + innerW).toFixed(1)}" y="${lblY}" text-anchor="end" font-size="9.5" font-weight="600" fill="rgba(255,255,255,0.4)">Puertas ▶</text>`;
+      const cabLabel  = `<text x="${PAD_L}" y="${lblY}" font-size="9.5" font-weight="600" fill="${tCL}">◀ Cabina</text>`;
+      const puerLabel = `<text x="${(PAD_L + innerW).toFixed(1)}" y="${lblY}" text-anchor="end" font-size="9.5" font-weight="600" fill="${tCL}">Puertas ▶</text>`;
 
       // Piso y contorno
-      const piso    = `<line x1="${PAD_L}" y1="${floorY}" x2="${PAD_L + innerW}" y2="${floorY}" stroke="rgba(255,255,255,0.25)" stroke-width="1.5"/>`;
-      const contorno = `<rect x="${PAD_L}" y="${PAD_T}" width="${innerW}" height="${innerH}" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1" rx="4"/>`;
+      const piso    = `<line x1="${PAD_L}" y1="${floorY}" x2="${PAD_L + innerW}" y2="${floorY}" stroke="${sPs}" stroke-width="1.5"/>`;
+      const contorno = `<rect x="${PAD_L}" y="${PAD_T}" width="${innerW}" height="${innerH}" fill="none" stroke="${sCt}" stroke-width="1" rx="4"/>`;
 
       return `<svg viewBox="0 0 ${VW} ${VH}" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block">
         ${contorno}${fondos}${separadores}${piso}${pallets}${nums}${cabLabel}${puerLabel}
@@ -1792,32 +1869,41 @@ function app() {
 <!-- ═══════════════════════════════ REPORTE IMPRIMIBLE (solo print) ═══════════════════════════════ -->
 <div class="print-only" x-show="contenedor">
   <div class="pr-page">
-    <!-- Encabezado -->
-    <div class="pr-title">
-      <div>PLAN DE CARGA DE CONTENEDOR</div>
-      <div style="font-size:9pt;font-weight:400;margin-top:3pt"
-           x-text="'Generado: ' + new Date().toLocaleString('es-MX')"></div>
+
+    <!-- Marca de agua logo -->
+    <img src="assets/logo-melco.jpg" class="pr-watermark" alt="">
+
+    <!-- Encabezado profesional -->
+    <div class="pr-header">
+      <img src="assets/logo-melco.jpg" class="pr-header-logo" alt="MELCO">
+      <div class="pr-header-center">
+        <h1>PLAN DE CARGA DE CONTENEDOR</h1>
+        <p>Documento de estiba — uso exclusivo operador / transportista</p>
+      </div>
+      <div class="pr-header-meta">
+        <div x-text="new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'})"></div>
+        <div x-text="new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})"></div>
+        <div x-text="'FDO: ' + fdosDelContenedor().map(f=>f.fdoSlipNo).join(', ')"></div>
+      </div>
     </div>
 
     <!-- Info del embarque -->
     <table class="pr-table">
       <tr>
-        <th>FDOs</th>
-        <td x-text="fdosDelContenedor().map(f=>f.fdoSlipNo).join(', ')"></td>
-        <th>Contenedor</th>
-        <td x-text="contenedor?.contenedorTipo + ' — ' + contenedor?.contenedorLargoCm + '×' + contenedor?.contenedorAnchoCm + '×' + contenedor?.contenedorAltoCm + ' cm'"></td>
-      </tr>
-      <tr>
         <th>Cliente</th>
         <td x-text="fdosDelContenedor().map(f=>f.customer).filter((v,i,a)=>a.indexOf(v)===i).join(', ')"></td>
-        <th>Tractocamión</th>
-        <td x-text="contenedor?.tractocamionTipo"></td>
-      </tr>
-      <tr>
-        <th>Consignee</th>
-        <td x-text="fdosDelContenedor().map(f=>f.consignee).filter((v,i,a)=>a.indexOf(v)===i).join(', ')"></td>
+        <th>Contenedor</th>
+        <td x-text="contenedor?.contenedorTipo + ' — ' + contenedor?.contenedorLargoCm + '×' + contenedor?.contenedorAnchoCm + '×' + contenedor?.contenedorAltoCm + ' cm'"></td>
         <th>Filas usadas</th>
         <td x-text="(contenedor?.destinos?.at(-1)?.filaFin ?? '—') + ' de ' + (contenedor?.filasDisponibles ?? '—')"></td>
+      </tr>
+      <tr>
+        <th>Consignee(s)</th>
+        <td x-text="fdosDelContenedor().map(f=>f.consignee).filter((v,i,a)=>a.indexOf(v)===i).join(', ')"></td>
+        <th>Tractocamión</th>
+        <td x-text="contenedor?.tractocamionTipo"></td>
+        <th>Total pallets</th>
+        <td x-text="contenedor?.totalPallets"></td>
       </tr>
     </table>
 
@@ -1830,61 +1916,69 @@ function app() {
       </div>
     </template>
 
+    <!-- Diagrama del camión -->
+    <div class="pr-sub">Configuración del Equipo y Distribución de Carga</div>
+    <div class="pr-truck" x-html="svgCamion()"></div>
+
     <!-- Cargas por eje -->
-    <div class="pr-sub">Cargas por Eje</div>
+    <div class="pr-sub">Verificación de Cargas por Eje</div>
     <table class="pr-table">
       <thead>
         <tr>
           <th>Eje</th>
           <th>Calculado (kg)</th>
           <th>Límite FHWA (kg)</th>
+          <th>Estado FHWA</th>
           <th>Límite NOM-012 (kg)</th>
-          <th>FHWA</th>
-          <th>NOM-012</th>
+          <th>Estado NOM-012</th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td>Delantero (steer)</td>
+          <td>Delantero — steer (W1)</td>
           <td x-text="contenedor?.pesoEjeDelanteroKg?.toLocaleString('es-MX',{maximumFractionDigits:0})"></td>
-          <td>5,443</td><td>6,500</td>
+          <td>5,443</td>
           <td :class="contenedor?.pesoEjeDelanteroKg > 5443 ? 'pr-err' : 'pr-ok'"
               x-text="contenedor?.pesoEjeDelanteroKg > 5443 ? '✗ EXCEDE' : '✓ OK'"></td>
-          <td :class="contenedor?.pesoEjeDelanteroKg > 6500 ? 'pr-err' : 'pr-ok'"
-              x-text="contenedor?.pesoEjeDelanteroKg > 6500 ? '✗ EXCEDE' : '✓ OK'"></td>
+          <td>6,000</td>
+          <td :class="contenedor?.pesoEjeDelanteroKg > 6000 ? 'pr-err' : 'pr-ok'"
+              x-text="contenedor?.pesoEjeDelanteroKg > 6000 ? '✗ EXCEDE' : '✓ OK'"></td>
         </tr>
         <tr>
-          <td>Tractor tándem</td>
+          <td>Tractor tándem — drive (W2)</td>
           <td x-text="contenedor?.pesoEjeTractorKg?.toLocaleString('es-MX',{maximumFractionDigits:0})"></td>
-          <td>15,422</td><td>16,000</td>
+          <td>15,422</td>
           <td :class="contenedor?.pesoEjeTractorKg > 15422 ? 'pr-err' : 'pr-ok'"
               x-text="contenedor?.pesoEjeTractorKg > 15422 ? '✗ EXCEDE' : '✓ OK'"></td>
+          <td>16,000</td>
           <td :class="contenedor?.pesoEjeTractorKg > 16000 ? 'pr-err' : 'pr-ok'"
               x-text="contenedor?.pesoEjeTractorKg > 16000 ? '✗ EXCEDE' : '✓ OK'"></td>
         </tr>
         <tr>
-          <td>Remolque tándem</td>
+          <td>Remolque tándem — trailer (Wr)</td>
           <td x-text="contenedor?.pesoEjeRemolqueKg?.toLocaleString('es-MX',{maximumFractionDigits:0})"></td>
-          <td>15,422</td><td>16,000</td>
+          <td>15,422</td>
           <td :class="contenedor?.pesoEjeRemolqueKg > 15422 ? 'pr-err' : 'pr-ok'"
               x-text="contenedor?.pesoEjeRemolqueKg > 15422 ? '✗ EXCEDE' : '✓ OK'"></td>
+          <td>16,000</td>
           <td :class="contenedor?.pesoEjeRemolqueKg > 16000 ? 'pr-err' : 'pr-ok'"
               x-text="contenedor?.pesoEjeRemolqueKg > 16000 ? '✗ EXCEDE' : '✓ OK'"></td>
         </tr>
         <tr style="font-weight:700">
           <td>GVW Total</td>
           <td x-text="contenedor?.pesoTotalGVWKg?.toLocaleString('es-MX',{maximumFractionDigits:0})"></td>
-          <td>36,287</td><td>48,500</td>
+          <td>36,287</td>
           <td :class="contenedor?.pesoTotalGVWKg > 36287 ? 'pr-err' : 'pr-ok'"
               x-text="contenedor?.pesoTotalGVWKg > 36287 ? '✗ EXCEDE' : '✓ OK'"></td>
-          <td :class="contenedor?.pesoTotalGVWKg > 48500 ? 'pr-err' : 'pr-ok'"
-              x-text="contenedor?.pesoTotalGVWKg > 48500 ? '✗ EXCEDE' : '✓ OK'"></td>
+          <td>40,500</td>
+          <td :class="contenedor?.pesoTotalGVWKg > 40500 ? 'pr-err' : 'pr-ok'"
+              x-text="contenedor?.pesoTotalGVWKg > 40500 ? '✗ EXCEDE' : '✓ OK'"></td>
         </tr>
       </tbody>
     </table>
 
-    <!-- Peso y balance -->
-    <div class="pr-sub">Distribución de Peso</div>
+    <!-- Distribución lateral -->
+    <div class="pr-sub">Distribución de Peso Lateral</div>
     <table class="pr-table">
       <tr>
         <th>Lado Izquierdo</th>
@@ -1893,15 +1987,9 @@ function app() {
         <td x-text="contenedor?.pesoDerechoKg?.toLocaleString('es-MX',{maximumFractionDigits:1})+' kg'"></td>
         <th>Balance L/R</th>
         <td :class="contenedor?.dentroDeTolerancia ? 'pr-ok' : 'pr-err'"
-            x-text="contenedor?.diferenciaPorcentual?.toFixed(1)+'% '+(contenedor?.dentroDeTolerancia?'✓':'✗')"></td>
-      </tr>
-      <tr>
-        <th>Peso de carga</th>
-        <td x-text="contenedor?.pesoTotalKg?.toLocaleString('es-MX',{maximumFractionDigits:1})+' kg'"></td>
+            x-text="contenedor?.diferenciaPorcentual?.toFixed(1)+'% '+(contenedor?.dentroDeTolerancia?'✓ OK':'✗ FUERA')"></td>
         <th>CG longitudinal</th>
-        <td x-text="contenedor?.cgLongitudinalPct?.toFixed(1)+'% del largo'"></td>
-        <th>Total pallets</th>
-        <td x-text="contenedor?.totalPallets"></td>
+        <td x-text="contenedor?.cgLongitudinalPct?.toFixed(1)+'% del KP→eje'"></td>
       </tr>
     </table>
 
@@ -1909,26 +1997,45 @@ function app() {
     <div class="pr-sub">Elevación Lateral — Vista de Costado</div>
     <div class="pr-svgs">
       <div>
-        <div style="font-size:7.5pt;font-weight:700;margin-bottom:3pt">← Lado Izquierdo</div>
-        <div x-html="svgLateral('Izquierdo')"></div>
+        <div style="font-size:7.5pt;font-weight:700;margin-bottom:3pt;color:#1a3a6b">◀ Lado Izquierdo</div>
+        <div x-html="svgLateral('Izquierdo', true)"></div>
         <div style="font-size:8pt;font-weight:700;text-align:center;margin-top:3pt"
              x-text="contenedor?.pesoIzquierdoKg?.toLocaleString('es-MX',{maximumFractionDigits:1})+' kg'"></div>
       </div>
       <div>
-        <div style="font-size:7.5pt;font-weight:700;margin-bottom:3pt">Lado Derecho →</div>
-        <div x-html="svgLateral('Derecho')"></div>
+        <div style="font-size:7.5pt;font-weight:700;margin-bottom:3pt;color:#1a3a6b">Lado Derecho ▶</div>
+        <div x-html="svgLateral('Derecho', true)"></div>
         <div style="font-size:8pt;font-weight:700;text-align:center;margin-top:3pt"
              x-text="contenedor?.pesoDerechoKg?.toLocaleString('es-MX',{maximumFractionDigits:1})+' kg'"></div>
       </div>
     </div>
 
-    <!-- Plan de carga -->
+    <!-- Leyenda de colores -->
+    <div class="pr-legend">
+      <strong style="font-size:7.5pt">Identificación de pallets:</strong>
+      <div class="pr-legend-item">
+        <div class="pr-legend-dot" style="background:#28a74540;border-color:#28a745"></div>
+        Pallet completo
+      </div>
+      <div class="pr-legend-item">
+        <div class="pr-legend-dot" style="background:#ffc10740;border-color:#ffc107"></div>
+        Pallet parcial (cantidad incompleta)
+      </div>
+      <div class="pr-legend-item">
+        <div class="pr-legend-dot" style="background:#dc354540;border-color:#dc3545"></div>
+        No apilar encima
+      </div>
+    </div>
+
+    <!-- Plan de carga por posición -->
     <div class="pr-sub">Plan de Carga por Posición</div>
     <table class="pr-table">
       <thead>
         <tr>
-          <th style="width:40pt">Fila</th>
+          <th style="width:30pt">Fila</th>
+          <th style="width:12pt">Estado</th>
           <th>Lado Izquierdo — Modelo / Piezas / Peso</th>
+          <th style="width:12pt">Estado</th>
           <th>Lado Derecho — Modelo / Piezas / Peso</th>
         </tr>
       </thead>
@@ -1937,14 +2044,24 @@ function app() {
           <template x-if="posicionEn(fila,'Izquierdo') || posicionEn(fila,'Derecho')">
             <tr>
               <td style="text-align:center;font-weight:700" x-text="fila"></td>
+              <td style="text-align:center">
+                <template x-if="posicionEn(fila,'Izquierdo')">
+                  <span :style="'display:inline-block;width:9pt;height:9pt;border-radius:2pt;border:1.5pt solid;background:' + palletColor(posicionEn(fila,'Izquierdo')) + '40;border-color:' + palletColor(posicionEn(fila,'Izquierdo'))"></span>
+                </template>
+              </td>
               <td>
                 <template x-if="posicionEn(fila,'Izquierdo')">
-                  <span x-text="posicionEn(fila,'Izquierdo').modelNo + ' · ' + posicionEn(fila,'Izquierdo').piezas + ' pzs · ' + posicionEn(fila,'Izquierdo').pesoKg + ' kg'"></span>
+                  <span x-text="posicionEn(fila,'Izquierdo').modelNo + ' · ' + posicionEn(fila,'Izquierdo').piezas + ' pzs · ' + posicionEn(fila,'Izquierdo').pesoKg.toFixed(1) + ' kg' + (!posicionEn(fila,'Izquierdo').apilable ? ' [NO APILAR]' : posicionEn(fila,'Izquierdo').esParcial ? ' [PARCIAL]' : '')"></span>
+                </template>
+              </td>
+              <td style="text-align:center">
+                <template x-if="posicionEn(fila,'Derecho')">
+                  <span :style="'display:inline-block;width:9pt;height:9pt;border-radius:2pt;border:1.5pt solid;background:' + palletColor(posicionEn(fila,'Derecho')) + '40;border-color:' + palletColor(posicionEn(fila,'Derecho'))"></span>
                 </template>
               </td>
               <td>
                 <template x-if="posicionEn(fila,'Derecho')">
-                  <span x-text="posicionEn(fila,'Derecho').modelNo + ' · ' + posicionEn(fila,'Derecho').piezas + ' pzs · ' + posicionEn(fila,'Derecho').pesoKg + ' kg'"></span>
+                  <span x-text="posicionEn(fila,'Derecho').modelNo + ' · ' + posicionEn(fila,'Derecho').piezas + ' pzs · ' + posicionEn(fila,'Derecho').pesoKg.toFixed(1) + ' kg' + (!posicionEn(fila,'Derecho').apilable ? ' [NO APILAR]' : posicionEn(fila,'Derecho').esParcial ? ' [PARCIAL]' : '')"></span>
                 </template>
               </td>
             </tr>
@@ -1953,15 +2070,22 @@ function app() {
       </tbody>
     </table>
 
-    <!-- Firma del operador -->
+    <!-- Firmas -->
     <div class="pr-sign">
       <div class="pr-sign-box">
-        Nombre del operador: ___________________________
+        Nombre operador de almacén:<br>
+        <br>___________________________
       </div>
       <div class="pr-sign-box">
-        Firma y fecha: ___________________________
+        Nombre operador de transporte:<br>
+        <br>___________________________
+      </div>
+      <div class="pr-sign-box">
+        Firma / Fecha:<br>
+        <br>___________________________
       </div>
     </div>
+
   </div>
 </div>
 
