@@ -1550,7 +1550,7 @@ function app() {
           const w = Math.min(cellW - 2, largoCm / 120 * cellW);
           const x = xBase + (cellW - w) / 2;
           const y = yBase - h;
-          const color = this.colorModelo(p.modelNo);
+          const color = this.palletColor(p);
           const tag = p.modelNo.length > 10 ? p.modelNo.slice(-10) : p.modelNo;
           if (capa === 2) {
             pallets += `<line x1="${x.toFixed(1)}" y1="${yBase.toFixed(1)}" x2="${(x+w).toFixed(1)}" y2="${yBase.toFixed(1)}" stroke="${color}99" stroke-width="1.5" stroke-dasharray="3,3"/>`;
