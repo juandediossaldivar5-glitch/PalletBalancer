@@ -1695,7 +1695,7 @@ function app() {
           const altoCm  = p.altoCm  > 0 ? p.altoCm  : 150;
           const largoCm = p.largoCm > 0 ? p.largoCm : 120;
           const h = altoCm * scaleY;
-          const w = Math.min(cellW - 2, largoCm / 120 * cellW);
+          const w = cellW - 2;
           const x = xBase + (cellW - w) / 2;
           const y = yBase - h;
           const color = this.palletColor(p);
