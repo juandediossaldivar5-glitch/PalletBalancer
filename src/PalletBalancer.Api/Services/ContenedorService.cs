@@ -184,6 +184,9 @@ public class ContenedorService
         if (palletAncho * 2 > spec.AnchoCm)
             advertencias.Add($"Dos tarimas lado a lado ({palletAncho * 2} cm) exceden el ancho interior del contenedor {spec.Tipo} ({spec.AnchoCm} cm).");
 
+        // Filas efectivamente usadas
+        int filasUsadas = destinoInfos.Count > 0 ? destinoInfos.Max(d => d.FilaFin) : 0;
+
         // Cálculo de ejes
         var ejes = CalcularEjes(posiciones, palletLargo, spec, trac);
 
@@ -195,6 +198,9 @@ public class ContenedorService
         if (ejes.w2 > NOM_W2)   advertencias.Add($"Eje tractor ({ejes.w2:N0} kg) excede límite NOM-012 ({NOM_W2:N0} kg).");
         if (ejes.wr > NOM_Wr)   advertencias.Add($"Eje remolque ({ejes.wr:N0} kg) excede límite NOM-012 ({NOM_Wr:N0} kg).");
         if (ejes.gvw > NOM_GVW) advertencias.Add($"Peso bruto total GVW ({ejes.gvw:N0} kg) excede límite NOM-012 ({NOM_GVW:N0} kg).");
+
+        // Seguridad de carga (huecos y equipo recomendado)
+        var seguridad = CalcularSeguridad(filasUsadas, palletLargo, palletAncho, spec);
 
         return new ContenedorResultadoDto
         {
@@ -223,6 +229,11 @@ public class ContenedorService
             PesoEjeTractorKg       = ejes.w2,
             PesoEjeRemolqueKg      = ejes.wr,
             PesoTotalGVWKg         = ejes.gvw,
+            // Seguridad de carga
+            FilasUsadas            = filasUsadas,
+            GapLongitudinalCm      = seguridad[0].GapCm,
+            GapLateralCm           = seguridad[1].GapCm,
+            SeguridadCarga         = seguridad,
         };
     }
 
@@ -322,6 +333,70 @@ public class ContenedorService
             EsParcial   = esParcial,
             Apilable    = apilable,
         };
+
+    private static List<SeguridadCargaItem> CalcularSeguridad(
+        int filasUsadas, double palletLargo, double palletAncho, ContenedorSpec spec)
+    {
+        double gapLong = Math.Max(0, Math.Round(spec.LargoCm - filasUsadas * palletLargo, 0));
+        double gapLat  = Math.Max(0, Math.Round((spec.AnchoCm - palletAncho * 2) / 2.0, 0));
+
+        // --- Longitudinal ---
+        string equL, descL, nivL;
+        int    canL;
+        if (gapLong <= 10)
+        {
+            equL = "Sin sujeción requerida"; nivL = "ninguno"; canL = 0;
+            descL = $"Hueco de {gapLong:F0} cm — ajuste muy estrecho, sin riesgo de movimiento.";
+        }
+        else if (gapLong <= 30)
+        {
+            equL = "Cartón corrugado doble / tabla de madera"; nivL = "bajo"; canL = 1;
+            descL = $"Hueco de {gapLong:F0} cm — rellenar con cartón corrugado doble o tabla de 3/4\" para inmovilizar.";
+        }
+        else if (gapLong <= 60)
+        {
+            equL = "Bolsa de aire Nivel 1 (kraft, 2–3 PSI)"; nivL = "medio";
+            canL = (int)Math.Ceiling(gapLong / 45.0) * 2; // 2 columnas por ancho del contenedor
+            descL = $"Hueco de {gapLong:F0} cm — bolsa kraft 48\"×48\", inflar a 2–3 PSI. Se requieren {canL} bolsas (2 columnas).";
+        }
+        else if (gapLong <= 120)
+        {
+            equL = "Bolsa de aire Nivel 2 (polywoven, 3–5 PSI)"; nivL = "medio";
+            canL = (int)Math.Ceiling(gapLong / 45.0) * 2;
+            descL = $"Hueco de {gapLong:F0} cm — bolsa polywoven 48\"×48\", inflar a 3–5 PSI. Se requieren {canL} bolsas (2 columnas).";
+        }
+        else
+        {
+            equL = "Bloqueo de madera 4\"×4\" + bolsa de aire Nivel 2"; nivL = "alto";
+            canL = (int)Math.Ceiling(gapLong / 90.0);
+            descL = $"Hueco grande de {gapLong:F0} cm — instalar bloqueo de madera contrachapada y bolsa polywoven. {canL} posición(es).";
+        }
+
+        // --- Lateral ---
+        string equA, descA, nivA;
+        int    canA;
+        if (gapLat <= 8)
+        {
+            equA = "Sin sujeción requerida"; nivA = "ninguno"; canA = 0;
+            descA = $"Hueco lateral de {gapLat:F0} cm por lado — ajuste estrecho, sin riesgo de desplazamiento lateral.";
+        }
+        else if (gapLat <= 20)
+        {
+            equA = "Foam board o cartón lateral"; nivA = "bajo"; canA = 2;
+            descA = $"Hueco de {gapLat:F0} cm por lado — insertar foam board o cartón corrugado entre pallet y pared (1 pieza por lado).";
+        }
+        else
+        {
+            equA = "Bolsa de aire lateral o tabla de madera"; nivA = "medio"; canA = 2;
+            descA = $"Hueco de {gapLat:F0} cm por lado — colocar bolsa de aire lateral o tabla 2\"×4\" en cada costado.";
+        }
+
+        return
+        [
+            new SeguridadCargaItem { Tipo="Longitudinal (cabina → puertas)", GapCm=gapLong, Nivel=nivL, Equipo=equL, Cantidad=canL, Descripcion=descL },
+            new SeguridadCargaItem { Tipo="Lateral (por cada lado)",          GapCm=gapLat,  Nivel=nivA, Equipo=equA, Cantidad=canA, Descripcion=descA },
+        ];
+    }
 
     private static Pallet Build(string sku, int piezas, double pesoKg,
         double largoCm, double anchoCm, double altoCm) =>

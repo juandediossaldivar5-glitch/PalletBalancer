@@ -1004,6 +1004,40 @@
           </div>
         </div>
 
+        <!-- Seguridad de carga -->
+        <div class="pb-card" style="padding:1.25rem">
+          <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.9px;color:var(--muted);margin-bottom:1rem">
+            <i class="bi bi-shield-check"></i> Seguridad de Carga — Equipo de Sujeción Recomendado
+          </div>
+          <template x-for="s in contenedor.seguridadCarga" :key="s.tipo">
+            <div style="margin-bottom:1rem;padding:0.85rem 1rem;border-radius:8px;border:1px solid"
+                 :style="s.nivel==='ninguno' ? 'border-color:rgba(77,216,132,0.25);background:rgba(77,216,132,0.05)'
+                       : s.nivel==='bajo'    ? 'border-color:rgba(255,193,7,0.3);background:rgba(255,193,7,0.05)'
+                       : s.nivel==='medio'   ? 'border-color:rgba(255,138,0,0.3);background:rgba(255,138,0,0.06)'
+                                             : 'border-color:rgba(229,76,76,0.35);background:rgba(229,76,76,0.06)'">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:0.4rem">
+                <div style="display:flex;align-items:center;gap:0.6rem">
+                  <i :class="s.nivel==='ninguno' ? 'bi bi-check-circle-fill' : s.nivel==='alto' ? 'bi bi-exclamation-triangle-fill' : 'bi bi-info-circle-fill'"
+                     :style="s.nivel==='ninguno' ? 'color:#4dd884' : s.nivel==='bajo' ? 'color:#ffc107' : s.nivel==='medio' ? 'color:#ff8a00' : 'color:#e54c4c'"></i>
+                  <span style="font-size:0.8rem;font-weight:700;color:#ddd" x-text="s.tipo"></span>
+                </div>
+                <div style="display:flex;align-items:center;gap:1.5rem">
+                  <span style="font-size:0.75rem;color:var(--muted)">
+                    Hueco: <strong :style="s.gapCm > 30 ? 'color:#ff8a00' : 'color:#ddd'" x-text="s.gapCm + ' cm'"></strong>
+                  </span>
+                  <template x-if="s.cantidad > 0">
+                    <span style="font-size:0.75rem;background:rgba(255,255,255,0.08);padding:2px 8px;border-radius:20px;color:#ccc">
+                      Qty: <strong x-text="s.cantidad"></strong>
+                    </span>
+                  </template>
+                </div>
+              </div>
+              <div style="font-size:0.82rem;font-weight:600;color:#eee;margin-bottom:0.25rem" x-text="s.equipo"></div>
+              <div style="font-size:0.76rem;color:var(--muted);line-height:1.5" x-text="s.descripcion"></div>
+            </div>
+          </template>
+        </div>
+
         <!-- Leyenda de modelos -->
         <div class="leyenda">
           <template x-for="(modelo, i) in modelosUnicos()" :key="modelo.modelNo">
@@ -2063,6 +2097,38 @@ function app() {
         <td x-text="contenedor?.cgLongitudinalPct?.toFixed(1)+'% del KP→eje'"></td>
       </tr>
     </table>
+
+    <!-- Seguridad de carga -->
+    <div class="pr-sub">Lista de Materiales de Seguridad de Carga</div>
+    <table class="pr-table">
+      <thead>
+        <tr>
+          <th>Zona</th>
+          <th>Hueco (cm)</th>
+          <th>Equipo recomendado (CTU Code)</th>
+          <th style="width:40pt">Cantidad</th>
+          <th>Instrucción</th>
+        </tr>
+      </thead>
+      <tbody>
+        <template x-for="s in contenedor?.seguridadCarga" :key="s.tipo">
+          <tr>
+            <td style="font-weight:600" x-text="s.tipo"></td>
+            <td style="text-align:center;font-weight:700"
+                :style="s.gapCm > 30 ? 'color:#c0392b' : s.gapCm > 10 ? 'color:#856404' : 'color:#1a7a3a'"
+                x-text="s.gapCm + ' cm'"></td>
+            <td :class="s.nivel==='ninguno' ? 'pr-ok' : s.nivel==='alto' ? 'pr-err' : ''"
+                x-text="s.equipo"></td>
+            <td style="text-align:center;font-weight:700"
+                x-text="s.cantidad === 0 ? '—' : s.cantidad"></td>
+            <td style="font-size:7pt;color:#444" x-text="s.descripcion"></td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+    <div style="font-size:6.5pt;color:#888;margin-bottom:6pt">
+      ★ Basado en CTU Code (IMO/ILO/UNECE) — Código de Práctica para el Embalaje de Unidades de Transporte de Carga.
+    </div>
 
     <!-- Vistas laterales SVG -->
     <div class="pr-sub">Elevación Lateral — Vista de Costado</div>

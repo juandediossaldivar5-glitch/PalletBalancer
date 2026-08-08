@@ -32,6 +32,22 @@ public class ContenedorResultadoDto
     public double PesoEjeTractorKg          { get; set; }  // W2 – drive tándem
     public double PesoEjeRemolqueKg         { get; set; }  // Wr – trailer tándem
     public double PesoTotalGVWKg            { get; set; }  // GVW completo
+
+    // Espacio libre y seguridad de carga
+    public int    FilasUsadas               { get; set; }
+    public double GapLongitudinalCm         { get; set; }  // hueco cabina→puertas
+    public double GapLateralCm             { get; set; }  // hueco por lado (pallet→pared)
+    public List<SeguridadCargaItem> SeguridadCarga { get; set; } = [];
+}
+
+public class SeguridadCargaItem
+{
+    public string Tipo        { get; set; } = "";  // "Longitudinal" | "Lateral"
+    public double GapCm       { get; set; }
+    public string Nivel       { get; set; } = "";  // "ninguno" | "bajo" | "medio" | "alto"
+    public string Equipo      { get; set; } = "";
+    public int    Cantidad    { get; set; }
+    public string Descripcion { get; set; } = "";
 }
 
 public class PosicionResultadoDto
