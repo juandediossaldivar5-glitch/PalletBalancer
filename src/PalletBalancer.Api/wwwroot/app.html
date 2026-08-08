@@ -1778,84 +1778,8 @@ function app() {
       const piso    = `<line x1="${PAD_L}" y1="${floorY}" x2="${PAD_L + innerW}" y2="${floorY}" stroke="${sPs}" stroke-width="1.5"/>`;
       const contorno = `<rect x="${PAD_L}" y="${PAD_T}" width="${innerW}" height="${innerH}" fill="none" stroke="${sCt}" stroke-width="1" rx="4"/>`;
 
-      // ── Visualización de seguridad de carga ────────────────────────────
-      let gapZones = '';
-      const seg     = this.contenedor?.seguridadCarga ?? [];
-      const segLong = seg[0];
-      const segLat  = seg[1];
-      const filasFin = this.contenedor?.filasUsadas ?? 0;
-
-      // Zona longitudinal (puertas)
-      if (segLong && segLong.gapCm > 10) {
-        const gxS = PAD_L + filasFin * cellW;
-        const gxE = PAD_L + innerW;
-        const gw  = gxE - gxS;
-        if (gw > 6) {
-          const midX = gxS + gw / 2;
-          const gc   = segLong.nivel === 'alto'  ? '#dc3545'
-                     : segLong.nivel === 'medio' ? '#ff8a00' : '#ffc107';
-          const gcP  = forPrint ? (segLong.nivel === 'alto' ? '#b02020' : segLong.nivel === 'medio' ? '#b85800' : '#b8860b') : gc;
-
-          // Fondo sombreado de la zona de hueco
-          gapZones += `<rect x="${gxS.toFixed(1)}" y="${PAD_T}" width="${gw.toFixed(1)}" height="${innerH}" fill="${gc}12" stroke="${gc}44" stroke-width="1.5" stroke-dasharray="6,4" rx="3"/>`;
-          gapZones += `<line x1="${gxS.toFixed(1)}" y1="${PAD_T}" x2="${gxS.toFixed(1)}" y2="${floorY}" stroke="${gc}" stroke-width="2" stroke-dasharray="8,4"/>`;
-
-          // Símbolo del equipo
-          const eq    = segLong.equipo ?? '';
-          const symW  = Math.min(gw - 6, 75);
-          const symH  = Math.min(innerH * 0.58, 115);
-          const sx    = midX - symW / 2;
-          const sy    = PAD_T + (innerH - symH) / 2;
-
-          if (eq.includes('Bolsa') && symW > 14) {
-            // Bolsa de aire: rectángulo redondeado con óvalo interior
-            gapZones += `<rect x="${sx.toFixed(1)}" y="${sy.toFixed(1)}" width="${symW.toFixed(1)}" height="${symH.toFixed(1)}" rx="${Math.min(symW, symH) * 0.28}" fill="${gc}28" stroke="${gc}" stroke-width="2"/>`;
-            gapZones += `<ellipse cx="${midX.toFixed(1)}" cy="${(sy+symH/2).toFixed(1)}" rx="${(symW*0.3).toFixed(1)}" ry="${(symH*0.27).toFixed(1)}" fill="${gc}44" stroke="${gc}99" stroke-width="1.5"/>`;
-            gapZones += `<text x="${midX.toFixed(1)}" y="${(sy+symH/2-2).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="800" fill="${gcP}">BOLSA</text>`;
-            const nv = eq.includes('Nivel 1') ? 'N1' : eq.includes('Nivel 2') ? 'N2' : '';
-            if (nv) gapZones += `<text x="${midX.toFixed(1)}" y="${(sy+symH/2+10).toFixed(1)}" text-anchor="middle" font-size="8.5" font-weight="700" fill="${gcP}">${nv}</text>`;
-          } else if (eq.includes('madera') || eq.includes('Madera')) {
-            // Madera de bloqueo: tablas apiladas
-            const nP = 3, pH = Math.min(12, (symH - 10) / 3);
-            for (let i = 0; i < nP; i++) {
-              const py = sy + 4 + i * (pH + 4);
-              gapZones += `<rect x="${sx.toFixed(1)}" y="${py.toFixed(1)}" width="${symW.toFixed(1)}" height="${pH.toFixed(1)}" rx="2" fill="#a07828" stroke="#6b4a10" stroke-width="1.5"/>`;
-              [0.3,0.6].forEach(r => gapZones += `<line x1="${(sx+symW*r).toFixed(1)}" y1="${py.toFixed(1)}" x2="${(sx+symW*r).toFixed(1)}" y2="${(py+pH).toFixed(1)}" stroke="#6b4a1066" stroke-width="1"/>`);
-            }
-            gapZones += `<text x="${midX.toFixed(1)}" y="${(sy+nP*(pH+4)+14).toFixed(1)}" text-anchor="middle" font-size="8" font-weight="800" fill="#a07828">MADERA</text>`;
-          } else if (symW > 14) {
-            // Cartón / tabla
-            gapZones += `<rect x="${sx.toFixed(1)}" y="${sy.toFixed(1)}" width="${symW.toFixed(1)}" height="${symH.toFixed(1)}" rx="3" fill="${gc}20" stroke="${gc}" stroke-width="1.5" stroke-dasharray="4,3"/>`;
-            for (let i = 1; i <= 4; i++) {
-              const ly = sy + symH / 5 * i;
-              gapZones += `<line x1="${(sx+4).toFixed(1)}" y1="${ly.toFixed(1)}" x2="${(sx+symW-4).toFixed(1)}" y2="${ly.toFixed(1)}" stroke="${gc}66" stroke-width="1"/>`;
-            }
-            gapZones += `<text x="${midX.toFixed(1)}" y="${(sy+symH/2+4).toFixed(1)}" text-anchor="middle" font-size="8" font-weight="800" fill="${gcP}">CARTÓN</text>`;
-          }
-
-          // Medida + corchetes
-          if (gw > 40) {
-            gapZones += `<line x1="${gxS.toFixed(1)}" y1="${(floorY+17).toFixed(1)}" x2="${gxE.toFixed(1)}" y2="${(floorY+17).toFixed(1)}" stroke="${gc}88" stroke-width="1.2"/>`;
-            gapZones += `<line x1="${gxS.toFixed(1)}" y1="${(floorY+12).toFixed(1)}" x2="${gxS.toFixed(1)}" y2="${(floorY+22).toFixed(1)}" stroke="${gc}88" stroke-width="1.2"/>`;
-            gapZones += `<line x1="${gxE.toFixed(1)}" y1="${(floorY+12).toFixed(1)}" x2="${gxE.toFixed(1)}" y2="${(floorY+22).toFixed(1)}" stroke="${gc}88" stroke-width="1.2"/>`;
-          }
-          gapZones += `<text x="${midX.toFixed(1)}" y="${(floorY+29).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="700" fill="${gcP}">${segLong.gapCm.toFixed(0)} cm</text>`;
-          if (segLong.cantidad > 0)
-            gapZones += `<text x="${midX.toFixed(1)}" y="${(sy-5).toFixed(1)}" text-anchor="middle" font-size="8" fill="${gcP}">${segLong.cantidad} pz</text>`;
-        }
-      }
-
-      // Anotación de gap lateral (franja inferior)
-      if (segLat && segLat.gapCm > 8) {
-        const gc   = segLat.nivel === 'medio' ? '#ff8a00' : '#ffc107';
-        const gcP  = forPrint ? '#856404' : gc;
-        const eqS  = segLat.equipo.split(' o ')[0].split('/')[0].trim();
-        gapZones += `<text x="${(PAD_L + innerW/2).toFixed(1)}" y="${(VH - 1).toFixed(1)}" text-anchor="middle" font-size="8" fill="${gcP}">⇔ Lateral: ${segLat.gapCm.toFixed(0)} cm/lado — ${eqS}</text>`;
-      }
-      // ────────────────────────────────────────────────────────────────────
-
       return `<svg viewBox="0 0 ${VW} ${VH}" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block">
-        ${contorno}${fondos}${separadores}${piso}${pallets}${gapZones}${nums}${cabLabel}${puerLabel}
+        ${contorno}${fondos}${separadores}${piso}${pallets}${nums}${cabLabel}${puerLabel}
       </svg>`;
     },
 
