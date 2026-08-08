@@ -870,8 +870,39 @@
     <!-- Cargando -->
     <div x-show="cargandoContenedor" class="pb-card" style="text-align:center;padding:2.5rem">
       <span class="spinner" style="width:28px;height:28px;border-width:3px"></span>
-      <p style="color:var(--muted);margin:1rem 0 0;font-size:0.88rem">Calculando distribución...</p>
+      <p style="color:var(--muted);margin:1rem 0 0;font-size:0.88rem">Validando y calculando distribución...</p>
     </div>
+
+    <!-- Bloqueo: ninguna configuración viable -->
+    <template x-if="ningunViable && !cargandoContenedor">
+      <div class="pb-card" style="text-align:center;padding:2.5rem;border-color:rgba(229,76,76,0.4);max-width:600px;margin:0 auto">
+        <i class="bi bi-x-octagon-fill" style="font-size:2.5rem;color:#e54c4c"></i>
+        <h3 style="color:#e54c4c;margin:0.75rem 0 0.4rem;font-size:1.1rem">
+          No existe ninguna configuración viable
+        </h3>
+        <p style="color:var(--muted);font-size:0.85rem;margin:0 0 1.2rem;line-height:1.5">
+          Se evaluaron las 15 combinaciones de contenedor × tractocamión y ninguna cumple con las normas
+          y capacidad para este embarque. Corrige la información antes de continuar.
+        </p>
+        <ul style="text-align:left;display:inline-block;margin:0 0 1.5rem;padding-left:1.2rem;list-style:none">
+          <template x-for="p in problemasBloqueo" :key="p">
+            <li style="color:#f08080;font-size:0.84rem;margin-bottom:0.5rem">
+              <i class="bi bi-arrow-right-circle-fill" style="color:#e54c4c;margin-right:6px"></i>
+              <span x-text="p"></span>
+            </li>
+          </template>
+        </ul>
+        <div style="display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap">
+          <button class="btn-ghost" style="color:#f5a623;border-color:rgba(245,166,35,0.3)"
+                  @click="sugerirEquipo()">
+            <i class="bi bi-stars"></i> Ver desglose de las 15 opciones
+          </button>
+          <button class="btn-ghost" @click="vista=contenedorBack">
+            <i class="bi bi-arrow-left"></i> Volver y ajustar datos
+          </button>
+        </div>
+      </div>
+    </template>
 
     <template x-if="contenedor && !cargandoContenedor">
       <div>
@@ -1310,6 +1341,8 @@ function app() {
     mostrandoRecomendaciones: false,
     recomendaciones:          [],
     cargandoRecomendaciones:  false,
+    ningunViable:      false,
+    problemasBloqueo:  [],
     items:              [],
     itemActual:         null,
     itemForm:           {},
@@ -1402,12 +1435,45 @@ function app() {
       this.vista         = 'detalle';
     },
 
+    async _validarViabilidad(ids) {
+      const r = await this.api('/api/contenedor/recomendar', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ fdoIds: ids })
+      });
+      if (!r || !r.ok) return true; // si falla el check, dejamos pasar
+      const recs = await r.json();
+      if (recs.some(rec => rec.viable)) { this.ningunViable = false; return true; }
+
+      // Ninguna opción viable — calcular razones
+      const razones = [];
+      const noCabe  = recs.every(rec => rec.problemas.some(p => p.includes('no cabe') || p.includes('posiciones')));
+      const excPeso = recs.every(rec => rec.problemas.some(p => p.includes('FHWA') || p.includes('NOM-012')));
+      const excCap  = recs.every(rec => rec.problemas.some(p => p.includes('capacidad de carga')));
+      const malBal  = recs.every(rec => rec.balancePct > 5);
+
+      if (noCabe)  razones.push('La cantidad de pallets supera la capacidad física de todos los contenedores disponibles. Reduzca las cantidades en el FDO.');
+      if (excPeso) razones.push('El peso excede los límites normativos FHWA / NOM-012 en todas las configuraciones. Reduzca las cantidades o corrija los datos de peso en el catálogo.');
+      if (excCap && !excPeso) razones.push('El peso de la carga excede la capacidad de carga ISO de los contenedores. Reduzca las cantidades.');
+      if (malBal)  razones.push('El balance lateral L/R supera el 5% en todas las configuraciones. Revise la distribución de los items.');
+      if (razones.length === 0) razones.push('No existe ninguna combinación de contenedor y tractocamión que cumpla las normas para este embarque.');
+
+      this.ningunViable     = true;
+      this.problemasBloqueo = razones;
+      return false;
+    },
+
     async verContenedor() {
       this._colorCache = {};
+      this.ningunViable = false;
       this.cargandoContenedor = true;
       this.contenedor = null;
       this.contenedorBack = 'detalle';
       this.vista = 'contenedor';
+      if (!await this._validarViabilidad([this.fdoActual.id])) {
+        this.cargandoContenedor = false;
+        return;
+      }
       const r = await this.api(`/api/fdos/${this.fdoActual.id}/contenedor?tipo=${encodeURIComponent(this.tipoContenedor)}&tractocamion=${encodeURIComponent(this.tipoTractocamion)}`);
       this.cargandoContenedor = false;
       if (!r || !r.ok) { this.alerta = 'Error al calcular el contenedor.'; this.vista = 'detalle'; return; }
@@ -1454,10 +1520,15 @@ function app() {
 
     async calcularContenedorMulti() {
       this._colorCache = {};
+      this.ningunViable = false;
       this.cargandoContenedor = true;
       this.contenedor = null;
       this.contenedorBack = 'lista';
       this.vista = 'contenedor';
+      if (!await this._validarViabilidad(this.seleccionados)) {
+        this.cargandoContenedor = false;
+        return;
+      }
       const r = await this.api('/api/contenedor/calcular', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
