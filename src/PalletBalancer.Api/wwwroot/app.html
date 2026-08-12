@@ -417,12 +417,18 @@
       .pr-ok   { color:#1a7a3a;font-weight:700; }
       .pr-err  { color:#c0392b;font-weight:700; }
       .pr-warn { color:#b8860b;font-weight:700; }
-      @page lateral-page { size: landscape; margin: 8mm 10mm; }
-      .pr-svgs { display:block;margin:0; }
-      .pr-svg-page { page: lateral-page;page-break-before:always;margin:0;padding:4pt 0 0; }
+      @page lateral-page { size: landscape; margin: 8mm 12mm; }
+      .pr-lateral-page {
+        page: lateral-page;
+        page-break-before: always;
+        padding: 0;
+        margin: 0;
+        box-sizing: border-box;
+      }
+      .pr-lateral-inner { padding: 6pt 0 0; }
       .pr-svgs-label { font-size:14pt;font-weight:800;color:#1a3a6b;margin-bottom:5pt;
                        border-bottom:2pt solid #1a3a6b;padding-bottom:4pt;letter-spacing:0.2pt; }
-      .pr-svgs-kg { font-size:11pt;font-weight:700;color:#333;margin-left:10pt; }
+      .pr-svgs-kg { font-size:11pt;font-weight:700;color:#333;margin-left:10pt;font-weight:400; }
       .pr-sign { display:grid;grid-template-columns:1fr 1fr 1fr;gap:15pt;margin-top:18pt; }
       .pr-sign-box { border-top:1pt solid #888;padding-top:5pt;font-size:7.5pt;color:#555; }
       .pr-warn { background:#fff8dc;border:0.5pt solid #e6a817;padding:4pt 6pt;
@@ -1703,11 +1709,12 @@ function app() {
     svgLateral(lado, forPrint = false) {
       if (!this.contenedor) return '';
       const FILAS = this.contenedor.filasDisponibles || 26;
-      // Print: página landscape; VW=730 ≈ 735pt ancho útil → 1 unit ≈ 1pt; VH=465 llena la hoja
-      const VW = forPrint ? 730 : 1200;
-      const VH = forPrint ? 465 : 520;
+      // Print: div lateral fuera de pr-page → ancho completo landscape (~746pt)
+      // VW=740 ≈ 1pt/unit; VH=520 → SVG ocupa ~8.5" × 9.4" en hoja landscape
+      const VW = forPrint ? 740 : 1200;
+      const VH = forPrint ? 520 : 520;
       const PAD_L = 10, PAD_R = 10, PAD_T = 14;
-      const PAD_B = forPrint ? 48 : 48;
+      const PAD_B = forPrint ? 52 : 48;
       const innerW = VW - PAD_L - PAD_R;
       const innerH = VH - PAD_T - PAD_B;
       const cellW  = innerW / FILAS;
@@ -1767,7 +1774,7 @@ function app() {
           const x = xBase + (cellW - w) / 2;
           const y = yBase - h;
           const color = this.palletColor(p);
-          // Print: VW=730 ≈ 1pt/unit (landscape); font-size 16 ≈ 16pt — muy legible para operador
+          // Print: VW=740 ≈ 1pt/unit (landscape full-width); font-size 16 ≈ 16pt legible
           const fzMod = forPrint ? 16 : 13;
           const fzSub = forPrint ? 12 : 11;
           const fzKg2 = forPrint ? 10 : 10;
@@ -1776,9 +1783,12 @@ function app() {
           const minHkg  = fzMod * 2.4;
           const maxChars = forPrint ? 6 : 10;
           const tag = p.modelNo.length > maxChars ? p.modelNo.slice(-maxChars) : p.modelNo;
+          // clipPath evita que el texto desborde a la celda vecina
+          const clipId = `cp${f}${lado[0]}${capa}`;
           if (capa === 2) {
             pallets += `<line x1="${x.toFixed(1)}" y1="${yBase.toFixed(1)}" x2="${(x+w).toFixed(1)}" y2="${yBase.toFixed(1)}" stroke="${color}99" stroke-width="1.5" stroke-dasharray="3,3"/>`;
           }
+          pallets += `<clipPath id="${clipId}"><rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}"/></clipPath>`;
           pallets += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="${color}${fPl}" stroke="${color}${sPl}" stroke-width="1.5" rx="3"/>`;
           if (h > minHtag) {
             const midY = y + h / 2;
@@ -1787,14 +1797,14 @@ function app() {
             const lines  = 1 + (hasQty ? 1 : 0) + (hasKg ? 1 : 0);
             const lineH  = Math.min(h / (lines + 1), fzMod * 1.5);
             let textY = hasQty || hasKg ? midY - lineH * (lines - 1) / 2 : midY + fzMod * 0.4;
-            pallets += `<text x="${(x + w/2).toFixed(1)}" y="${textY.toFixed(1)}" text-anchor="middle" font-size="${fzMod}" font-weight="800" fill="${color}">${tag}</text>`;
+            pallets += `<text clip-path="url(#${clipId})" x="${(x + w/2).toFixed(1)}" y="${textY.toFixed(1)}" text-anchor="middle" font-size="${fzMod}" font-weight="800" fill="${color}">${tag}</text>`;
             if (hasQty) {
               textY += lineH;
-              pallets += `<text x="${(x + w/2).toFixed(1)}" y="${textY.toFixed(1)}" text-anchor="middle" font-size="${fzSub}" font-weight="600" fill="${tC1}">${p.piezas} pzs</text>`;
+              pallets += `<text clip-path="url(#${clipId})" x="${(x + w/2).toFixed(1)}" y="${textY.toFixed(1)}" text-anchor="middle" font-size="${fzSub}" font-weight="600" fill="${tC1}">${p.piezas} pzs</text>`;
             }
             if (hasKg) {
               textY += lineH;
-              pallets += `<text x="${(x + w/2).toFixed(1)}" y="${textY.toFixed(1)}" text-anchor="middle" font-size="${fzKg2}" fill="${tC2}">${p.pesoKg.toFixed(0)} kg</text>`;
+              pallets += `<text clip-path="url(#${clipId})" x="${(x + w/2).toFixed(1)}" y="${textY.toFixed(1)}" text-anchor="middle" font-size="${fzKg2}" fill="${tC2}">${p.pesoKg.toFixed(0)} kg</text>`;
             }
           }
           yBase = y;
@@ -2141,24 +2151,32 @@ function app() {
       </tr>
     </table>
 
-    <!-- Vista lateral Izquierda — página propia -->
-    <div class="pr-svgs">
-      <div class="pr-svg-page">
-        <div class="pr-svgs-label">
-          ◀ Elevación Lateral — Lado Izquierdo
-          <span class="pr-svgs-kg" x-text="contenedor?.pesoIzquierdoKg?.toLocaleString('es-MX',{maximumFractionDigits:1})+' kg'"></span>
-        </div>
-        <div x-html="svgLateral('Izquierdo', true)" style="width:100%"></div>
+  </div><!-- /pr-page (contenido principal) -->
+
+  <!-- ═══ PÁGINA LANDSCAPE: Elevación Lateral Izquierda ═══ -->
+  <div class="pr-lateral-page">
+    <div class="pr-lateral-inner">
+      <div class="pr-svgs-label">
+        ◀ ELEVACIÓN LATERAL — LADO IZQUIERDO
+        <span class="pr-svgs-kg" x-text="contenedor?.pesoIzquierdoKg?.toLocaleString('es-MX',{maximumFractionDigits:1})+' kg'"></span>
       </div>
-      <!-- Vista lateral Derecha — página propia -->
-      <div class="pr-svg-page">
-        <div class="pr-svgs-label">
-          Elevación Lateral — Lado Derecho ▶
-          <span class="pr-svgs-kg" x-text="contenedor?.pesoDerechoKg?.toLocaleString('es-MX',{maximumFractionDigits:1})+' kg'"></span>
-        </div>
-        <div x-html="svgLateral('Derecho', true)" style="width:100%"></div>
-      </div>
+      <div x-html="svgLateral('Izquierdo', true)" style="width:100%;display:block"></div>
     </div>
+  </div>
+
+  <!-- ═══ PÁGINA LANDSCAPE: Elevación Lateral Derecha ═══ -->
+  <div class="pr-lateral-page">
+    <div class="pr-lateral-inner">
+      <div class="pr-svgs-label">
+        ELEVACIÓN LATERAL — LADO DERECHO ▶
+        <span class="pr-svgs-kg" x-text="contenedor?.pesoDerechoKg?.toLocaleString('es-MX',{maximumFractionDigits:1})+' kg'"></span>
+      </div>
+      <div x-html="svgLateral('Derecho', true)" style="width:100%;display:block"></div>
+    </div>
+  </div>
+
+  <!-- ═══ PÁGINA RETRATO: Leyenda + Plan de carga + Firmas ═══ -->
+  <div class="pr-page" style="page-break-before:always">
 
     <!-- Leyenda de colores -->
     <div class="pr-legend">
@@ -2236,8 +2254,8 @@ function app() {
       </div>
     </div>
 
-  </div>
-</div>
+  </div><!-- /pr-page (leyenda + tabla + firmas) -->
+</div><!-- /print-only -->
 
 </body>
 </html>
