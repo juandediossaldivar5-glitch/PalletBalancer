@@ -11,6 +11,8 @@ public class AppDbContext : DbContext
     public DbSet<Fdo>      Fdos      => Set<Fdo>();
     public DbSet<FdoLinea> FdoLineas => Set<FdoLinea>();
     public DbSet<Usuario>  Usuarios  => Set<Usuario>();
+    public DbSet<Mlo>      Mlos      => Set<Mlo>();
+    public DbSet<MloLinea> MloLineas => Set<MloLinea>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
