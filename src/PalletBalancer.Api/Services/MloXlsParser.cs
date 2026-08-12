@@ -36,11 +36,14 @@ public static class MloXlsParser
             if (col0 == "FG Model" || col0.StartsWith("-->") || col0 == "")
                 continue;
 
+            if (row.ItemArray.Length <= 17) continue;
+
             var caseNo = row[5]?.ToString()?.Trim() ?? "";
             if (string.IsNullOrEmpty(caseNo))
                 continue;
 
-            var fromQty = (int)Convert.ToDouble(row[7]);
+            int fromQty = 0;
+            try { fromQty = (int)Convert.ToDouble(row[7]); } catch { }
 
             mlo.Lineas.Add(new MloLinea
             {

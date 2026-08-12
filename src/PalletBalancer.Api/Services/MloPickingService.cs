@@ -40,10 +40,10 @@ public static class MloPickingService
             casePool[modelNo] = new Queue<MloLinea>(sorted);
         }
 
-        // Build lookup: fdoSlipNo → MLO (for MloNo resolution)
-        var mloByFdoSlip = fdoData
+        // Build lookup: mloId → MLO (for MloNo resolution by owning MLO)
+        var mloById = fdoData
             .Where(x => x.Mlo != null)
-            .ToDictionary(x => x.Fdo.FdoSlipNo, x => x.Mlo!, StringComparer.OrdinalIgnoreCase);
+            .ToDictionary(x => x.Mlo!.Id, x => x.Mlo!);
 
         // Positions ordered: row ascending (1 = deepest = pick first), then lado, then capa
         var posOrdenadas = plan.Posiciones
@@ -78,8 +78,8 @@ public static class MloPickingService
 
             var case_ = pool.Dequeue();
 
-            // Resolve which MLO this case belongs to via its SlipNo
-            mloByFdoSlip.TryGetValue(case_.SlipNo, out var mloRef);
+            // Resolve which MLO this case belongs to via its owning MloId
+            var mloRef = mloById.GetValueOrDefault(case_.MloId);
 
             lineas.Add(new PickingLineaDto
             {

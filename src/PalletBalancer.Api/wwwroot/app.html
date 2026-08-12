@@ -1458,6 +1458,17 @@ function app() {
       this.cargandoLista = false;
       if (!r || !r.ok) { this.alerta = 'Error al cargar FDOs.'; return; }
       this.fdos = await r.json();
+
+      // Re-hydrate MLO state for each loaded FDO
+      const mloResults = await Promise.allSettled(
+          this.fdos.map(f => fetch(`/api/mlo/fdo/${f.id}`))
+      );
+      for (let i = 0; i < mloResults.length; i++) {
+          if (mloResults[i].status === 'fulfilled' && mloResults[i].value.ok) {
+              const data = await mloResults[i].value.json();
+              this.mlosPorFdo[this.fdos[i].id] = data;
+          }
+      }
     },
 
     irALista() {

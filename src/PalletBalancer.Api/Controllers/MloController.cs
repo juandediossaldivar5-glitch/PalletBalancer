@@ -30,6 +30,12 @@ public class MloController : ControllerBase
         if (string.IsNullOrWhiteSpace(fdoSlipNo))
             return BadRequest(new { mensaje = "Se requiere fdoSlipNo." });
 
+        var ext = Path.GetExtension(archivo.FileName).ToLowerInvariant();
+        if (ext is not ".xls" and not ".xlsx")
+            return BadRequest(new { mensaje = "Solo se aceptan archivos .xls o .xlsx." });
+        if (archivo.Length > 10_000_000)
+            return BadRequest(new { mensaje = "El archivo excede el límite de 10 MB." });
+
         var fdo = await _db.Fdos.FirstOrDefaultAsync(f => f.FdoSlipNo == fdoSlipNo);
         if (fdo == null)
             return NotFound(new { mensaje = $"FDO '{fdoSlipNo}' no encontrado." });
