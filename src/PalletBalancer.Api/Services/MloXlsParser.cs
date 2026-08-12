@@ -7,7 +7,7 @@ namespace PalletBalancer.Api.Services;
 
 public static class MloXlsParser
 {
-    public static Mlo Parse(Stream stream, string fileName, int fdoId)
+    public static Mlo Parse(Stream stream, string fileName, int fdoId, DateOnly fechaEntrega)
     {
         // Required for .xls (BIFF format)
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
@@ -20,9 +20,6 @@ public static class MloXlsParser
 
         var sheet = dataSet.Tables[0];
         var mloNo = Path.GetFileNameWithoutExtension(fileName); // "MLO00302753"
-
-        // Parse FechaEntrega from filename digits if present, else today
-        var fechaEntrega = DateOnly.FromDateTime(DateTime.UtcNow);
 
         var mlo = new Mlo
         {
@@ -43,9 +40,7 @@ public static class MloXlsParser
             if (string.IsNullOrEmpty(caseNo))
                 continue;
 
-            var fromQtyStr = row[7]?.ToString()?.Trim() ?? "0";
-            if (!int.TryParse(fromQtyStr, out var fromQty))
-                fromQty = (int)(double.TryParse(fromQtyStr, out var d) ? d : 0);
+            var fromQty = (int)Convert.ToDouble(row[7]);
 
             mlo.Lineas.Add(new MloLinea
             {
