@@ -417,9 +417,11 @@
       .pr-ok   { color:#1a7a3a;font-weight:700; }
       .pr-err  { color:#c0392b;font-weight:700; }
       .pr-warn { color:#b8860b;font-weight:700; }
-      .pr-svgs { display:flex;flex-direction:column;gap:10pt;margin:8pt 0; }
-      .pr-svgs-label { font-size:8pt;font-weight:700;color:#1a3a6b;margin-bottom:3pt; }
-      .pr-svgs-kg { font-size:8.5pt;font-weight:700;text-align:center;margin-top:3pt; }
+      .pr-svgs { display:block;margin:0; }
+      .pr-svg-page { page-break-before:always;margin:0;padding:6pt 0 0; }
+      .pr-svgs-label { font-size:13pt;font-weight:800;color:#1a3a6b;margin-bottom:6pt;
+                       border-bottom:2pt solid #1a3a6b;padding-bottom:5pt;letter-spacing:0.2pt; }
+      .pr-svgs-kg { font-size:10pt;font-weight:700;color:#333;margin-left:8pt; }
       .pr-sign { display:grid;grid-template-columns:1fr 1fr 1fr;gap:15pt;margin-top:18pt; }
       .pr-sign-box { border-top:1pt solid #888;padding-top:5pt;font-size:7.5pt;color:#555; }
       .pr-warn { background:#fff8dc;border:0.5pt solid #e6a817;padding:4pt 6pt;
@@ -1700,11 +1702,11 @@ function app() {
     svgLateral(lado, forPrint = false) {
       if (!this.contenedor) return '';
       const FILAS = this.contenedor.filasDisponibles || 26;
-      // Para impresión: VW más pequeño → cada unidad ocupa más espacio en papel → texto legible
-      const VW = forPrint ? 700 : 1200;
-      const VH = forPrint ? 420 : 520;
-      const PAD_L = 10, PAD_R = 10, PAD_T = 12;
-      const PAD_B = forPrint ? 36 : 48;
+      // Print: VW=600 → 1 unit ≈ 0.88pt on paper; VH=720 → fills ~10 inches = panel ocupa página completa
+      const VW = forPrint ? 600 : 1200;
+      const VH = forPrint ? 720 : 520;
+      const PAD_L = 10, PAD_R = 10, PAD_T = 14;
+      const PAD_B = forPrint ? 52 : 48;
       const innerW = VW - PAD_L - PAD_R;
       const innerH = VH - PAD_T - PAD_B;
       const cellW  = innerW / FILAS;
@@ -1764,15 +1766,14 @@ function app() {
           const x = xBase + (cellW - w) / 2;
           const y = yBase - h;
           const color = this.palletColor(p);
-          // Fuentes proporcionales al viewBox — print usa VW=700 (más unidades/pt) → fuentes más grandes
-          const fzMod = forPrint ? 15 : 13;
-          const fzSub = forPrint ? 12 : 11;
-          const fzKg2 = forPrint ? 10 : 10;
+          // Print: VW=600 → 0.88pt/unit; font-size 18 = ~15.8pt legible por operador
+          const fzMod = forPrint ? 18 : 13;
+          const fzSub = forPrint ? 14 : 11;
+          const fzKg2 = forPrint ? 11 : 10;
           const minHtag = fzMod * 1.6;
           const minHqty = fzMod * 3.4;
           const minHkg  = fzMod * 2.4;
-          // Print: 8 chars (celda más estrecha); pantalla: 10 chars
-          const maxChars = forPrint ? 8 : 10;
+          const maxChars = forPrint ? 6 : 10;
           const tag = p.modelNo.length > maxChars ? p.modelNo.slice(-maxChars) : p.modelNo;
           if (capa === 2) {
             pallets += `<line x1="${x.toFixed(1)}" y1="${yBase.toFixed(1)}" x2="${(x+w).toFixed(1)}" y2="${yBase.toFixed(1)}" stroke="${color}99" stroke-width="1.5" stroke-dasharray="3,3"/>`;
@@ -1800,8 +1801,8 @@ function app() {
       }
 
       // Números de fila
-      const fzNum = forPrint ? 11 : 11;
-      const fzLbl = forPrint ? 12 : 12;
+      const fzNum = forPrint ? 13 : 11;
+      const fzLbl = forPrint ? 15 : 12;
       let nums = '';
       const step = FILAS > 20 ? 5 : FILAS > 10 ? 2 : 1;
       for (let f = 1; f <= FILAS; f += step) {
@@ -2139,20 +2140,22 @@ function app() {
       </tr>
     </table>
 
-    <!-- Vistas laterales SVG -->
-    <div class="pr-sub">Elevación Lateral — Vista de Costado</div>
+    <!-- Vista lateral Izquierda — página propia -->
     <div class="pr-svgs">
-      <div>
-        <div class="pr-svgs-label">◀ Lado Izquierdo —
-          <span x-text="contenedor?.pesoIzquierdoKg?.toLocaleString('es-MX',{maximumFractionDigits:1})+' kg'"></span>
+      <div class="pr-svg-page">
+        <div class="pr-svgs-label">
+          ◀ Elevación Lateral — Lado Izquierdo
+          <span class="pr-svgs-kg" x-text="contenedor?.pesoIzquierdoKg?.toLocaleString('es-MX',{maximumFractionDigits:1})+' kg'"></span>
         </div>
-        <div x-html="svgLateral('Izquierdo', true)"></div>
+        <div x-html="svgLateral('Izquierdo', true)" style="width:100%"></div>
       </div>
-      <div>
-        <div class="pr-svgs-label">Lado Derecho ▶ —
-          <span x-text="contenedor?.pesoDerechoKg?.toLocaleString('es-MX',{maximumFractionDigits:1})+' kg'"></span>
+      <!-- Vista lateral Derecha — página propia -->
+      <div class="pr-svg-page">
+        <div class="pr-svgs-label">
+          Elevación Lateral — Lado Derecho ▶
+          <span class="pr-svgs-kg" x-text="contenedor?.pesoDerechoKg?.toLocaleString('es-MX',{maximumFractionDigits:1})+' kg'"></span>
         </div>
-        <div x-html="svgLateral('Derecho', true)"></div>
+        <div x-html="svgLateral('Derecho', true)" style="width:100%"></div>
       </div>
     </div>
 
