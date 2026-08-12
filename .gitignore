@@ -17,3 +17,4 @@ appsettings.Local.json
 .idea/
 .vscode/
 *.suo
+.gstack/
