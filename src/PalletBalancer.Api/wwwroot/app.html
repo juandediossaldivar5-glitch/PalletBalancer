@@ -1613,56 +1613,98 @@ function app() {
       const p1 = pct(this.contenedor.pesoEjeDelanteroKg, 5443);
       const p2 = pct(this.contenedor.pesoEjeTractorKg,  15422);
       const pr = pct(this.contenedor.pesoEjeRemolqueKg, 15422);
+      const gvwV = this.contenedor.pesoTotalGVWKg ?? 0;
+      const gvwOk1 = colOk(gvwV, 36287); const gvwOk2 = colOk(gvwV, 40500);
+      const st = (v, lim) => v <= lim ? '✓ OK' : '✗ EXCEDE';
+      const stC = (v, lim) => v <= lim ? '#1a7a3a' : '#c0392b';
       const wheel = cx => `<circle cx="${cx}" cy="96" r="13" fill="#555" stroke="#222" stroke-width="1.5"/><circle cx="${cx}" cy="96" r="5.5" fill="#888" stroke="#555" stroke-width="1"/>`;
+      const badge = (x, y, label, col) => `<rect x="${x-18}" y="${y}" width="36" height="14" rx="3" fill="${col}" opacity="0.9"/><text x="${x}" y="${y+10}" text-anchor="middle" font-size="9" font-weight="800" fill="white">${label}</text>`;
       const ribs  = [1,2,3,4,5,6,7,8,9].map(i=>`<line x1="${Math.round(110+i*570/10)}" y1="8" x2="${Math.round(110+i*570/10)}" y2="78" stroke="#2255aa" stroke-width="0.5" opacity="0.3"/>`).join('');
-      return `<svg viewBox="0 0 720 172" xmlns="http://www.w3.org/2000/svg" style="width:100%;font-family:'Segoe UI',sans-serif">
+      // fila de tabla SVG
+      const trow = (y, label, v1, lim1, v2, lim2, v3, lim3) => {
+        const cs = (v,l) => v<=l?'#1a7a3a':'#c0392b';
+        const mk = (v,l) => v<=l?'✓':'✗';
+        return `<text x="4"   y="${y}" font-size="9" fill="#555">${label}</text>
+                <text x="200" y="${y}" text-anchor="middle" font-size="9.5" font-weight="700" fill="${cs(v1,lim1)}">${fmt(lim1)}  ${mk(v1,lim1)}</text>
+                <text x="400" y="${y}" text-anchor="middle" font-size="9.5" font-weight="700" fill="${cs(v2,lim2)}">${fmt(lim2)}  ${mk(v2,lim2)}</text>
+                <text x="620" y="${y}" text-anchor="middle" font-size="9.5" font-weight="700" fill="${cs(v3,lim3)}">${fmt(lim3)}  ${mk(v3,lim3)}</text>`;
+      };
+      const w1v = this.contenedor.pesoEjeDelanteroKg??0;
+      const w2v = this.contenedor.pesoEjeTractorKg??0;
+      const wrv = this.contenedor.pesoEjeRemolqueKg??0;
+      return `<svg viewBox="0 0 720 248" xmlns="http://www.w3.org/2000/svg" style="width:100%;font-family:'Segoe UI',sans-serif">
+        <!-- Chasis -->
         <rect x="18" y="77" width="662" height="7" rx="2" fill="#aaa" stroke="#777" stroke-width="1"/>
+        <!-- Contenedor -->
         <rect x="110" y="5" width="570" height="75" rx="3" fill="#dce8f5" stroke="#2255aa" stroke-width="2"/>
         ${ribs}
         <text x="395" y="37" text-anchor="middle" font-size="16" font-weight="800" fill="#1a3a6b">${tipo}</text>
         <text x="395" y="55" text-anchor="middle" font-size="11" fill="#2255aa">Carga: ${cargo} kg · ${this.contenedor.totalPallets} pallets</text>
         <text x="118" y="18" font-size="9" fill="#999">CABINA</text>
         <text x="672" y="18" text-anchor="end" font-size="9" fill="#999">PUERTAS</text>
+        <!-- Tractor -->
         <rect x="20" y="22" width="90" height="58" rx="5" fill="#e0e6ee" stroke="#2255aa" stroke-width="1.5"/>
         <rect x="26" y="27" width="42" height="22" rx="2" fill="#a8c8e8" stroke="#5588bb" stroke-width="1" opacity="0.85"/>
         <rect x="72" y="32" width="30" height="14" rx="1" fill="#a8c8e8" stroke="#5588bb" stroke-width="0.5" opacity="0.7"/>
-        <text x="65" y="72" text-anchor="middle" font-size="8.5" fill="#555">TRACTOR</text>
+        <text x="65" y="71" text-anchor="middle" font-size="8" fill="#555">TRACTOR</text>
+        <!-- King Pin / CG -->
         <line x1="${kpX}" y1="5" x2="${kpX}" y2="81" stroke="#cc2200" stroke-width="1.5" stroke-dasharray="4,3"/>
         <circle cx="${kpX}" cy="78" r="4" fill="#cc2200"/>
         <text x="${kpX+5}" y="16" font-size="8" fill="#cc2200" font-weight="700">KP</text>
         <line x1="${cgX}" y1="5" x2="${cgX}" y2="81" stroke="#e67700" stroke-width="2" stroke-dasharray="3,2"/>
         <circle cx="${cgX}" cy="9" r="4" fill="#e67700"/>
         <text x="${cgX}" y="3" text-anchor="middle" font-size="8" fill="#e67700" font-weight="700">CG ${cgPct.toFixed(1)}%</text>
+        <!-- Badges de eje en el cuerpo del vehículo -->
+        ${badge(75,  58, 'W1', w1ok)}
+        ${badge(131, 58, 'W2', w2ok)}
+        ${badge(605, 58, 'Wr', wrok)}
         <!-- W1 steer -->
         <line x1="75" y1="81" x2="75" y2="114" stroke="${w1ok}" stroke-width="2.5"/>
         ${wheel(75)}
-        <text x="75" y="130" text-anchor="middle" font-size="10" fill="#555">W1 — Steer</text>
-        <text x="75" y="147" text-anchor="middle" font-size="13" font-weight="800" fill="${w1ok}">${w1} kg</text>
-        <text x="75" y="162" text-anchor="middle" font-size="10" fill="${pctCol(p1)}">${p1}% del límite</text>
+        <text x="75"  y="130" text-anchor="middle" font-size="9.5" fill="#555">W1 — Steer</text>
+        <text x="75"  y="146" text-anchor="middle" font-size="13" font-weight="800" fill="${w1ok}">${w1} kg</text>
+        <text x="75"  y="159" text-anchor="middle" font-size="9" fill="${pctCol(p1)}">${p1}% del lím.</text>
         <!-- W2 drive -->
         <line x1="131" y1="81" x2="131" y2="114" stroke="${w2ok}" stroke-width="2.5"/>
         ${wheel(119)} ${wheel(143)}
-        <text x="131" y="130" text-anchor="middle" font-size="10" fill="#555">W2 — Drive</text>
-        <text x="131" y="147" text-anchor="middle" font-size="13" font-weight="800" fill="${w2ok}">${w2} kg</text>
-        <text x="131" y="162" text-anchor="middle" font-size="10" fill="${pctCol(p2)}">${p2}% del límite</text>
+        <text x="131" y="130" text-anchor="middle" font-size="9.5" fill="#555">W2 — Drive</text>
+        <text x="131" y="146" text-anchor="middle" font-size="13" font-weight="800" fill="${w2ok}">${w2} kg</text>
+        <text x="131" y="159" text-anchor="middle" font-size="9" fill="${pctCol(p2)}">${p2}% del lím.</text>
         <!-- Wr remolque -->
         <line x1="605" y1="81" x2="605" y2="114" stroke="${wrok}" stroke-width="2.5"/>
         ${wheel(593)} ${wheel(617)}
-        <text x="605" y="130" text-anchor="middle" font-size="10" fill="#555">Wr — Remolque</text>
-        <text x="605" y="147" text-anchor="middle" font-size="13" font-weight="800" fill="${wrok}">${wr} kg</text>
-        <text x="605" y="162" text-anchor="middle" font-size="10" fill="${pctCol(pr)}">${pr}% del límite</text>
+        <text x="605" y="130" text-anchor="middle" font-size="9.5" fill="#555">Wr — Remolque</text>
+        <text x="605" y="146" text-anchor="middle" font-size="13" font-weight="800" fill="${wrok}">${wr} kg</text>
+        <text x="605" y="159" text-anchor="middle" font-size="9" fill="${pctCol(pr)}">${pr}% del lím.</text>
         <!-- GVW -->
-        <text x="368" y="162" text-anchor="middle" font-size="11" fill="#333">GVW Total: <tspan font-weight="800">${gvw} kg</tspan></text>
+        <text x="368" y="159" text-anchor="middle" font-size="11" fill="#333">GVW: <tspan font-weight="800">${gvw} kg</tspan></text>
+        <!-- Tabla de validación -->
+        <line x1="0" y1="166" x2="720" y2="166" stroke="#ccc" stroke-width="0.8"/>
+        <rect x="0" y="167" width="720" height="80" rx="3" fill="#f8f9fb"/>
+        <text x="4"   y="178" font-size="9" font-weight="700" fill="#1a3a6b">Norma</text>
+        <text x="200" y="178" text-anchor="middle" font-size="9" font-weight="700" fill="#333">W1 — ${w1} kg</text>
+        <text x="400" y="178" text-anchor="middle" font-size="9" font-weight="700" fill="#333">W2 — ${w2} kg</text>
+        <text x="620" y="178" text-anchor="middle" font-size="9" font-weight="700" fill="#333">Wr — ${wr} kg</text>
+        <line x1="0" y1="181" x2="720" y2="181" stroke="#ddd" stroke-width="0.5"/>
+        ${trow(195, 'FHWA (EE.UU.)', w1v,5443, w2v,15422, wrv,15422)}
+        ${trow(212, 'NOM-012 (MX)', w1v,6000, w2v,16000, wrv,16000)}
+        <line x1="0" y1="217" x2="720" y2="217" stroke="#ddd" stroke-width="0.5"/>
+        <text x="4" y="230" font-size="9" fill="#555">GVW total</text>
+        <text x="200" y="230" text-anchor="middle" font-size="9.5" font-weight="700" fill="${gvwOk1}">${fmt(36287)} kg  ${st(gvwV,36287)}</text>
+        <text x="400" y="230" text-anchor="middle" font-size="9" fill="#555">${gvw} kg total</text>
+        <text x="620" y="230" text-anchor="middle" font-size="9.5" font-weight="700" fill="${gvwOk2}">${fmt(40500)} kg  ${st(gvwV,40500)}</text>
+        <text x="4" y="245" font-size="8" fill="#aaa">FHWA = Federal Highway Admn. EE.UU. · NOM-012 = Carreteras federales México</text>
       </svg>`;
     },
 
     svgLateral(lado, forPrint = false) {
       if (!this.contenedor) return '';
       const FILAS = this.contenedor.filasDisponibles || 26;
-      const VW = 1200;
+      // Para impresión: VW más pequeño → cada unidad ocupa más espacio en papel → texto legible
+      const VW = forPrint ? 700 : 1200;
       const VH = forPrint ? 420 : 520;
-      const PAD_L = 12, PAD_R = 12, PAD_T = 12;
-      const PAD_B = forPrint ? 38 : 48;
+      const PAD_L = 10, PAD_R = 10, PAD_T = 12;
+      const PAD_B = forPrint ? 36 : 48;
       const innerW = VW - PAD_L - PAD_R;
       const innerH = VH - PAD_T - PAD_B;
       const cellW  = innerW / FILAS;
@@ -1722,14 +1764,16 @@ function app() {
           const x = xBase + (cellW - w) / 2;
           const y = yBase - h;
           const color = this.palletColor(p);
-          // Escalar fuentes según tamaño de celda para que sea legible en pantalla y en papel
-          const fzMod = forPrint ? 16 : 13;
-          const fzSub = forPrint ? 13 : 11;
-          const fzKg2 = forPrint ? 11 : 10;
+          // Fuentes proporcionales al viewBox — print usa VW=700 (más unidades/pt) → fuentes más grandes
+          const fzMod = forPrint ? 15 : 13;
+          const fzSub = forPrint ? 12 : 11;
+          const fzKg2 = forPrint ? 10 : 10;
           const minHtag = fzMod * 1.6;
-          const minHqty = fzMod * 3.2;
-          const minHkg  = fzMod * 2.2;
-          const tag = p.modelNo.length > 10 ? p.modelNo.slice(-10) : p.modelNo;
+          const minHqty = fzMod * 3.4;
+          const minHkg  = fzMod * 2.4;
+          // Print: 8 chars (celda más estrecha); pantalla: 10 chars
+          const maxChars = forPrint ? 8 : 10;
+          const tag = p.modelNo.length > maxChars ? p.modelNo.slice(-maxChars) : p.modelNo;
           if (capa === 2) {
             pallets += `<line x1="${x.toFixed(1)}" y1="${yBase.toFixed(1)}" x2="${(x+w).toFixed(1)}" y2="${yBase.toFixed(1)}" stroke="${color}99" stroke-width="1.5" stroke-dasharray="3,3"/>`;
           }
