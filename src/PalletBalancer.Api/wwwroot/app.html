@@ -417,11 +417,12 @@
       .pr-ok   { color:#1a7a3a;font-weight:700; }
       .pr-err  { color:#c0392b;font-weight:700; }
       .pr-warn { color:#b8860b;font-weight:700; }
+      @page lateral-page { size: landscape; margin: 8mm 10mm; }
       .pr-svgs { display:block;margin:0; }
-      .pr-svg-page { page-break-before:always;margin:0;padding:6pt 0 0; }
-      .pr-svgs-label { font-size:13pt;font-weight:800;color:#1a3a6b;margin-bottom:6pt;
-                       border-bottom:2pt solid #1a3a6b;padding-bottom:5pt;letter-spacing:0.2pt; }
-      .pr-svgs-kg { font-size:10pt;font-weight:700;color:#333;margin-left:8pt; }
+      .pr-svg-page { page: lateral-page;page-break-before:always;margin:0;padding:4pt 0 0; }
+      .pr-svgs-label { font-size:14pt;font-weight:800;color:#1a3a6b;margin-bottom:5pt;
+                       border-bottom:2pt solid #1a3a6b;padding-bottom:4pt;letter-spacing:0.2pt; }
+      .pr-svgs-kg { font-size:11pt;font-weight:700;color:#333;margin-left:10pt; }
       .pr-sign { display:grid;grid-template-columns:1fr 1fr 1fr;gap:15pt;margin-top:18pt; }
       .pr-sign-box { border-top:1pt solid #888;padding-top:5pt;font-size:7.5pt;color:#555; }
       .pr-warn { background:#fff8dc;border:0.5pt solid #e6a817;padding:4pt 6pt;
@@ -1702,11 +1703,11 @@ function app() {
     svgLateral(lado, forPrint = false) {
       if (!this.contenedor) return '';
       const FILAS = this.contenedor.filasDisponibles || 26;
-      // Print: VW=600 → 1 unit ≈ 0.88pt on paper; VH=720 → fills ~10 inches = panel ocupa página completa
-      const VW = forPrint ? 600 : 1200;
-      const VH = forPrint ? 720 : 520;
+      // Print: página landscape; VW=730 ≈ 735pt ancho útil → 1 unit ≈ 1pt; VH=465 llena la hoja
+      const VW = forPrint ? 730 : 1200;
+      const VH = forPrint ? 465 : 520;
       const PAD_L = 10, PAD_R = 10, PAD_T = 14;
-      const PAD_B = forPrint ? 52 : 48;
+      const PAD_B = forPrint ? 48 : 48;
       const innerW = VW - PAD_L - PAD_R;
       const innerH = VH - PAD_T - PAD_B;
       const cellW  = innerW / FILAS;
@@ -1766,10 +1767,10 @@ function app() {
           const x = xBase + (cellW - w) / 2;
           const y = yBase - h;
           const color = this.palletColor(p);
-          // Print: VW=600 → 0.88pt/unit; font-size 18 = ~15.8pt legible por operador
-          const fzMod = forPrint ? 18 : 13;
-          const fzSub = forPrint ? 14 : 11;
-          const fzKg2 = forPrint ? 11 : 10;
+          // Print: VW=730 ≈ 1pt/unit (landscape); font-size 16 ≈ 16pt — muy legible para operador
+          const fzMod = forPrint ? 16 : 13;
+          const fzSub = forPrint ? 12 : 11;
+          const fzKg2 = forPrint ? 10 : 10;
           const minHtag = fzMod * 1.6;
           const minHqty = fzMod * 3.4;
           const minHkg  = fzMod * 2.4;
@@ -1800,9 +1801,9 @@ function app() {
         }
       }
 
-      // Números de fila
+      // Números de fila y etiquetas Cabina/Puertas
       const fzNum = forPrint ? 13 : 11;
-      const fzLbl = forPrint ? 15 : 12;
+      const fzLbl = forPrint ? 16 : 12;
       let nums = '';
       const step = FILAS > 20 ? 5 : FILAS > 10 ? 2 : 1;
       for (let f = 1; f <= FILAS; f += step) {
