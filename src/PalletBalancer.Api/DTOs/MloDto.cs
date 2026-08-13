@@ -51,8 +51,10 @@ public class PickingLineaDto
     public string FromLocation    { get; set; } = "";
     public string ModelNo         { get; set; } = "";
     public string Descripcion     { get; set; } = "";
-    public int    Qty             { get; set; }
-    public bool   EsParcial       { get; set; }
+    public int          Qty              { get; set; }
+    public bool         EsParcial        { get; set; }
+    public string?      Recomendacion    { get; set; }
+    public List<string> CasesAdicionales { get; set; } = [];
 }
 
 public class PickingResultadoDto

@@ -2366,20 +2366,35 @@ function app() {
       </thead>
       <tbody>
         <template x-for="l in pickingResult.lineas" :key="l.ordenPicking">
-          <tr :style="l.esParcial ? 'background:#fff8dc' : ''">
-            <td style="text-align:center;font-weight:800" x-text="l.ordenPicking"></td>
-            <td style="text-align:center;font-weight:700" x-text="l.filaContenedor"></td>
-            <td style="text-align:center;font-size:9px" x-text="l.ladoContenedor === 'Izquierdo' ? 'IZQ' : 'DER'"></td>
-            <td style="text-align:center" x-text="l.capaContenedor"></td>
-            <td style="font-family:monospace;font-size:7pt" x-text="l.caseNo"></td>
-            <td style="font-family:monospace;font-size:7pt;font-weight:700;color:#1a3a6b" x-text="l.fromLocation"></td>
-            <td style="font-family:monospace" x-text="l.modelNo"></td>
-            <td x-text="l.descripcion + (l.esParcial ? ' [PARCIAL]' : '')"></td>
-            <td style="text-align:right;font-weight:700" x-text="l.qty"></td>
-            <td style="font-size:7pt" x-text="l.consignee"></td>
-            <td style="font-size:7pt;font-family:monospace" x-text="l.fdoSlipNo"></td>
-            <td style="border:0.5pt solid #999;width:18pt"></td>
-          </tr>
+          <template>
+            <tr :style="l.esParcial ? 'background:#fff8dc' : ''">
+              <td style="text-align:center;font-weight:800" x-text="l.ordenPicking"></td>
+              <td style="text-align:center;font-weight:700" x-text="l.filaContenedor"></td>
+              <td style="text-align:center;font-size:9px" x-text="l.ladoContenedor === 'Izquierdo' ? 'IZQ' : 'DER'"></td>
+              <td style="text-align:center" x-text="l.capaContenedor"></td>
+              <td style="font-family:monospace;font-size:7pt">
+                <span x-text="l.caseNo"></span>
+                <template x-if="l.casesAdicionales && l.casesAdicionales.length > 0">
+                  <span style="color:#666;font-size:6pt;display:block" x-text="'+' + l.casesAdicionales.join(', +')"></span>
+                </template>
+              </td>
+              <td style="font-family:monospace;font-size:7pt;font-weight:700;color:#1a3a6b" x-text="l.fromLocation"></td>
+              <td style="font-family:monospace" x-text="l.modelNo"></td>
+              <td>
+                <span x-text="l.descripcion"></span>
+                <span x-show="l.esParcial" style="color:#b8860b;font-weight:700"> [PARCIAL]</span>
+              </td>
+              <td style="text-align:right;font-weight:700" x-text="l.qty"></td>
+              <td style="font-size:7pt" x-text="l.consignee"></td>
+              <td style="font-size:7pt;font-family:monospace" x-text="l.fdoSlipNo"></td>
+              <td style="border:0.5pt solid #999;width:18pt"></td>
+            </tr>
+            <tr x-show="l.recomendacion" style="background:#fffaeb">
+              <td colspan="12" style="font-size:6.5pt;color:#7a5000;padding:2pt 6pt;border-top:none">
+                <span style="font-weight:700">⚠ </span><span x-text="l.recomendacion"></span>
+              </td>
+            </tr>
+          </template>
         </template>
       </tbody>
     </table>
