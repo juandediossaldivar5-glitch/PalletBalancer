@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PalletBalancer — Presentación</title>
+<style>
+  :root {
+    --blue:#1a3a6b; --accent:#4dd884; --warn:#ffc107; --danger:#e54c4c;
+    --bg:#0d1b2a; --card:#132235; --border:rgba(77,216,132,0.2);
+    --text:#e8edf2; --muted:#8899aa;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:100%; height:100%; background:#000; font-family:'Segoe UI',system-ui,sans-serif; overflow:hidden; }
+
+  /* ── SLIDES ── */
+  .deck { width:100vw; height:100vh; position:relative; }
+  .slide {
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; justify-content:center; align-items:center;
+    padding:48px 64px;
+    opacity:0; pointer-events:none;
+    transition:opacity .5s ease;
+  }
+  .slide.active { opacity:1; pointer-events:all; }
+
+  /* backgrounds */
+  .s-dark  { background: radial-gradient(ellipse at 20% 50%, #0a1f38 0%, #050e18 100%); color:var(--text); }
+  .s-light { background: #f4f7fb; color:#111; }
+  .s-mid   { background: linear-gradient(135deg,#0d1b2a 60%,#132235 100%); color:var(--text); }
+
+  /* nav */
+  .nav { position:fixed; bottom:28px; left:50%; transform:translateX(-50%);
+         display:flex; gap:10px; z-index:99; }
+  .nav button {
+    background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.2);
+    color:#fff; padding:8px 22px; border-radius:24px; cursor:pointer; font-size:14px;
+    transition:background .2s;
+  }
+  .nav button:hover { background:rgba(77,216,132,0.3); }
+  .dots { position:fixed; bottom:28px; right:32px; display:flex; gap:6px; z-index:99; }
+  .dot { width:8px; height:8px; border-radius:50%; background:rgba(255,255,255,0.2); cursor:pointer; transition:.2s; }
+  .dot.on { background:var(--accent); }
+  .slide-num { position:fixed; bottom:28px; left:32px; font-size:12px; color:rgba(255,255,255,0.35); z-index:99; }
+
+  /* typography */
+  .tag    { font-size:12px; font-weight:700; letter-spacing:2px; text-transform:uppercase;
+            color:var(--accent); margin-bottom:12px; }
+  .title  { font-size:52px; font-weight:800; line-height:1.1; margin-bottom:16px; }
+  .sub    { font-size:22px; color:var(--muted); font-weight:400; }
+  .h2     { font-size:36px; font-weight:800; margin-bottom:8px; }
+  .h3     { font-size:26px; font-weight:700; margin-bottom:12px; }
+  .lead   { font-size:18px; line-height:1.65; color:var(--muted); max-width:720px; text-align:center; }
+  .accent { color:var(--accent); }
+  .warn   { color:var(--warn); }
+  .err    { color:var(--danger); }
+
+  /* cards */
+  .cards  { display:flex; gap:20px; flex-wrap:wrap; justify-content:center; width:100%; }
+  .card   { background:var(--card); border:1px solid var(--border); border-radius:12px;
+            padding:24px 28px; flex:1; min-width:220px; max-width:280px; }
+  .card .icon { font-size:32px; margin-bottom:10px; }
+  .card .ct   { font-size:15px; color:var(--muted); margin-top:6px; line-height:1.5; }
+
+  /* two-col */
+  .two { display:grid; grid-template-columns:1fr 1fr; gap:40px; width:100%; align-items:start; }
+  .two.asym { grid-template-columns:2fr 3fr; }
+
+  /* pill list */
+  .pills { display:flex; flex-direction:column; gap:10px; }
+  .pill  { display:flex; align-items:center; gap:12px; background:rgba(77,216,132,0.07);
+           border:1px solid var(--border); border-radius:8px; padding:10px 16px; font-size:15px; }
+  .pill .ic { font-size:20px; flex-shrink:0; }
+
+  /* step flow */
+  .flow { display:flex; gap:0; align-items:center; flex-wrap:wrap; justify-content:center; }
+  .step { text-align:center; padding:14px 16px; max-width:140px; }
+  .step .num { width:38px; height:38px; border-radius:50%; background:var(--accent); color:#000;
+               font-weight:800; font-size:16px; display:flex; align-items:center; justify-content:center;
+               margin:0 auto 10px; }
+  .step .sl  { font-size:13px; color:var(--muted); margin-top:4px; line-height:1.4; }
+  .arrow     { color:var(--accent); font-size:24px; flex-shrink:0; }
+
+  /* table */
+  table.demo { width:100%; border-collapse:collapse; font-size:13px; }
+  table.demo th { background:var(--blue); color:#fff; padding:6px 10px; text-align:left; }
+  table.demo td { padding:6px 10px; border-bottom:1px solid rgba(255,255,255,0.06); }
+  table.demo tr:nth-child(even) td { background:rgba(255,255,255,0.03); }
+  .ok  { color:var(--accent); font-weight:700; }
+  .bad { color:var(--danger); font-weight:700; }
+
+  /* norm badge */
+  .norm-row { display:flex; gap:12px; margin-top:8px; flex-wrap:wrap; }
+  .norm { background:rgba(77,216,132,0.1); border:1px solid var(--border);
+          border-radius:8px; padding:8px 14px; font-size:13px; }
+  .norm b { color:var(--accent); }
+
+  /* logo placeholder */
+  .logo-pill { display:inline-flex; align-items:center; gap:8px; background:var(--blue);
+               border-radius:24px; padding:8px 20px; margin-bottom:24px; }
+  .logo-pill span { font-size:18px; font-weight:800; color:#fff; letter-spacing:1px; }
+
+  /* big stat */
+  .stats { display:flex; gap:32px; justify-content:center; flex-wrap:wrap; margin-top:16px; }
+  .stat  { text-align:center; }
+  .stat .n { font-size:56px; font-weight:900; color:var(--accent); line-height:1; }
+  .stat .l { font-size:14px; color:var(--muted); margin-top:4px; }
+
+  /* roadmap */
+  .road { display:flex; flex-direction:column; gap:12px; width:100%; max-width:680px; }
+  .ritem{ display:flex; gap:16px; align-items:flex-start; }
+  .rbullet { width:32px; height:32px; border-radius:50%; display:flex; align-items:center;
+             justify-content:center; font-size:13px; font-weight:800; flex-shrink:0; margin-top:2px; }
+  .rb-done { background:var(--accent); color:#000; }
+  .rb-next { background:var(--warn); color:#000; }
+  .rb-fut  { background:rgba(255,255,255,0.1); color:var(--muted); }
+  .rtxt    { font-size:15px; }
+  .rtxt small { color:var(--muted); font-size:12px; }
+
+</style>
+</head>
+<body>
+
+<div class="deck" id="deck">
+
+<!-- ──────────────────────────────────────────
+     SLIDE 1: PORTADA
+────────────────────────────────────────── -->
+<div class="slide s-dark active">
+  <div class="logo-pill">
+    <span>MELCO</span>
+  </div>
+  <div class="tag">Propuesta de Sistema Interno · Logística de Exportación</div>
+  <div class="title" style="text-align:center">
+    Pallet<span class="accent">Balancer</span>
+  </div>
+  <div class="sub" style="text-align:center;margin-bottom:32px">
+    Planificación automática de estiba para contenedores de exportación
+  </div>
+  <!-- mini SVG decorativo: contenedor con pallets de colores -->
+  <svg viewBox="0 0 520 90" style="width:420px;opacity:0.85;margin-top:8px">
+    <rect x="2" y="10" width="516" height="68" rx="6" fill="none" stroke="#4dd884" stroke-width="1.5"/>
+    <rect x="14"  y="18" width="36" height="52" rx="3" fill="#28a74540" stroke="#28a745" stroke-width="1.5"/>
+    <rect x="54"  y="18" width="36" height="52" rx="3" fill="#28a74540" stroke="#28a745" stroke-width="1.5"/>
+    <rect x="94"  y="18" width="36" height="52" rx="3" fill="#ffc10740" stroke="#ffc107" stroke-width="1.5"/>
+    <rect x="134" y="18" width="36" height="52" rx="3" fill="#28a74540" stroke="#28a745" stroke-width="1.5"/>
+    <rect x="174" y="18" width="36" height="52" rx="3" fill="#dc354540" stroke="#dc3545" stroke-width="1.5"/>
+    <rect x="214" y="18" width="36" height="52" rx="3" fill="#28a74540" stroke="#28a745" stroke-width="1.5"/>
+    <rect x="254" y="18" width="36" height="52" rx="3" fill="#28a74540" stroke="#28a745" stroke-width="1.5"/>
+    <rect x="294" y="18" width="36" height="52" rx="3" fill="#ffc10740" stroke="#ffc107" stroke-width="1.5"/>
+    <rect x="334" y="18" width="36" height="52" rx="3" fill="#28a74540" stroke="#28a745" stroke-width="1.5"/>
+    <rect x="374" y="18" width="36" height="52" rx="3" fill="#28a74540" stroke="#28a745" stroke-width="1.5"/>
+    <rect x="414" y="18" width="36" height="52" rx="3" fill="#28a74540" stroke="#28a745" stroke-width="1.5"/>
+    <rect x="454" y="18" width="36" height="52" rx="3" fill="#ffc10740" stroke="#ffc107" stroke-width="1.5"/>
+    <text x="260" y="86" text-anchor="middle" font-size="10" fill="#4dd88480" font-family="monospace">◀ Cabina &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Puertas ▶</text>
+  </svg>
+  <div style="margin-top:28px;font-size:13px;color:var(--muted)">
+    2026 · Juan de Dios Saldivar · Área de Exportaciones
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────
+     SLIDE 2: EL PROBLEMA
+────────────────────────────────────────── -->
+<div class="slide s-dark">
+  <div class="tag">El problema que queremos resolver</div>
+  <div class="h2" style="text-align:center;margin-bottom:28px">Hoy, la estiba se decide<br>a ojo y en papel</div>
+  <div class="cards">
+    <div class="card">
+      <div class="icon">⏱️</div>
+      <div class="h3">45–90 min</div>
+      <div class="ct">Tiempo promedio que toma planificar manualmente cómo acomodar un contenedor con múltiples FDOs</div>
+    </div>
+    <div class="card">
+      <div class="icon">⚖️</div>
+      <div class="h3">Sin cálculo de ejes</div>
+      <div class="ct">No sabemos si el camión va a pasar la báscula antes de salir a carretera. El sobrepeso en eje se detecta… ya cargado.</div>
+    </div>
+    <div class="card">
+      <div class="icon">📋</div>
+      <div class="h3">FDOs mezclados</div>
+      <div class="ct">Varios destinos en un mismo contenedor, pero el orden de descarga depende de quién recuerda el plan en almacén</div>
+    </div>
+    <div class="card">
+      <div class="icon">💸</div>
+      <div class="h3">Riesgo de multa</div>
+      <div class="ct">FHWA y NOM-012 limitan el peso por eje. Un contenedor mal distribuido puede costar entre $20,000 y $100,000 MXN por infracción</div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────
+     SLIDE 3: LA SOLUCIÓN
+────────────────────────────────────────── -->
+<div class="slide s-mid">
+  <div class="tag">La solución</div>
+  <div class="h2" style="text-align:center;margin-bottom:10px">
+    PalletBalancer lo calcula en <span class="accent">segundos</span>
+  </div>
+  <div class="lead" style="margin-bottom:28px">
+    El operador selecciona los FDOs, define el tipo de contenedor y tractocamión,<br>y el sistema genera el plan completo al instante.
+  </div>
+  <div class="flow">
+    <div class="step">
+      <div class="num">1</div>
+      <div style="font-weight:700">Seleccionar FDOs</div>
+      <div class="sl">Uno o varios desde la lista de embarques pendientes</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <div class="num">2</div>
+      <div style="font-weight:700">Elegir equipo</div>
+      <div class="sl">Contenedor (20ft–53ft) + tractocamión</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <div class="num">3</div>
+      <div style="font-weight:700">Ver el plan</div>
+      <div class="sl">Fila por fila, izquierdo y derecho, con balance de peso</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <div class="num">4</div>
+      <div style="font-weight:700">Imprimir</div>
+      <div class="sl">PDF firmable para operador y transportista</div>
+    </div>
+  </div>
+  <div style="margin-top:28px;display:flex;gap:16px;flex-wrap:wrap;justify-content:center">
+    <div class="norm"><b>✓</b> FHWA 23 CFR 658</div>
+    <div class="norm"><b>✓</b> NOM-012-SCT-2-2017</div>
+    <div class="norm"><b>✓</b> Balance lateral L/R</div>
+    <div class="norm"><b>✓</b> Orden de descarga por consignee</div>
+    <div class="norm"><b>✓</b> Apilado inteligente (2 capas)</div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────
+     SLIDE 4: CÓMO CALCULA
+────────────────────────────────────────── -->
+<div class="slide s-mid">
+  <div class="tag">Motor de cálculo</div>
+  <div class="h2" style="text-align:center;margin-bottom:10px">¿Cómo sabe el sistema dónde poner cada pallet?</div>
+
+  <div class="two asym" style="width:100%;max-width:960px;gap:28px;align-items:start">
+    <!-- Columna izquierda: fórmula en palabras -->
+    <div>
+      <div style="font-size:14px;font-weight:700;color:var(--accent);margin-bottom:12px">El principio: modelo de viga</div>
+      <div class="pills" style="gap:10px">
+        <div class="pill"><span class="ic">⚖️</span>
+          <div><strong>Cada pallet tiene peso y posición.</strong><br>
+          <span style="font-size:13px;color:var(--muted)">Peso × distancia al eje = momento. La suma de todos los momentos determina cuánto carga cada eje.</span></div>
+        </div>
+        <div class="pill"><span class="ic">📐</span>
+          <div><strong>Fórmula de carga trasera (Wr):</strong><br>
+          <span style="font-size:13px;color:var(--muted)">Wr = Σ(Peso_i × Dist_i) ÷ Distancia_entre_ejes</span></div>
+        </div>
+        <div class="pill"><span class="ic">🔁</span>
+          <div><strong>Luego W2 y W1:</strong><br>
+          <span style="font-size:13px;color:var(--muted)">W2 = Peso_contenedor − Wr &nbsp;·&nbsp; W1 = GVW − W2 − Wr</span></div>
+        </div>
+        <div class="pill"><span class="ic">↔️</span>
+          <div><strong>Balance lateral L/R:</strong><br>
+          <span style="font-size:13px;color:var(--muted)">Diferencia entre lado izquierdo y derecho ÷ peso total. Meta: &lt; 5%</span></div>
+        </div>
+      </div>
+      <div style="margin-top:14px;font-size:12px;color:var(--muted);line-height:1.6">
+        El sistema distribuye los pallets fila por fila desde el fondo, alternando L/R para mantener el balance, respetando el orden de descarga por consignee.
+      </div>
+    </div>
+    <!-- Columna derecha: normas + SVG viga -->
+    <div>
+      <div style="font-size:14px;font-weight:700;color:var(--accent);margin-bottom:10px">Normas que valida</div>
+      <table class="demo" style="margin-bottom:14px">
+        <tr><th>Norma</th><th>Qué limita</th><th>Límite típico</th></tr>
+        <tr><td><b>FHWA 23 CFR 658</b></td><td>Ejes en carreteras EE.UU.</td><td>GVW ≤ 36,287 kg</td></tr>
+        <tr><td><b>NOM-012-SCT-2-2017</b></td><td>Ejes en carreteras México</td><td>GVW ≤ 40,500 kg</td></tr>
+        <tr><td><b>Balance L/R</b></td><td>Estabilidad lateral</td><td>Diferencia &lt; 5%</td></tr>
+      </table>
+      <!-- SVG mini viga -->
+      <svg viewBox="0 0 420 120" style="width:100%;border-radius:8px;background:#0d1b2a;border:1px solid rgba(77,216,132,0.12)">
+        <!-- viga -->
+        <rect x="20" y="68" width="380" height="8" rx="2" fill="#1a3a6b"/>
+        <!-- eje W1 (dirección) -->
+        <line x1="60" y1="76" x2="60" y2="96" stroke="#4dd884" stroke-width="2"/>
+        <polygon points="55,96 65,96 60,108" fill="#4dd884"/>
+        <text x="60" y="116" text-anchor="middle" font-size="8" fill="#4dd884" font-weight="700">W1</text>
+        <!-- eje W2 (tractor) -->
+        <line x1="140" y1="76" x2="140" y2="96" stroke="#ffc107" stroke-width="2"/>
+        <polygon points="135,96 145,96 140,108" fill="#ffc107"/>
+        <text x="140" y="116" text-anchor="middle" font-size="8" fill="#ffc107" font-weight="700">W2</text>
+        <!-- eje Wr (remolque) -->
+        <line x1="340" y1="76" x2="340" y2="96" stroke="#4dd884" stroke-width="2"/>
+        <polygon points="335,96 345,96 340,108" fill="#4dd884"/>
+        <text x="340" y="116" text-anchor="middle" font-size="8" fill="#4dd884" font-weight="700">Wr</text>
+        <!-- pallets sobre la viga (flechas de peso hacia abajo) -->
+        <rect x="170" y="44" width="22" height="22" rx="2" fill="#28a74540" stroke="#28a745" stroke-width="1"/>
+        <line x1="181" y1="66" x2="181" y2="76" stroke="#fff" stroke-width="1" stroke-dasharray="2,1"/>
+        <rect x="200" y="48" width="22" height="18" rx="2" fill="#ffc10740" stroke="#ffc107" stroke-width="1"/>
+        <line x1="211" y1="66" x2="211" y2="76" stroke="#fff" stroke-width="1" stroke-dasharray="2,1"/>
+        <rect x="230" y="44" width="22" height="22" rx="2" fill="#28a74540" stroke="#28a745" stroke-width="1"/>
+        <line x1="241" y1="66" x2="241" y2="76" stroke="#fff" stroke-width="1" stroke-dasharray="2,1"/>
+        <rect x="260" y="50" width="22" height="16" rx="2" fill="#dc354540" stroke="#dc3545" stroke-width="1"/>
+        <line x1="271" y1="66" x2="271" y2="76" stroke="#fff" stroke-width="1" stroke-dasharray="2,1"/>
+        <rect x="290" y="44" width="22" height="22" rx="2" fill="#28a74540" stroke="#28a745" stroke-width="1"/>
+        <line x1="301" y1="66" x2="301" y2="76" stroke="#fff" stroke-width="1" stroke-dasharray="2,1"/>
+        <!-- distancia d1 -->
+        <line x1="140" y1="38" x2="181" y2="38" stroke="rgba(255,255,255,0.3)" stroke-width="1" marker-end="url(#arr)" stroke-dasharray="3,2"/>
+        <text x="161" y="34" text-anchor="middle" font-size="7" fill="rgba(255,255,255,0.5)">d₁</text>
+        <!-- etiqueta -->
+        <text x="210" y="14" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.4)">Momento = Peso × distancia al eje</text>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────
+     SLIDE 5: FDO + MLO → PICKING
+────────────────────────────────────────── -->
+<div class="slide s-dark">
+  <div class="tag">Flujo de información</div>
+  <div class="h2" style="text-align:center;margin-bottom:16px">De documentos de almacén al plan de picking</div>
+
+  <div style="display:flex;gap:20px;align-items:flex-start;width:100%;max-width:980px;flex-wrap:wrap">
+
+    <!-- FDO -->
+    <div style="flex:1;min-width:220px;background:var(--card);border:1px solid rgba(100,160,255,0.3);border-radius:12px;padding:18px 20px">
+      <div style="font-size:13px;font-weight:700;color:#7ab4ff;letter-spacing:1px;margin-bottom:10px">FDO — Field Distribution Order</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.7">
+        📄 Se importa desde <strong style="color:#fff">PDF o XLS</strong><br>
+        Contiene:<br>
+        &nbsp;· Modelos a embarcar<br>
+        &nbsp;· Cantidades requeridas<br>
+        &nbsp;· Destinos (consignees)<br>
+        &nbsp;· Fecha de embarque
+      </div>
+      <div style="margin-top:10px;font-size:11px;background:rgba(100,160,255,0.07);border-radius:6px;padding:8px;color:#7ab4ff">
+        ⚠️ Define <em>qué</em> se embarca, no <em>dónde está</em> en almacén
+      </div>
+    </div>
+
+    <!-- flecha -->
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding-top:40px;font-size:28px;color:var(--accent)">+</div>
+
+    <!-- MLO -->
+    <div style="flex:1;min-width:220px;background:var(--card);border:1px solid rgba(77,216,132,0.3);border-radius:12px;padding:18px 20px">
+      <div style="font-size:13px;font-weight:700;color:var(--accent);letter-spacing:1px;margin-bottom:10px">MLO — Move Location Order</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.7">
+        📊 Se exporta desde WMS en <strong style="color:#fff">XLS</strong><br>
+        Contiene:<br>
+        &nbsp;· CASEs físicos en almacén<br>
+        &nbsp;· Ubicación rack-posición-nivel<br>
+        &nbsp;· Cantidad real por CASE<br>
+        &nbsp;· Modelo y clase
+      </div>
+      <div style="margin-top:10px;font-size:11px;background:rgba(77,216,132,0.07);border-radius:6px;padding:8px;color:var(--accent)">
+        ✓ Define <em>exactamente</em> qué existe físicamente y dónde
+      </div>
+    </div>
+
+    <!-- flecha -->
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding-top:40px;font-size:28px;color:var(--accent)">→</div>
+
+    <!-- Resultado -->
+    <div style="flex:1;min-width:220px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px">
+      <div style="font-size:13px;font-weight:700;color:#fff;letter-spacing:1px;margin-bottom:10px">MLO Recalculada (Picking)</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.7">
+        📋 Lista ordenada para almacén:<br>
+        &nbsp;· Orden de pick = fila más al fondo primero<br>
+        &nbsp;· CASE exacto a mover<br>
+        &nbsp;· Ubicación origen<br>
+        &nbsp;· Pallet de destino
+      </div>
+      <div style="margin-top:10px;font-size:11px;background:rgba(255,255,255,0.04);border-radius:6px;padding:8px;color:#fff">
+        📌 El <strong>palletizado</strong> se calcula con las cantidades <strong>reales del MLO</strong>, no del FDO
+      </div>
+    </div>
+  </div>
+
+  <!-- mini tabla picking -->
+  <div style="margin-top:16px;width:100%;max-width:980px">
+    <table class="demo">
+      <tr>
+        <th>#</th><th>CASE No.</th><th>Modelo</th><th>Ubicación almacén</th><th>Qty</th><th>Pallet → Fila</th>
+      </tr>
+      <tr><td class="ok">1</td><td>C-00124</td><td>MR-C50</td><td>MEAX-FG1-56-17-02</td><td>4</td><td>P-01 → Fila 1 Izq</td></tr>
+      <tr><td class="ok">2</td><td>C-00125</td><td>MR-C50</td><td>MEAX-FG1-56-17-03</td><td>4</td><td>P-02 → Fila 1 Der</td></tr>
+      <tr><td class="ok">3</td><td>C-00318</td><td>GT-A37</td><td>MEAX-FG2-12-04-01</td><td>2</td><td>P-03 → Fila 2 Izq</td></tr>
+      <tr><td style="color:var(--muted)">4</td><td style="color:var(--muted)">…</td><td style="color:var(--muted)">…</td><td style="color:var(--muted)">…</td><td style="color:var(--muted)">…</td><td style="color:var(--muted)">…</td></tr>
+    </table>
+    <div style="margin-top:8px;font-size:12px;color:var(--muted);text-align:center">
+      Orden 1 = el primer CASE que entra al contenedor (va al fondo) · Ordenado por proximidad de ubicación en almacén
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────
+     SLIDE 6: VISTA LATERAL (real)
+────────────────────────────────────────── -->
+<div class="slide s-dark">
+  <div class="tag">Lo que ve el operador en pantalla</div>
+  <div class="h2" style="text-align:center;margin-bottom:16px">Elevación lateral del contenedor</div>
+
+  <!-- SVG lateral: muy similar al real del sistema -->
+  <svg viewBox="0 0 900 310" style="width:100%;max-width:980px;border-radius:10px;border:1px solid rgba(77,216,132,0.2)">
+    <!-- fondo -->
+    <rect x="0" y="0" width="900" height="310" rx="10" fill="#0d1b2a"/>
+    <!-- título -->
+    <text x="14" y="22" font-size="11" fill="#4dd88480" font-weight="700" font-family="monospace">VISTA LATERAL — LADO IZQUIERDO</text>
+    <!-- contorno interior -->
+    <rect x="10" y="30" width="880" height="240" rx="4" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+    <!-- zonas destino -->
+    <rect x="10"  y="30" width="320" height="240" fill="rgba(100,160,255,0.05)"/>
+    <rect x="330" y="30" width="220" height="240" fill="rgba(255,176,107,0.05)"/>
+    <rect x="550" y="30" width="340" height="240" fill="rgba(77,216,132,0.04)"/>
+    <!-- divisores destino -->
+    <line x1="330" y1="30" x2="330" y2="270" stroke="rgba(255,255,255,0.12)" stroke-width="1" stroke-dasharray="4,3"/>
+    <line x1="550" y1="30" x2="550" y2="270" stroke="rgba(255,255,255,0.12)" stroke-width="1" stroke-dasharray="4,3"/>
+    <!-- piso -->
+    <line x1="10" y1="270" x2="890" y2="270" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+    <!-- PALLETS — Destino 1 (azul) -->
+    <rect x="12"  y="90"  width="64" height="180" rx="3" fill="#28a74540" stroke="#28a745bb" stroke-width="1.5"/>
+    <text x="44"  y="168" text-anchor="middle" font-size="11" font-weight="800" fill="#4dd884">MR-C50</text>
+    <text x="44"  y="183" text-anchor="middle" font-size="9"  fill="rgba(255,255,255,0.7)">4 pzs</text>
+    <text x="44"  y="196" text-anchor="middle" font-size="8"  fill="rgba(255,255,255,0.5)">487 kg</text>
+
+    <rect x="80"  y="110" width="64" height="160" rx="3" fill="#28a74540" stroke="#28a745bb" stroke-width="1.5"/>
+    <text x="112" y="183" text-anchor="middle" font-size="11" font-weight="800" fill="#4dd884">MR-C50</text>
+    <text x="112" y="198" text-anchor="middle" font-size="9"  fill="rgba(255,255,255,0.7)">4 pzs</text>
+
+    <rect x="148" y="90"  width="64" height="180" rx="3" fill="#ffc10740" stroke="#ffc107bb" stroke-width="1.5"/>
+    <text x="180" y="168" text-anchor="middle" font-size="11" font-weight="800" fill="#ffc107">GT-A37</text>
+    <text x="180" y="183" text-anchor="middle" font-size="9"  fill="rgba(255,255,255,0.7)">2 pzs</text>
+    <text x="180" y="196" text-anchor="middle" font-size="8"  fill="rgba(255,255,255,0.5)">312 kg</text>
+
+    <rect x="216" y="120" width="64" height="150" rx="3" fill="#28a74540" stroke="#28a745bb" stroke-width="1.5"/>
+    <text x="248" y="188" text-anchor="middle" font-size="11" font-weight="800" fill="#4dd884">MR-C50</text>
+    <text x="248" y="203" text-anchor="middle" font-size="9"  fill="rgba(255,255,255,0.7)">3 pzs</text>
+
+    <rect x="284" y="90"  width="64" height="180" rx="3" fill="#28a74540" stroke="#28a745bb" stroke-width="1.5"/>
+    <text x="316" y="168" text-anchor="middle" font-size="11" font-weight="800" fill="#4dd884">SL-B12</text>
+    <text x="316" y="183" text-anchor="middle" font-size="9"  fill="rgba(255,255,255,0.7)">6 pzs</text>
+    <text x="316" y="196" text-anchor="middle" font-size="8"  fill="rgba(255,255,255,0.5)">540 kg</text>
+
+    <!-- PALLETS — Destino 2 (naranja) -->
+    <rect x="332" y="90"  width="64" height="180" rx="3" fill="#fd7e1440" stroke="#fd7e14bb" stroke-width="1.5"/>
+    <text x="364" y="168" text-anchor="middle" font-size="11" font-weight="800" fill="#fd7e14">GT-A37</text>
+    <text x="364" y="183" text-anchor="middle" font-size="9"  fill="rgba(255,255,255,0.7)">5 pzs</text>
+
+    <rect x="400" y="110" width="64" height="160" rx="3" fill="#fd7e1440" stroke="#fd7e14bb" stroke-width="1.5"/>
+    <text x="432" y="183" text-anchor="middle" font-size="11" font-weight="800" fill="#fd7e14">GT-A37</text>
+
+    <rect x="468" y="90"  width="64" height="180" rx="3" fill="#fd7e1440" stroke="#fd7e14bb" stroke-width="1.5"/>
+    <text x="500" y="168" text-anchor="middle" font-size="11" font-weight="800" fill="#fd7e14">SL-B12</text>
+    <text x="500" y="183" text-anchor="middle" font-size="9"  fill="rgba(255,255,255,0.7)">4 pzs</text>
+
+    <!-- PALLETS — Destino 3 (verde oscuro) -->
+    <rect x="552" y="90"  width="64" height="180" rx="3" fill="#28a74540" stroke="#28a745bb" stroke-width="1.5"/>
+    <text x="584" y="168" text-anchor="middle" font-size="11" font-weight="800" fill="#4dd884">MR-C50</text>
+    <text x="584" y="183" text-anchor="middle" font-size="9"  fill="rgba(255,255,255,0.7)">4 pzs</text>
+
+    <rect x="620" y="120" width="64" height="150" rx="3" fill="#28a74540" stroke="#28a745bb" stroke-width="1.5"/>
+    <text x="652" y="188" text-anchor="middle" font-size="11" font-weight="800" fill="#4dd884">SL-B12</text>
+
+    <rect x="688" y="90"  width="64" height="180" rx="3" fill="#ffc10740" stroke="#ffc107bb" stroke-width="1.5"/>
+    <text x="720" y="168" text-anchor="middle" font-size="11" font-weight="800" fill="#ffc107">GT-A37</text>
+    <text x="720" y="183" text-anchor="middle" font-size="9"  fill="rgba(255,255,255,0.7)">2 pzs</text>
+
+    <rect x="756" y="110" width="64" height="160" rx="3" fill="#28a74540" stroke="#28a745bb" stroke-width="1.5"/>
+    <text x="788" y="183" text-anchor="middle" font-size="11" font-weight="800" fill="#4dd884">MR-C50</text>
+
+    <rect x="824" y="90"  width="64" height="180" rx="3" fill="#28a74540" stroke="#28a745bb" stroke-width="1.5"/>
+    <text x="856" y="168" text-anchor="middle" font-size="11" font-weight="800" fill="#4dd884">SL-B12</text>
+    <text x="856" y="183" text-anchor="middle" font-size="9"  fill="rgba(255,255,255,0.7)">6 pzs</text>
+
+    <!-- números fila -->
+    <text x="44"  y="290" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.35)">1</text>
+    <text x="112" y="290" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.35)">2</text>
+    <text x="180" y="290" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.35)">3</text>
+    <text x="248" y="290" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.35)">4</text>
+    <text x="316" y="290" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.35)">5</text>
+    <text x="364" y="290" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.35)">6</text>
+    <text x="432" y="290" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.35)">7</text>
+    <text x="500" y="290" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.35)">8</text>
+    <text x="584" y="290" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.35)">9</text>
+    <text x="652" y="290" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.35)">10</text>
+    <text x="720" y="290" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.35)">11</text>
+    <text x="788" y="290" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.35)">12</text>
+    <text x="856" y="290" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.35)">13</text>
+    <!-- etiquetas -->
+    <text x="12" y="305" font-size="9" font-weight="700" fill="rgba(255,255,255,0.5)">◀ Cabina</text>
+    <text x="888" y="305" text-anchor="end" font-size="9" font-weight="700" fill="rgba(255,255,255,0.5)">Puertas ▶</text>
+    <!-- leyenda destinos -->
+    <rect x="12" y="33" width="12" height="8" rx="2" fill="rgba(100,160,255,0.25)"/>
+    <text x="28" y="41" font-size="8" fill="rgba(255,255,255,0.5)">Destino A</text>
+    <rect x="90" y="33" width="12" height="8" rx="2" fill="rgba(255,176,107,0.25)"/>
+    <text x="106" y="41" font-size="8" fill="rgba(255,255,255,0.5)">Destino B</text>
+    <rect x="168" y="33" width="12" height="8" rx="2" fill="rgba(77,216,132,0.2)"/>
+    <text x="184" y="41" font-size="8" fill="rgba(255,255,255,0.5)">Destino C</text>
+  </svg>
+  <div style="margin-top:14px;font-size:13px;color:var(--muted);text-align:center">
+    Cada bloque = 1 pallet · Color = destino de descarga · Zonas separadas automáticamente<br>
+    El sistema genera también la vista del <strong style="color:#fff">Lado Derecho</strong> con el mismo detalle
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────
+     SLIDE 5: DIAGRAMA DEL CAMIÓN (real)
+────────────────────────────────────────── -->
+<div class="slide s-mid">
+  <div class="tag">Validación normativa en tiempo real</div>
+  <div class="h2" style="text-align:center;margin-bottom:16px">Distribución de carga por eje</div>
+
+  <!-- Truck SVG real del sistema -->
+  <svg viewBox="0 0 720 210" style="width:100%;max-width:820px;border-radius:10px;border:1px solid rgba(77,216,132,0.15);background:#0d1b2a">
+    <!-- Tractor body -->
+    <rect x="18" y="62" width="128" height="72" rx="8" fill="#1a3a6b"/>
+    <rect x="18" y="62" width="48"  height="72" rx="6" fill="#0d2545"/>
+    <!-- cabina ventana -->
+    <rect x="24" y="70" width="36" height="28" rx="3" fill="#4dd88420" stroke="#4dd88440" stroke-width="1"/>
+    <!-- container body -->
+    <rect x="148" y="50" width="558" height="88" rx="6" fill="#132235" stroke="#1a3a6b" stroke-width="1.5"/>
+    <text x="427" y="100" text-anchor="middle" font-size="14" fill="rgba(255,255,255,0.2)" font-weight="700" letter-spacing="4">CONTENEDOR 40ft HC</text>
+
+    <!-- ruedas -->
+    <circle cx="60"  cy="148" r="18" fill="#0a1520" stroke="#4dd884" stroke-width="2"/>
+    <circle cx="60"  cy="148" r="8"  fill="#132235"/>
+    <circle cx="220" cy="148" r="18" fill="#0a1520" stroke="#ffc107" stroke-width="2"/>
+    <circle cx="220" cy="148" r="8"  fill="#132235"/>
+    <circle cx="260" cy="148" r="18" fill="#0a1520" stroke="#ffc107" stroke-width="2"/>
+    <circle cx="260" cy="148" r="8"  fill="#132235"/>
+    <circle cx="540" cy="148" r="18" fill="#0a1520" stroke="#4dd884" stroke-width="2"/>
+    <circle cx="540" cy="148" r="8"  fill="#132235"/>
+    <circle cx="580" cy="148" r="18" fill="#0a1520" stroke="#4dd884" stroke-width="2"/>
+    <circle cx="580" cy="148" r="8"  fill="#132235"/>
+
+    <!-- eje líneas -->
+    <line x1="60"  y1="134" x2="60"  y2="62"  stroke="#4dd884" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <line x1="240" y1="134" x2="240" y2="62"  stroke="#ffc107" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <line x1="560" y1="134" x2="560" y2="62"  stroke="#4dd884" stroke-width="1.5" stroke-dasharray="3,3"/>
+
+    <!-- badges ejes -->
+    <rect x="42" y="36" width="36" height="18" rx="4" fill="#4dd884cc"/>
+    <text x="60" y="49" text-anchor="middle" font-size="10" font-weight="800" fill="#000">W1</text>
+
+    <rect x="222" y="36" width="36" height="18" rx="4" fill="#ffc107cc"/>
+    <text x="240" y="49" text-anchor="middle" font-size="10" font-weight="800" fill="#000">W2</text>
+
+    <rect x="542" y="36" width="36" height="18" rx="4" fill="#4dd884cc"/>
+    <text x="560" y="49" text-anchor="middle" font-size="10" font-weight="800" fill="#000">Wr</text>
+
+    <!-- valores kg -->
+    <text x="60"  y="26" text-anchor="middle" font-size="10" fill="#4dd884" font-weight="700">4,820 kg</text>
+    <text x="240" y="26" text-anchor="middle" font-size="10" fill="#ffc107" font-weight="700">14,100 kg</text>
+    <text x="560" y="26" text-anchor="middle" font-size="10" fill="#4dd884" font-weight="700">12,840 kg</text>
+
+    <!-- GVW -->
+    <text x="427" y="196" text-anchor="middle" font-size="12" fill="rgba(255,255,255,0.6)">GVW Total: <tspan font-weight="800" fill="#4dd884">31,760 kg</tspan></text>
+
+    <!-- king pin -->
+    <circle cx="148" cy="104" r="5" fill="#fff" opacity="0.5"/>
+    <text x="148" y="170" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.4)">King pin</text>
+  </svg>
+
+  <!-- tabla normativa real -->
+  <div style="margin-top:16px;width:100%;max-width:820px">
+    <table class="demo">
+      <tr>
+        <th>Eje</th><th>Carga calculada</th>
+        <th>FHWA límite</th><th>FHWA</th>
+        <th>NOM-012 límite</th><th>NOM-012</th>
+      </tr>
+      <tr>
+        <td><b>W1 Dirección</b></td><td>4,820 kg</td>
+        <td>5,443 kg</td><td class="ok">✓ OK</td>
+        <td>6,000 kg</td><td class="ok">✓ OK</td>
+      </tr>
+      <tr>
+        <td><b>W2 Tractor</b></td><td>14,100 kg</td>
+        <td>15,422 kg</td><td class="ok">✓ OK</td>
+        <td>16,000 kg</td><td class="ok">✓ OK</td>
+      </tr>
+      <tr>
+        <td><b>Wr Remolque</b></td><td>12,840 kg</td>
+        <td>15,422 kg</td><td class="ok">✓ OK</td>
+        <td>16,000 kg</td><td class="ok">✓ OK</td>
+      </tr>
+      <tr>
+        <td><b>GVW Total</b></td><td>31,760 kg</td>
+        <td>36,287 kg</td><td class="ok">✓ OK</td>
+        <td>40,500 kg</td><td class="ok">✓ OK</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────
+     SLIDE 6: RECOMENDADOR DE CONTENEDOR
+────────────────────────────────────────── -->
+<div class="slide s-dark">
+  <div class="tag">Función: Recomendador de Equipo</div>
+  <div class="h2" style="text-align:center;margin-bottom:12px">
+    ¿Qué contenedor y tractocamión debo usar?
+  </div>
+  <div class="lead" style="margin-bottom:20px;font-size:16px">
+    El sistema evalúa las 15 combinaciones posibles (5 contenedores × 3 tractocamiones)<br>
+    y las ordena de más eficiente a menos, marcando cuáles son viables.
+  </div>
+  <!-- tabla recomendador mock -->
+  <div style="width:100%;max-width:780px">
+    <table class="demo">
+      <tr>
+        <th>Contenedor</th><th>Tractocamión</th><th>GVW</th>
+        <th>Filas usadas</th><th>Balance L/R</th><th>Estado</th>
+      </tr>
+      <tr>
+        <td>40ft HC</td><td>T3-S2 Estándar</td><td>31,760 kg</td>
+        <td>13 / 26</td><td>2.1%</td><td class="ok">✅ Viable</td>
+      </tr>
+      <tr>
+        <td>40ft HC</td><td>Day Cab</td><td>32,100 kg</td>
+        <td>13 / 26</td><td>2.1%</td><td class="ok">✅ Viable</td>
+      </tr>
+      <tr>
+        <td>40ft</td><td>T3-S2 Estándar</td><td>31,760 kg</td>
+        <td>13 / 26</td><td>2.3%</td><td class="ok">✅ Viable</td>
+      </tr>
+      <tr>
+        <td>20ft</td><td>T3-S2 Estándar</td><td>—</td>
+        <td>—</td><td>—</td><td class="bad">✗ No cabe</td>
+      </tr>
+      <tr>
+        <td>53ft</td><td>Cabina Larga</td><td>38,200 kg</td>
+        <td>13 / 26</td><td>1.8%</td><td style="color:var(--warn);font-weight:700">⚠ FHWA W2</td>
+      </tr>
+    </table>
+  </div>
+  <div style="margin-top:14px;font-size:13px;color:var(--muted);text-align:center">
+    El operador elige directamente la combinación viable más eficiente · Sin calculadora · Sin adivinar
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────
+     SLIDE 7: BENEFICIOS CONCRETOS
+────────────────────────────────────────── -->
+<div class="slide s-mid">
+  <div class="tag">Impacto esperado</div>
+  <div class="h2" style="text-align:center;margin-bottom:24px">Lo que esto cambia en el día a día</div>
+  <div class="stats">
+    <div class="stat">
+      <div class="n">&lt;30s</div>
+      <div class="l">Plan de estiba completo<br>vs 45-90 min manual</div>
+    </div>
+    <div class="stat">
+      <div class="n">0</div>
+      <div class="l">Errores de orden de<br>descarga por consignee</div>
+    </div>
+    <div class="stat">
+      <div class="n">100%</div>
+      <div class="l">Trazabilidad — quién aprobó,<br>qué FDOs, con firma</div>
+    </div>
+    <div class="stat">
+      <div class="n" style="color:var(--warn)">$0</div>
+      <div class="l">Riesgo de multa por<br>sobrepeso en eje</div>
+    </div>
+  </div>
+  <div style="margin-top:32px;max-width:700px;width:100%">
+    <div class="pills">
+      <div class="pill"><span class="ic">📄</span>Reporte PDF firmable para el operador de almacén y el transportista</div>
+      <div class="pill"><span class="ic">🔀</span>Soporte multi-FDO: varios destinos, un solo contenedor, orden automático</div>
+      <div class="pill"><span class="ic">🏗️</span>Apilado inteligente: detecta qué pallets pueden tener carga encima</div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────
+     SLIDE 8: QUÉ NECESITAMOS
+────────────────────────────────────────── -->
+<div class="slide s-dark">
+  <div class="tag">Para arrancar</div>
+  <div class="h2" style="text-align:center;margin-bottom:24px">Lo que necesitamos del equipo</div>
+  <div class="two">
+    <div class="pills" style="gap:12px">
+      <div style="font-size:14px;font-weight:700;color:var(--accent);margin-bottom:4px">Del área de exportaciones</div>
+      <div class="pill"><span class="ic">📦</span>Catálogo de modelos con dimensiones y pesos reales por pallet</div>
+      <div class="pill"><span class="ic">🚚</span>Confirmar tractocamiones y contenedores que se usan actualmente</div>
+      <div class="pill"><span class="ic">📋</span>2-3 FDOs reales para prueba piloto con el sistema</div>
+    </div>
+    <div class="pills" style="gap:12px">
+      <div style="font-size:14px;font-weight:700;color:var(--accent);margin-bottom:4px">Del área de sistemas / IT</div>
+      <div class="pill"><span class="ic">🔗</span>Acceso a la estructura de datos de FDOs (si hay ERP fuente)</div>
+      <div class="pill"><span class="ic">🌐</span>URL interna o permisos para despliegue en red local / Railway</div>
+      <div class="pill"><span class="ic">👤</span>Definir roles: quién puede editar FDOs, quién solo consulta</div>
+    </div>
+  </div>
+  <div style="margin-top:24px;background:rgba(77,216,132,0.06);border:1px solid var(--border);border-radius:10px;padding:16px 24px;max-width:680px;font-size:14px;color:var(--muted);text-align:center">
+    El sistema ya incluye roles: <strong style="color:#fff">AMG / ADM</strong> (edición) y <strong style="color:#fff">OPE</strong> (solo lectura del plan)
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────
+     SLIDE: RIESGOS Y CONSIDERACIONES
+────────────────────────────────────────── -->
+<div class="slide s-dark">
+  <div class="tag">Gestión de expectativas</div>
+  <div class="h2" style="text-align:center;margin-bottom:20px">Riesgos y consideraciones importantes</div>
+
+  <div class="two" style="width:100%;max-width:960px;gap:24px;align-items:start">
+    <!-- Columna izq: riesgos normativos y de cálculo -->
+    <div>
+      <div style="font-size:13px;font-weight:700;color:var(--warn);margin-bottom:10px;letter-spacing:1px">⚠️ Normativa y cálculo de ejes</div>
+      <div class="pills" style="gap:10px">
+        <div class="pill" style="border-color:rgba(255,193,7,0.3)">
+          <span class="ic">⚠️</span>
+          <div>
+            <strong>Los límites normativos son enunciativos</strong><br>
+            <span style="font-size:12px;color:var(--muted)">FHWA y NOM-012 son el marco legal, pero el cumplimiento real depende de las condiciones del camión, estado del pavimento y distribución interna de las piezas dentro de cada CASE. El cálculo es una estimación de ingeniería, no una garantía de aprobación en báscula.</span>
+          </div>
+        </div>
+        <div class="pill" style="border-color:rgba(255,193,7,0.3)">
+          <span class="ic">📦</span>
+          <div>
+            <strong>El resultado es tan bueno como el catálogo</strong><br>
+            <span style="font-size:12px;color:var(--muted)">Si los pesos o dimensiones de un modelo en el catálogo son incorrectos o están desactualizados, los cálculos de eje y el balance L/R serán incorrectos. La precisión del catálogo es crítica.</span>
+          </div>
+        </div>
+        <div class="pill" style="border-color:rgba(255,193,7,0.3)">
+          <span class="ic">📐</span>
+          <div>
+            <strong>Apilado: supuesto de resistencia uniforme</strong><br>
+            <span style="font-size:12px;color:var(--muted)">El sistema supone que los pallets apilables pueden soportar el peso de encima según el estándar del modelo. Si hay excepciones por lote o condición, deben documentarse en el catálogo.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Columna der: riesgos de datos FDO/MLO -->
+    <div>
+      <div style="font-size:13px;font-weight:700;color:var(--danger);margin-bottom:10px;letter-spacing:1px">⛔ Datos de entrada (FDO y MLO)</div>
+      <div class="pills" style="gap:10px">
+        <div class="pill" style="border-color:rgba(229,76,76,0.3)">
+          <span class="ic">📋</span>
+          <div>
+            <strong>MLO con CASEs faltantes</strong><br>
+            <span style="font-size:12px;color:var(--muted)">Si el MLO no tiene todos los modelos del plan de estiba, el sistema genera el picking con advertencias por cada posición sin CASE. El plan se imprime, pero esas posiciones quedan como "(sin MLO)" para que el operador las resuelva manualmente.</span>
+          </div>
+        </div>
+        <div class="pill" style="border-color:rgba(229,76,76,0.3)">
+          <span class="ic">🔢</span>
+          <div>
+            <strong>Estándar de pack (SpPiezasPorPallet) desactualizado</strong><br>
+            <span style="font-size:12px;color:var(--muted)">El palletizado se calcula con las cantidades reales del MLO agrupadas según el SP del catálogo. Si el SP no coincide con el empaque real, el número de pallets calculado puede diferir del físico.</span>
+          </div>
+        </div>
+        <div class="pill" style="border-color:rgba(229,76,76,0.3)">
+          <span class="ic">🔗</span>
+          <div>
+            <strong>El MLO debe corresponder al FDO correcto</strong><br>
+            <span style="font-size:12px;color:var(--muted)">El enlace entre MLO y FDO se hace por número de FDO (SlipNo). Si el número no coincide exactamente con el que está en el sistema, el MLO no se vinculará al embarque correcto.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:16px;background:rgba(77,216,132,0.05);border:1px solid var(--border);border-radius:10px;padding:12px 20px;max-width:900px;font-size:13px;color:var(--muted);text-align:center">
+    Estos riesgos se mitigan con un piloto controlado: validar el sistema contra embarques reales conocidos antes de usarlo en producción.
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────
+     SLIDE: ROADMAP
+────────────────────────────────────────── -->
+<div class="slide s-mid">
+  <div class="tag">Roadmap</div>
+  <div class="h2" style="text-align:center;margin-bottom:24px">Fases del proyecto</div>
+  <div class="road">
+    <div class="ritem">
+      <div class="rbullet rb-done">✓</div>
+      <div class="rtxt">
+        <strong>Motor de cálculo</strong> — algoritmo de estiba, balance L/R, cálculo de ejes por modelo de viga<br>
+        <small>Validación FHWA y NOM-012 implementadas y probadas</small>
+      </div>
+    </div>
+    <div class="ritem">
+      <div class="rbullet rb-done">✓</div>
+      <div class="rtxt">
+        <strong>Interfaz web</strong> — selección de FDOs, visualización lateral interactiva, recomendador de equipo<br>
+        <small>Desplegado en Railway, accesible desde cualquier browser</small>
+      </div>
+    </div>
+    <div class="ritem">
+      <div class="rbullet rb-done">✓</div>
+      <div class="rtxt">
+        <strong>Reporte PDF</strong> — plan de carga, diagrama de camión, validación normativa, espacio para firmas<br>
+        <small>Imprimible directamente desde el navegador</small>
+      </div>
+    </div>
+    <div class="ritem">
+      <div class="rbullet rb-done">✓</div>
+      <div class="rtxt">
+        <strong>MLO Picking Recalculado</strong> — carga de MLO por FDO, cruce con plan de estiba, lista de picking ordenada en PDF<br>
+        <small>El operador de almacén recibe la secuencia exacta de picking basada en las CASEs reales del WMS</small>
+      </div>
+    </div>
+    <div class="ritem">
+      <div class="rbullet rb-next">→</div>
+      <div class="rtxt">
+        <strong>Piloto con datos reales</strong> — cargar catálogo real de modelos, validar con 2-3 embarques<br>
+        <small>Siguiente paso — necesitamos el catálogo y acceso al área</small>
+      </div>
+    </div>
+    <div class="ritem">
+      <div class="rbullet rb-fut">○</div>
+      <div class="rtxt">
+        <strong>Integración ERP</strong> — importación automática de FDOs desde sistema fuente<br>
+        <small>Fase 2 — depende de disponibilidad de API o exportación de datos</small>
+      </div>
+    </div>
+    <div class="ritem">
+      <div class="rbullet rb-fut">○</div>
+      <div class="rtxt">
+        <strong>Historial y auditoría</strong> — registro de todos los planes generados y aprobados<br>
+        <small>Fase 3 — para trazabilidad completa de embarques</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────
+     SLIDE 10: CIERRE
+────────────────────────────────────────── -->
+<div class="slide s-dark">
+  <div class="logo-pill"><span>MELCO</span></div>
+  <div class="tag">Próximo paso</div>
+  <div class="title" style="text-align:center;font-size:44px">
+    Un piloto con <span class="accent">datos reales</span><br>es todo lo que necesitamos
+  </div>
+  <div class="lead" style="margin-top:16px">
+    El motor ya calcula. La interfaz ya muestra. El PDF ya imprime.<br>
+    El picking recalculado desde MLO ya genera la lista para almacén.<br>
+    Sólo falta conectarlo con sus embarques reales.
+  </div>
+  <div style="margin-top:36px;display:flex;gap:20px;flex-wrap:wrap;justify-content:center">
+    <div class="card" style="text-align:center;max-width:200px">
+      <div class="icon">📦</div>
+      <div style="font-weight:700">Catálogo de modelos</div>
+      <div class="ct">Dimensiones y pesos por tarima</div>
+    </div>
+    <div class="card" style="text-align:center;max-width:200px">
+      <div class="icon">📋</div>
+      <div style="font-weight:700">2-3 FDOs reales</div>
+      <div class="ct">Para validar el cálculo contra un embarque conocido</div>
+    </div>
+    <div class="card" style="text-align:center;max-width:200px">
+      <div class="icon">🤝</div>
+      <div style="font-weight:700">Sesión de prueba</div>
+      <div class="ct">30 min con el operador para recibir feedback</div>
+    </div>
+  </div>
+  <div style="margin-top:28px;font-size:13px;color:var(--muted)">
+    Juan de Dios Saldivar · juandediossaldivar5@gmail.com
+  </div>
+</div>
+
+</div><!-- /deck -->
+
+<!-- ── CONTROLES ── -->
+<div class="nav">
+  <button onclick="go(-1)">← Anterior</button>
+  <button onclick="go(1)">Siguiente →</button>
+</div>
+<div class="dots" id="dots"></div>
+<div class="slide-num" id="slidenum"></div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const dotsEl = document.getElementById('dots');
+  const numEl  = document.getElementById('slidenum');
+  let cur = 0;
+
+  // build dots
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' on' : '');
+    d.onclick = () => show(i);
+    dotsEl.appendChild(d);
+  });
+
+  function show(n) {
+    slides[cur].classList.remove('active');
+    dotsEl.children[cur].classList.remove('on');
+    cur = (n + slides.length) % slides.length;
+    slides[cur].classList.add('active');
+    dotsEl.children[cur].classList.add('on');
+    numEl.textContent = (cur + 1) + ' / ' + slides.length;
+  }
+
+  function go(d) { show(cur + d); }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ') go(1);
+    if (e.key === 'ArrowLeft')  go(-1);
+  });
+
+  show(0);
+</script>
+</body>
+</html>
