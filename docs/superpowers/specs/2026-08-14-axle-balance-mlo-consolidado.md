@@ -128,6 +128,124 @@ W1      = W1_vacío + F_KP × (1 − d_5W / wheelbase_tractor)
 
 ---
 
+## RF-08 — Rango de peso del tracto y verificación conservadora
+
+### Contexto: precisión de básculas comerciales
+
+Las básculas de camiones son sistemas de medición de alta precisión:
+- Plataforma de acero/concreto con 6–12 celdas de carga (load cells) con galgas extensométricas.
+- Error típico de calibración: **±0.1 % del peso aplicado**.
+- A un límite de 18,000 kg en W2, ese error es **±18 kg** — prácticamente despreciable.
+
+**Conclusión de diseño:** la báscula es suficientemente precisa para detectar cualquier exceso relevante.
+El sistema no necesita absorber el error de la báscula; debe absorber la incertidumbre de sus propios inputs.
+
+---
+
+### Fuentes de incertidumbre en el cálculo
+
+Wr es **determinístico** — depende únicamente de la distribución de la carga del contenedor,
+que es conocida al confirmar el plan. La incertidumbre está en W1 y W2, porque el peso vacío
+del tracto varía según condiciones al momento del pesaje:
+
+| Variable             | Rango típico       | Eje principal afectado |
+|----------------------|--------------------|------------------------|
+| Nivel de combustible | 0–100 % del tanque | W2 (tanque en bastidor)|
+| Conductor + equipaje | 70–120 kg          | W1 (cabina)            |
+| DEF / AdBlue         | 0–50 kg            | W2                     |
+| **Total**            | **~300–400 kg**    |                        |
+
+Este rango (~350 kg) supera en ~20× el error de la báscula (±18 kg).
+El rango de inputs domina; el error de la báscula es irrelevante.
+
+---
+
+### Modelo de rango en el catálogo de tractos
+
+Cada tipo de tracto almacena dos conjuntos de pesos vacíos:
+
+```
+W1_min  = W1 con tanque vacío, conductor ligero (mínimo razonable)
+W1_max  = W1 con tanque lleno, conductor pesado (máximo razonable)
+W2_min  = W2 con tanque vacío
+W2_max  = W2 con tanque lleno + DEF lleno
+```
+
+Opcionalmente se puede derivar el rango a partir de parámetros físicos:
+
+```
+CapacidadTanque_L   → contribución en kg al bastidor (afecta W2)
+PesoConductor_kg    → contribución a W1 (cabina)
+PesoDEF_kg          → contribución a W2
+```
+
+---
+
+### Cálculo con rango
+
+El sistema calcula cuatro valores de W1 y W2:
+
+```
+W1_actual_min  = W1_min + F_KP × (1 − d_5W / wheelbase)
+W1_actual_max  = W1_max + F_KP × (1 − d_5W / wheelbase)
+
+W2_actual_min  = W2_min + F_KP × (d_5W / wheelbase)
+W2_actual_max  = W2_max + F_KP × (d_5W / wheelbase)
+```
+
+Wr no tiene rango — es el mismo para ambos extremos.
+
+---
+
+### Regla de cumplimiento conservadora
+
+La verificación de normas usa **siempre el escenario máximo (pesimista)**:
+
+```
+✓ Cumple seguro      → W1_max ≤ límite  Y  W2_max ≤ límite
+   El embarque no fallará en báscula bajo ninguna condición razonable del tracto.
+
+⚠ Condicional        → W_min ≤ límite  Y  W_max > límite
+   Puede cumplir si el nivel de combustible es bajo al momento del pesaje.
+   El supervisor debe decidir: reorganizar carga o aceptar el riesgo operativo.
+
+✗ Falla seguro       → W_min > límite
+   El embarque excederá el límite incluso en el mejor escenario del tracto.
+   Se debe redistribuir la carga antes de autorizar la salida.
+```
+
+---
+
+### Margen de seguridad configurable
+
+El sistema permite configurar un margen de seguridad `MargenSeguridad_pct` (por defecto **2 %**).
+Las alertas se disparan cuando W_max supera `límite × (1 − MargenSeguridad_pct)`:
+
+```
+Límite efectivo W2 NOM-012  = 18,000 × 0.98 = 17,640 kg
+Límite efectivo W2 FHWA     = 15,422 × 0.98 = 15,113 kg
+```
+
+Esto cubre diferencias entre básculas en distintos puntos de revisión, condiciones de
+terreno (báscula no completamente nivelada) y cualquier variación operativa no modelada.
+El margen es editable por el administrador del sistema.
+
+---
+
+### Presentación en UI
+
+La pantalla de ejes muestra:
+
+| Eje | Mín calculado | Máx calculado | Límite NOM-012 | Límite FHWA | Estado |
+|-----|-------------|-------------|----------------|-------------|--------|
+| W1  | 8,200 kg   | 8,550 kg   | 10,000 kg      | 9,072 kg    | ✓ Seguro |
+| W2  | 16,800 kg  | 17,100 kg  | 18,000 kg      | 15,422 kg   | ⚠ FHWA Cond. |
+| Wr  | 14,200 kg  | 14,200 kg  | 18,000 kg      | 15,422 kg   | ✓ Seguro |
+
+El rango mín–máx permite al supervisor ver cuánto margen queda y tomar decisiones informadas.
+
+---
+
 ## Pendientes / fuera de alcance de este spec
 
 - Selección de tipo de tracto con geometría real (wheelbase, posición del fifth wheel) — queda pendiente para spec siguiente.
