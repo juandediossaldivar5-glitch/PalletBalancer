@@ -28,10 +28,28 @@ public class ContenedorResultadoDto
     public string TractocamionTipo          { get; set; } = "";
     public double CgLongitudinalCm          { get; set; }  // desde king pin
     public double CgLongitudinalPct         { get; set; }  // % de king pin a eje remolque
-    public double PesoEjeDelanteroKg        { get; set; }  // W1 – steer
-    public double PesoEjeTractorKg          { get; set; }  // W2 – drive tándem
-    public double PesoEjeRemolqueKg         { get; set; }  // Wr – trailer tándem
-    public double PesoTotalGVWKg            { get; set; }  // GVW completo
+    public double PesoEjeDelanteroKg        { get; set; }  // W1 peor caso (= Max)
+    public double PesoEjeTractorKg          { get; set; }  // W2 peor caso (= Max)
+    public double PesoEjeRemolqueKg         { get; set; }  // Wr — determinístico
+    public double PesoTotalGVWKg            { get; set; }  // GVW peor caso (= Max)
+
+    // Rango por eje (RF-08) — min=tanque vacío / max=tanque lleno + conductor pesado
+    public double PesoEjeDelanteroMinKg     { get; set; }
+    public double PesoEjeDelanteroMaxKg     { get; set; }
+    public double PesoEjeTractorMinKg       { get; set; }
+    public double PesoEjeTractorMaxKg       { get; set; }
+    // Wr es determinístico: no depende del estado del tractor
+    public double PesoTotalGVWMinKg         { get; set; }
+    public double PesoTotalGVWMaxKg         { get; set; }
+
+    // Estado de cumplimiento por eje y norma: "Seguro" | "Condicional" | "Falla"
+    public string EstadoNomW1               { get; set; } = "";
+    public string EstadoNomW2               { get; set; } = "";
+    public string EstadoNomWr               { get; set; } = "";
+    public string EstadoFhwaW1              { get; set; } = "";
+    public string EstadoFhwaW2              { get; set; } = "";
+    public string EstadoFhwaWr              { get; set; } = "";
+    public double MargenSeguridadPct        { get; set; }
 }
 
 public class PosicionResultadoDto

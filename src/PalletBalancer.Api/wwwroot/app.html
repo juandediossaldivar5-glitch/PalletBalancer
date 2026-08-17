@@ -994,40 +994,58 @@
           </div>
         </div>
 
-        <!-- Panel de cargas por eje -->
+        <!-- Panel de cargas por eje (RF-08: rango min/max) -->
         <div class="pb-card" style="padding:1.25rem">
-          <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.9px;color:var(--muted);margin-bottom:0.9rem">
+          <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.9px;color:var(--muted);margin-bottom:0.25rem">
             <i class="bi bi-truck"></i> Cargas por eje —
             <span x-text="contenedor.tractocamionTipo" style="text-transform:none;font-weight:600;color:var(--text)"></span>
             <span style="font-weight:400;margin-left:0.6rem">
               · CG: <span x-text="contenedor.cgLongitudinalPct?.toFixed(1)"></span>% del largo
             </span>
           </div>
-          <div style="display:grid;gap:0.7rem">
+          <div style="font-size:0.65rem;color:var(--muted);margin-bottom:0.8rem">
+            Rango: mínimo (tanque vacío) → máximo (tanque lleno + conductor). Margen seguridad: <span x-text="contenedor.margenSeguridadPct?.toFixed(0)"></span>%
+          </div>
+          <div style="display:grid;gap:0.85rem">
             <template x-for="eje in [
-              {label:'Eje delantero (steer)',       kg: contenedor.pesoEjeDelanteroKg, fhwa: 5443,  nom: 6500},
-              {label:'Eje tractor (drive tándem)',  kg: contenedor.pesoEjeTractorKg,   fhwa: 15422, nom: 16000},
-              {label:'Eje remolque (trailer tándem)',kg: contenedor.pesoEjeRemolqueKg, fhwa: 15422, nom: 16000},
-              {label:'GVW total',                   kg: contenedor.pesoTotalGVWKg,     fhwa: 36287, nom: 48500}
+              {label:'Eje delantero (steer)',        kgMin: contenedor.pesoEjeDelanteroMinKg, kgMax: contenedor.pesoEjeDelanteroMaxKg, eF: contenedor.estadoFhwaW1, eN: contenedor.estadoNomW1,  fhwa: 5443,  nom: 6000},
+              {label:'Eje tractor (drive tándem)',   kgMin: contenedor.pesoEjeTractorMinKg,   kgMax: contenedor.pesoEjeTractorMaxKg,   eF: contenedor.estadoFhwaW2, eN: contenedor.estadoNomW2,  fhwa: 15422, nom: 16000},
+              {label:'Eje remolque (trailer tándem)',kgMin: contenedor.pesoEjeRemolqueKg,     kgMax: contenedor.pesoEjeRemolqueKg,     eF: contenedor.estadoFhwaWr, eN: contenedor.estadoNomWr,  fhwa: 15422, nom: 16000},
+              {label:'GVW total',                    kgMin: contenedor.pesoTotalGVWMinKg,     kgMax: contenedor.pesoTotalGVWMaxKg,     eF: contenedor.estadoFhwaW2, eN: contenedor.estadoNomW2,  fhwa: 36287, nom: 40500}
             ]" :key="eje.label">
-              <div style="display:grid;grid-template-columns:1fr 90px 110px;gap:0.5rem;align-items:center">
-                <div>
-                  <div style="font-size:0.75rem;color:var(--muted);margin-bottom:0.25rem" x-text="eje.label"></div>
-                  <div class="balance-bar-wrap">
-                    <div class="balance-bar-fill"
-                         :style="'width:' + Math.min(eje.kg / eje.fhwa * 100, 100) + '%;background:' +
-                                 (eje.kg > eje.fhwa ? '#e54c4c' : eje.kg > eje.fhwa * 0.88 ? '#f5a623' : '#4dd884')">
-                    </div>
+              <div>
+                <!-- Label + badges de estado -->
+                <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.3rem">
+                  <span style="font-size:0.75rem;color:var(--muted);flex:1" x-text="eje.label"></span>
+                  <!-- Badge FHWA -->
+                  <span style="font-size:0.62rem;font-weight:700;padding:1px 5px;border-radius:3px;white-space:nowrap"
+                        :style="'background:' + (eje.eF==='Seguro'?'#d5f5e3':eje.eF==='Condicional'?'#fef9e7':'#fdecea') + ';color:' + (eje.eF==='Seguro'?'#1a7a3a':eje.eF==='Condicional'?'#9a6e00':'#c0392b')"
+                        x-text="(eje.eF==='Seguro'?'✓':eje.eF==='Condicional'?'⚠':'✗') + ' FHWA'"></span>
+                  <!-- Badge NOM -->
+                  <span style="font-size:0.62rem;font-weight:700;padding:1px 5px;border-radius:3px;white-space:nowrap"
+                        :style="'background:' + (eje.eN==='Seguro'?'#d5f5e3':eje.eN==='Condicional'?'#fef9e7':'#fdecea') + ';color:' + (eje.eN==='Seguro'?'#1a7a3a':eje.eN==='Condicional'?'#9a6e00':'#c0392b')"
+                        x-text="(eje.eN==='Seguro'?'✓':eje.eN==='Condicional'?'⚠':'✗') + ' NOM'"></span>
+                </div>
+                <!-- Barra de rango -->
+                <div class="balance-bar-wrap" style="position:relative;height:10px">
+                  <!-- Relleno hasta kgMax -->
+                  <div class="balance-bar-fill" style="position:absolute;top:0;left:0;height:100%;border-radius:4px"
+                       :style="'width:' + Math.min((eje.kgMax??0) / eje.fhwa * 100, 100) + '%;background:' +
+                               (eje.eF==='Seguro'?'#4dd884':eje.eF==='Condicional'?'#f5a623':'#e54c4c')">
                   </div>
+                  <!-- Marcador inicio del rango (kgMin) -->
+                  <div style="position:absolute;top:0;height:100%;width:2px;background:rgba(0,0,0,0.35);border-radius:1px"
+                       :style="'left:' + Math.min((eje.kgMin??0) / eje.fhwa * 100, 100) + '%'">
+                  </div>
+                  <!-- Línea del límite FHWA -->
+                  <div style="position:absolute;top:-2px;height:calc(100% + 4px);width:2px;background:#cc3300;opacity:0.7"
+                       style="left:100%"></div>
                 </div>
-                <div style="text-align:right">
-                  <span style="font-size:0.88rem;font-weight:700"
-                        :style="'color:' + (eje.kg > eje.fhwa ? '#e54c4c' : eje.kg > eje.fhwa * 0.88 ? '#f5a623' : '#4dd884')"
-                        x-text="eje.kg?.toLocaleString('es-MX',{maximumFractionDigits:0}) + ' kg'"></span>
-                </div>
-                <div style="text-align:right;font-size:0.68rem;color:var(--muted);line-height:1.5">
-                  <div>FHWA: <strong x-text="eje.fhwa.toLocaleString('es-MX')"></strong></div>
-                  <div>NOM-012: <strong x-text="eje.nom.toLocaleString('es-MX')"></strong></div>
+                <!-- Valores -->
+                <div style="display:flex;justify-content:space-between;margin-top:0.2rem;font-size:0.7rem">
+                  <span style="color:var(--muted)"
+                        x-text="(eje.kgMin??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + ' – ' + (eje.kgMax??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + ' kg'"></span>
+                  <span style="color:var(--muted)">lím. FHWA <strong x-text="eje.fhwa.toLocaleString('es-MX')"></strong> / NOM <strong x-text="eje.nom.toLocaleString('es-MX')"></strong></span>
                 </div>
               </div>
             </template>
@@ -1645,11 +1663,11 @@ function app() {
       const cgPct = +(this.contenedor.cgLongitudinalPct ?? 50);
       const kpX = 110, trailerX = 605;
       const cgX  = Math.round(kpX + (cgPct / 100) * (trailerX - kpX));
-      const colOk  = (v, lim) => (v ?? 0) <= lim ? '#1a7a3a' : '#c0392b';
+      const colEstado = e => e === 'Seguro' ? '#1a7a3a' : e === 'Condicional' ? '#d4820a' : '#c0392b';
       const pctCol = p => p > 100 ? '#c0392b' : p > 88 ? '#d4820a' : '#666';
-      const w1ok = colOk(this.contenedor.pesoEjeDelanteroKg, 5443);
-      const w2ok = colOk(this.contenedor.pesoEjeTractorKg,  15422);
-      const wrok = colOk(this.contenedor.pesoEjeRemolqueKg, 15422);
+      const w1ok = colEstado(this.contenedor.estadoFhwaW1 ?? 'Seguro');
+      const w2ok = colEstado(this.contenedor.estadoFhwaW2 ?? 'Seguro');
+      const wrok = colEstado(this.contenedor.estadoFhwaWr ?? 'Seguro');
       const p1 = pct(this.contenedor.pesoEjeDelanteroKg, 5443);
       const p2 = pct(this.contenedor.pesoEjeTractorKg,  15422);
       const pr = pct(this.contenedor.pesoEjeRemolqueKg, 15422);
@@ -1672,6 +1690,16 @@ function app() {
       const w1v = this.contenedor.pesoEjeDelanteroKg??0;
       const w2v = this.contenedor.pesoEjeTractorKg??0;
       const wrv = this.contenedor.pesoEjeRemolqueKg??0;
+      const w1mn = this.contenedor.pesoEjeDelanteroMinKg??0;
+      const w2mn = this.contenedor.pesoEjeTractorMinKg??0;
+      const mk3 = e => e==='Seguro'?'✓':e==='Condicional'?'⚠':'✗';
+      const cs3 = e => e==='Seguro'?'#1a7a3a':e==='Condicional'?'#d4820a':'#c0392b';
+      const ef1 = this.contenedor.estadoFhwaW1??'Seguro';
+      const ef2 = this.contenedor.estadoFhwaW2??'Seguro';
+      const efr = this.contenedor.estadoFhwaWr??'Seguro';
+      const en1 = this.contenedor.estadoNomW1??'Seguro';
+      const en2 = this.contenedor.estadoNomW2??'Seguro';
+      const enr = this.contenedor.estadoNomWr??'Seguro';
       return `<svg viewBox="0 0 720 248" xmlns="http://www.w3.org/2000/svg" style="width:100%;font-family:'Segoe UI',sans-serif">
         <!-- Chasis -->
         <rect x="18" y="77" width="662" height="7" rx="2" fill="#aaa" stroke="#777" stroke-width="1"/>
@@ -1722,12 +1750,18 @@ function app() {
         <line x1="0" y1="166" x2="720" y2="166" stroke="#ccc" stroke-width="0.8"/>
         <rect x="0" y="167" width="720" height="80" rx="3" fill="#f8f9fb"/>
         <text x="4"   y="178" font-size="9" font-weight="700" fill="#1a3a6b">Norma</text>
-        <text x="200" y="178" text-anchor="middle" font-size="9" font-weight="700" fill="#333">W1 — ${w1} kg</text>
-        <text x="400" y="178" text-anchor="middle" font-size="9" font-weight="700" fill="#333">W2 — ${w2} kg</text>
+        <text x="200" y="178" text-anchor="middle" font-size="9" font-weight="700" fill="#333">W1  ${fmt(w1mn)}–${w1} kg</text>
+        <text x="400" y="178" text-anchor="middle" font-size="9" font-weight="700" fill="#333">W2  ${fmt(w2mn)}–${w2} kg</text>
         <text x="620" y="178" text-anchor="middle" font-size="9" font-weight="700" fill="#333">Wr — ${wr} kg</text>
         <line x1="0" y1="181" x2="720" y2="181" stroke="#ddd" stroke-width="0.5"/>
-        ${trow(195, 'FHWA (EE.UU.)', w1v,5443, w2v,15422, wrv,15422)}
-        ${trow(212, 'NOM-012 (MX)', w1v,6000, w2v,16000, wrv,16000)}
+        <text x="4"   y="195" font-size="9" fill="#555">FHWA (EE.UU.)</text>
+        <text x="200" y="195" text-anchor="middle" font-size="9.5" font-weight="700" fill="${cs3(ef1)}">${fmt(5443)}  ${mk3(ef1)}</text>
+        <text x="400" y="195" text-anchor="middle" font-size="9.5" font-weight="700" fill="${cs3(ef2)}">${fmt(15422)}  ${mk3(ef2)}</text>
+        <text x="620" y="195" text-anchor="middle" font-size="9.5" font-weight="700" fill="${cs3(efr)}">${fmt(15422)}  ${mk3(efr)}</text>
+        <text x="4"   y="212" font-size="9" fill="#555">NOM-012 (MX)</text>
+        <text x="200" y="212" text-anchor="middle" font-size="9.5" font-weight="700" fill="${cs3(en1)}">${fmt(6000)}  ${mk3(en1)}</text>
+        <text x="400" y="212" text-anchor="middle" font-size="9.5" font-weight="700" fill="${cs3(en2)}">${fmt(16000)}  ${mk3(en2)}</text>
+        <text x="620" y="212" text-anchor="middle" font-size="9.5" font-weight="700" fill="${cs3(enr)}">${fmt(16000)}  ${mk3(enr)}</text>
         <line x1="0" y1="217" x2="720" y2="217" stroke="#ddd" stroke-width="0.5"/>
         <text x="4" y="230" font-size="9" fill="#555">GVW total</text>
         <text x="200" y="230" text-anchor="middle" font-size="9.5" font-weight="700" fill="${gvwOk1}">${fmt(36287)} kg  ${st(gvwV,36287)}</text>
@@ -2145,59 +2179,64 @@ function app() {
     <div class="pr-sub">Configuración del Equipo y Distribución de Carga</div>
     <div class="pr-truck" x-html="svgCamion()"></div>
 
-    <!-- Cargas por eje -->
+    <!-- Cargas por eje (RF-08: rango min/max + tres estados) -->
     <div class="pr-sub">Verificación de Cargas por Eje</div>
+    <div style="font-size:0.7rem;color:#666;margin-bottom:0.4rem">
+      Rango: mínimo (tanque vacío) → máximo (tanque lleno + conductor).
+      Estado: ✓ Seguro — no fallará · ⚠ Condicional — depende del combustible · ✗ Falla — excede en cualquier condición.
+      Margen de seguridad aplicado: <span x-text="(contenedor?.margenSeguridadPct ?? 2) + '%'"></span>.
+    </div>
     <table class="pr-table">
       <thead>
         <tr>
           <th>Eje</th>
-          <th>Calculado (kg)</th>
-          <th>Límite FHWA (kg)</th>
+          <th>Rango calculado (kg)</th>
+          <th>Lím. FHWA (kg)</th>
           <th>Estado FHWA</th>
-          <th>Límite NOM-012 (kg)</th>
+          <th>Lím. NOM-012 (kg)</th>
           <th>Estado NOM-012</th>
         </tr>
       </thead>
       <tbody>
         <tr>
           <td>Delantero — steer (W1)</td>
-          <td x-text="contenedor?.pesoEjeDelanteroKg?.toLocaleString('es-MX',{maximumFractionDigits:0})"></td>
+          <td x-text="(contenedor?.pesoEjeDelanteroMinKg??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + ' – ' + (contenedor?.pesoEjeDelanteroMaxKg??0).toLocaleString('es-MX',{maximumFractionDigits:0})"></td>
           <td>5,443</td>
-          <td :class="contenedor?.pesoEjeDelanteroKg > 5443 ? 'pr-err' : 'pr-ok'"
-              x-text="contenedor?.pesoEjeDelanteroKg > 5443 ? '✗ EXCEDE' : '✓ OK'"></td>
+          <td :class="contenedor?.estadoFhwaW1==='Falla'?'pr-err':contenedor?.estadoFhwaW1==='Condicional'?'pr-warn':'pr-ok'"
+              x-text="contenedor?.estadoFhwaW1==='Falla'?'✗ FALLA':contenedor?.estadoFhwaW1==='Condicional'?'⚠ CONDICIONAL':'✓ SEGURO'"></td>
           <td>6,000</td>
-          <td :class="contenedor?.pesoEjeDelanteroKg > 6000 ? 'pr-err' : 'pr-ok'"
-              x-text="contenedor?.pesoEjeDelanteroKg > 6000 ? '✗ EXCEDE' : '✓ OK'"></td>
+          <td :class="contenedor?.estadoNomW1==='Falla'?'pr-err':contenedor?.estadoNomW1==='Condicional'?'pr-warn':'pr-ok'"
+              x-text="contenedor?.estadoNomW1==='Falla'?'✗ FALLA':contenedor?.estadoNomW1==='Condicional'?'⚠ CONDICIONAL':'✓ SEGURO'"></td>
         </tr>
         <tr>
           <td>Tractor tándem — drive (W2)</td>
-          <td x-text="contenedor?.pesoEjeTractorKg?.toLocaleString('es-MX',{maximumFractionDigits:0})"></td>
+          <td x-text="(contenedor?.pesoEjeTractorMinKg??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + ' – ' + (contenedor?.pesoEjeTractorMaxKg??0).toLocaleString('es-MX',{maximumFractionDigits:0})"></td>
           <td>15,422</td>
-          <td :class="contenedor?.pesoEjeTractorKg > 15422 ? 'pr-err' : 'pr-ok'"
-              x-text="contenedor?.pesoEjeTractorKg > 15422 ? '✗ EXCEDE' : '✓ OK'"></td>
+          <td :class="contenedor?.estadoFhwaW2==='Falla'?'pr-err':contenedor?.estadoFhwaW2==='Condicional'?'pr-warn':'pr-ok'"
+              x-text="contenedor?.estadoFhwaW2==='Falla'?'✗ FALLA':contenedor?.estadoFhwaW2==='Condicional'?'⚠ CONDICIONAL':'✓ SEGURO'"></td>
           <td>16,000</td>
-          <td :class="contenedor?.pesoEjeTractorKg > 16000 ? 'pr-err' : 'pr-ok'"
-              x-text="contenedor?.pesoEjeTractorKg > 16000 ? '✗ EXCEDE' : '✓ OK'"></td>
+          <td :class="contenedor?.estadoNomW2==='Falla'?'pr-err':contenedor?.estadoNomW2==='Condicional'?'pr-warn':'pr-ok'"
+              x-text="contenedor?.estadoNomW2==='Falla'?'✗ FALLA':contenedor?.estadoNomW2==='Condicional'?'⚠ CONDICIONAL':'✓ SEGURO'"></td>
         </tr>
         <tr>
           <td>Remolque tándem — trailer (Wr)</td>
-          <td x-text="contenedor?.pesoEjeRemolqueKg?.toLocaleString('es-MX',{maximumFractionDigits:0})"></td>
+          <td x-text="(contenedor?.pesoEjeRemolqueKg??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + ' kg (fijo)'"></td>
           <td>15,422</td>
-          <td :class="contenedor?.pesoEjeRemolqueKg > 15422 ? 'pr-err' : 'pr-ok'"
-              x-text="contenedor?.pesoEjeRemolqueKg > 15422 ? '✗ EXCEDE' : '✓ OK'"></td>
+          <td :class="contenedor?.estadoFhwaWr==='Falla'?'pr-err':contenedor?.estadoFhwaWr==='Condicional'?'pr-warn':'pr-ok'"
+              x-text="contenedor?.estadoFhwaWr==='Falla'?'✗ FALLA':contenedor?.estadoFhwaWr==='Condicional'?'⚠ CONDICIONAL':'✓ SEGURO'"></td>
           <td>16,000</td>
-          <td :class="contenedor?.pesoEjeRemolqueKg > 16000 ? 'pr-err' : 'pr-ok'"
-              x-text="contenedor?.pesoEjeRemolqueKg > 16000 ? '✗ EXCEDE' : '✓ OK'"></td>
+          <td :class="contenedor?.estadoNomWr==='Falla'?'pr-err':contenedor?.estadoNomWr==='Condicional'?'pr-warn':'pr-ok'"
+              x-text="contenedor?.estadoNomWr==='Falla'?'✗ FALLA':contenedor?.estadoNomWr==='Condicional'?'⚠ CONDICIONAL':'✓ SEGURO'"></td>
         </tr>
         <tr style="font-weight:700">
           <td>GVW Total</td>
-          <td x-text="contenedor?.pesoTotalGVWKg?.toLocaleString('es-MX',{maximumFractionDigits:0})"></td>
+          <td x-text="(contenedor?.pesoTotalGVWMinKg??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + ' – ' + (contenedor?.pesoTotalGVWMaxKg??0).toLocaleString('es-MX',{maximumFractionDigits:0})"></td>
           <td>36,287</td>
-          <td :class="contenedor?.pesoTotalGVWKg > 36287 ? 'pr-err' : 'pr-ok'"
-              x-text="contenedor?.pesoTotalGVWKg > 36287 ? '✗ EXCEDE' : '✓ OK'"></td>
+          <td :class="(contenedor?.pesoTotalGVWMaxKg??0) > 36287 ? 'pr-err' : 'pr-ok'"
+              x-text="(contenedor?.pesoTotalGVWMaxKg??0) > 36287 ? '✗ EXCEDE' : '✓ OK'"></td>
           <td>40,500</td>
-          <td :class="contenedor?.pesoTotalGVWKg > 40500 ? 'pr-err' : 'pr-ok'"
-              x-text="contenedor?.pesoTotalGVWKg > 40500 ? '✗ EXCEDE' : '✓ OK'"></td>
+          <td :class="(contenedor?.pesoTotalGVWMaxKg??0) > 40500 ? 'pr-err' : 'pr-ok'"
+              x-text="(contenedor?.pesoTotalGVWMaxKg??0) > 40500 ? '✗ EXCEDE' : '✓ OK'"></td>
         </tr>
       </tbody>
     </table>

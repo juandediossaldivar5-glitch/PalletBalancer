@@ -18,6 +18,9 @@ public class ContenedorService
     private const double FHWA_Wr  = 15_422;
     private const double FHWA_GVW = 36_287;
 
+    // Margen de seguridad (RF-08): alerta cuando W_max > límite × (1 − margen)
+    private const double MARGEN_SEGURIDAD = 0.02;
+
     public ContenedorResultadoDto Calcular(
         IEnumerable<Fdo> fdos,
         List<string>? ordenDescarga    = null,
@@ -189,17 +192,34 @@ public class ContenedorService
         if (palletAncho * 2 > spec.AnchoCm)
             advertencias.Add($"Dos tarimas lado a lado ({palletAncho * 2} cm) exceden el ancho interior del contenedor {spec.Tipo} ({spec.AnchoCm} cm).");
 
-        // Cálculo de ejes
+        // Cálculo de ejes con rango (RF-08)
         var ejes = CalcularEjes(posiciones, palletLargo, spec, trac);
 
-        if (ejes.w1 > FHWA_W1)  advertencias.Add($"Eje delantero ({ejes.w1:N0} kg) excede límite FHWA ({FHWA_W1:N0} kg).");
-        if (ejes.w2 > FHWA_W2)  advertencias.Add($"Eje tractor ({ejes.w2:N0} kg) excede límite FHWA ({FHWA_W2:N0} kg).");
-        if (ejes.wr > FHWA_Wr)  advertencias.Add($"Eje remolque ({ejes.wr:N0} kg) excede límite FHWA ({FHWA_Wr:N0} kg).");
-        if (ejes.gvw > FHWA_GVW) advertencias.Add($"Peso bruto total GVW ({ejes.gvw:N0} kg) excede límite FHWA ({FHWA_GVW:N0} kg).");
-        if (ejes.w1 > NOM_W1)   advertencias.Add($"Eje delantero ({ejes.w1:N0} kg) excede límite NOM-012 ({NOM_W1:N0} kg).");
-        if (ejes.w2 > NOM_W2)   advertencias.Add($"Eje tractor ({ejes.w2:N0} kg) excede límite NOM-012 ({NOM_W2:N0} kg).");
-        if (ejes.wr > NOM_Wr)   advertencias.Add($"Eje remolque ({ejes.wr:N0} kg) excede límite NOM-012 ({NOM_Wr:N0} kg).");
-        if (ejes.gvw > NOM_GVW) advertencias.Add($"Peso bruto total GVW ({ejes.gvw:N0} kg) excede límite NOM-012 ({NOM_GVW:N0} kg).");
+        // Estado de cumplimiento por eje y norma
+        var estNomW1  = EstadoCumplimiento(ejes.w1Min, ejes.w1Max, NOM_W1);
+        var estNomW2  = EstadoCumplimiento(ejes.w2Min, ejes.w2Max, NOM_W2);
+        var estNomWr  = EstadoCumplimiento(ejes.wr,    ejes.wr,    NOM_Wr);
+        var estFhwaW1 = EstadoCumplimiento(ejes.w1Min, ejes.w1Max, FHWA_W1);
+        var estFhwaW2 = EstadoCumplimiento(ejes.w2Min, ejes.w2Max, FHWA_W2);
+        var estFhwaWr = EstadoCumplimiento(ejes.wr,    ejes.wr,    FHWA_Wr);
+
+        // Advertencias: Falla bloqueante, Condicional como alerta
+        void WarnEje(string estado, string eje, double max, double lim, string norma)
+        {
+            if (estado == "Falla")
+                advertencias.Add($"⛔ {eje} FALLA en báscula — máx. posible {max:N0} kg excede {norma} ({lim:N0} kg).");
+            else if (estado == "Condicional")
+                advertencias.Add($"⚠ {eje} CONDICIONAL — puede exceder {norma} ({lim:N0} kg) con tanque lleno (máx. {max:N0} kg).");
+        }
+
+        WarnEje(estFhwaW1, "Eje delantero", ejes.w1Max, FHWA_W1, "FHWA");
+        WarnEje(estFhwaW2, "Eje tractor",   ejes.w2Max, FHWA_W2, "FHWA");
+        WarnEje(estFhwaWr, "Eje remolque",  ejes.wr,    FHWA_Wr, "FHWA");
+        if (ejes.gvwMax > FHWA_GVW) advertencias.Add($"GVW máx. posible ({ejes.gvwMax:N0} kg) excede FHWA ({FHWA_GVW:N0} kg).");
+        WarnEje(estNomW1,  "Eje delantero", ejes.w1Max, NOM_W1,  "NOM-012");
+        WarnEje(estNomW2,  "Eje tractor",   ejes.w2Max, NOM_W2,  "NOM-012");
+        WarnEje(estNomWr,  "Eje remolque",  ejes.wr,    NOM_Wr,  "NOM-012");
+        if (ejes.gvwMax > NOM_GVW) advertencias.Add($"GVW máx. posible ({ejes.gvwMax:N0} kg) excede NOM-012 ({NOM_GVW:N0} kg).");
 
         return new ContenedorResultadoDto
         {
@@ -220,19 +240,48 @@ public class ContenedorService
             FilasDisponibles       = filasPorLado,
             PalletLargoCm          = palletLargo,
             PalletAnchoCm          = palletAncho,
-            // Ejes
+            // Ejes — punto de referencia = peor caso (Max)
             TractocamionTipo       = trac.Tipo,
             CgLongitudinalCm       = ejes.cgCm,
             CgLongitudinalPct      = ejes.cgPct,
-            PesoEjeDelanteroKg     = ejes.w1,
-            PesoEjeTractorKg       = ejes.w2,
+            PesoEjeDelanteroKg     = ejes.w1Max,
+            PesoEjeTractorKg       = ejes.w2Max,
             PesoEjeRemolqueKg      = ejes.wr,
-            PesoTotalGVWKg         = ejes.gvw,
+            PesoTotalGVWKg         = ejes.gvwMax,
+            // Rangos (RF-08)
+            PesoEjeDelanteroMinKg  = ejes.w1Min,
+            PesoEjeDelanteroMaxKg  = ejes.w1Max,
+            PesoEjeTractorMinKg    = ejes.w2Min,
+            PesoEjeTractorMaxKg    = ejes.w2Max,
+            PesoTotalGVWMinKg      = ejes.gvwMin,
+            PesoTotalGVWMaxKg      = ejes.gvwMax,
+            EstadoNomW1            = estNomW1,
+            EstadoNomW2            = estNomW2,
+            EstadoNomWr            = estNomWr,
+            EstadoFhwaW1           = estFhwaW1,
+            EstadoFhwaW2           = estFhwaW2,
+            EstadoFhwaWr           = estFhwaWr,
+            MargenSeguridadPct     = MARGEN_SEGURIDAD * 100,
         };
     }
 
-    // Calcula CG longitudinal y cargas por eje
-    private static (double w1, double w2, double wr, double gvw, double cgCm, double cgPct)
+    // "Seguro"      → W_max ≤ límite × (1 − margen)  — no fallará bajo ninguna condición razonable
+    // "Condicional" → W_min ≤ límite × (1 − margen) < W_max  — depende del nivel de combustible
+    // "Falla"       → W_min > límite × (1 − margen)  — falla incluso en el mejor escenario
+    private static string EstadoCumplimiento(double min, double max, double limite)
+    {
+        double limEfectivo = limite * (1 - MARGEN_SEGURIDAD);
+        if (max <= limEfectivo) return "Seguro";
+        if (min <= limEfectivo) return "Condicional";
+        return "Falla";
+    }
+
+    // Calcula CG longitudinal y cargas por eje con rango mínimo/máximo (RF-08).
+    // Wr es determinístico (depende solo de la carga, no del tractor).
+    // W1 y W2 tienen rango según tara mínima/máxima del tractocamión.
+    private static (double w1Min, double w1Max, double w2Min, double w2Max,
+                    double wr, double gvwMin, double gvwMax,
+                    double cgCm, double cgPct)
         CalcularEjes(List<PosicionResultadoDto> posiciones, double palletLargo,
                      ContenedorSpec spec, TractocamionSpec trac)
     {
@@ -248,22 +297,29 @@ public class ContenedorService
         double wTara = spec.TaraChassisKg + spec.TaraContenedorKg;
         double L     = spec.KingPinAEjeCm;
 
-        // Modelo de viga simplemente apoyada: king pin (x=0) y eje remolque (x=L)
-        // Carga de la tara del chassis+contenedor asumida en el centro (L/2)
+        // Viga simplemente apoyada: king pin (x=0) y eje remolque (x=L)
+        // Wr es el mismo para ambos escenarios (solo depende de la carga del contenedor)
         double wr  = (wCargo * cgCm + wTara * (L / 2.0)) / L;
         double fkp = wCargo + wTara - wr;   // reacción en quinta rueda
 
         // Modelo tractor: eje delantero (x=0), eje trasero (x=WB), quinta rueda (x=WB-Q)
-        double wb  = trac.WheelbaseCm;
-        double q   = trac.QuintaRuedaCm;    // distancia quinta rueda ADELANTE del eje trasero
-        double w2  = trac.TaraEjeTraseroKg  + fkp * (wb - q) / wb;
-        double w1  = trac.TaraEjeDelanteroKg + fkp * q / wb;
-        double gvw = w1 + w2 + wr;
+        double wb = trac.WheelbaseCm;
+        double q  = trac.QuintaRuedaCm;    // distancia quinta rueda ADELANTE del eje trasero
 
-        double cgPct = L > 0 ? Math.Round(cgCm / L * 100, 1) : 50.0;
+        double w2Min = trac.TaraEjeTraseroMinKg  + fkp * (wb - q) / wb;
+        double w2Max = trac.TaraEjeTraseroMaxKg  + fkp * (wb - q) / wb;
+        double w1Min = trac.TaraEjeDelanteroMinKg + fkp * q / wb;
+        double w1Max = trac.TaraEjeDelanteroMaxKg + fkp * q / wb;
 
-        return (Math.Round(w1, 0), Math.Round(w2, 0), Math.Round(wr, 0),
-                Math.Round(gvw, 0), Math.Round(cgCm, 0), cgPct);
+        double gvwMin = w1Min + w2Min + wr;
+        double gvwMax = w1Max + w2Max + wr;
+        double cgPct  = L > 0 ? Math.Round(cgCm / L * 100, 1) : 50.0;
+
+        return (Math.Round(w1Min, 0), Math.Round(w1Max, 0),
+                Math.Round(w2Min, 0), Math.Round(w2Max, 0),
+                Math.Round(wr, 0),
+                Math.Round(gvwMin, 0), Math.Round(gvwMax, 0),
+                Math.Round(cgCm, 0), cgPct);
     }
 
     private static (List<PosicionResultadoDto> pos, double pesoIzq, double pesoDer)
