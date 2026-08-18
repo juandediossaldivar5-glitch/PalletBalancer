@@ -418,15 +418,19 @@
       .pr-ok   { color:#1a7a3a;font-weight:700; }
       .pr-err  { color:#c0392b;font-weight:700; }
       .pr-warn { color:#b8860b;font-weight:700; }
-      @page lateral-page { size: landscape; margin: 8mm 12mm; }
+      @page lateral-page { size: landscape; margin: 6mm 10mm; }
       .pr-lateral-page {
         page: lateral-page;
         page-break-before: always;
         padding: 0;
         margin: 0;
         box-sizing: border-box;
+        border: none;
       }
-      .pr-lateral-inner { padding: 6pt 0 0; }
+      .pr-lateral-inner { padding: 4pt 0 0; }
+      /* Suprimir línea negra de artefacto al final de última hoja */
+      .print-only > div:last-child { border-bottom: none !important; }
+      .pr-page:last-child { border-bottom: none !important; }
       .pr-svgs-label { font-size:14pt;font-weight:800;color:#1a3a6b;margin-bottom:5pt;
                        border-bottom:2pt solid #1a3a6b;padding-bottom:4pt;letter-spacing:0.2pt; }
       .pr-svgs-kg { font-size:11pt;font-weight:700;color:#333;margin-left:10pt;font-weight:400; }
@@ -1814,6 +1818,7 @@ function app() {
       const kpX = 110, trailerX = 605;
       const cgX  = Math.round(kpX + (cgPct / 100) * (trailerX - kpX));
       const colEstado = e => e === 'Seguro' ? '#1a7a3a' : e === 'Condicional' ? '#d4820a' : '#c0392b';
+      const colOk = (v, lim) => v <= lim ? '#1a7a3a' : '#c0392b';
       const pctCol = p => p > 100 ? '#c0392b' : p > 88 ? '#d4820a' : '#666';
       const w1ok = colEstado(this.contenedor.estadoFhwaW1 ?? 'Seguro');
       const w2ok = colEstado(this.contenedor.estadoFhwaW2 ?? 'Seguro');
@@ -1921,13 +1926,13 @@ function app() {
       </svg>`;
     },
 
-    svgLateral(lado, forPrint = false) {
+    svgLateral(lado, forPrint = false, halfHeight = false) {
       if (!this.contenedor) return '';
       const FILAS = this.contenedor.filasDisponibles || 26;
       // Print: div lateral fuera de pr-page → ancho completo landscape (~746pt)
-      // VW=740 ≈ 1pt/unit; VH=520 → SVG ocupa ~8.5" × 9.4" en hoja landscape
+      // VW=740 ≈ 1pt/unit; halfHeight=true → dos SVGs en una hoja landscape
       const VW = forPrint ? 740 : 1200;
-      const VH = forPrint ? 520 : 520;
+      const VH = forPrint ? (halfHeight ? 240 : 520) : 520;
       const PAD_L = 10, PAD_R = 10, PAD_T = 14;
       const PAD_B = forPrint ? 52 : 48;
       const innerW = VW - PAD_L - PAD_R;
@@ -1951,6 +1956,27 @@ function app() {
       for (const p of this.contenedor.posiciones.filter(p => p.lado === lado)) {
         if (!slots[p.fila]) slots[p.fila] = {};
         slots[p.fila][p.capa] = p;
+      }
+
+      // CASE lookup para print: (fila_capa) → caseNo o placeholder secuencial
+      const caseLookup = {};
+      if (forPrint) {
+        let phIdx = 0;
+        // Precargar CASEs reales desde pickingResult
+        const lineas = this.pickingResult?.lineas ?? [];
+        for (const l of lineas) {
+          if (l.ladoContenedor === lado && l.caseNo && l.caseNo !== '(sin MLO)') {
+            caseLookup[`${l.filaContenedor}_${l.capaContenedor}`] = l.caseNo;
+          }
+        }
+        // Asignar placeholders secuenciales ordenados por fila/capa
+        const todasPos = Object.entries(slots)
+          .flatMap(([fi, cm]) => Object.keys(cm).map(ca => [parseInt(fi), parseInt(ca)]))
+          .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+        for (const [fi, ca] of todasPos) {
+          const k = `${fi}_${ca}`;
+          if (!caseLookup[k]) caseLookup[k] = `CASE00XXXXX${++phIdx}`;
+        }
       }
 
       // Fondos de zona por destino
@@ -2005,13 +2031,17 @@ function app() {
           }
           pallets += `<clipPath id="${clipId}"><rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}"/></clipPath>`;
           pallets += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="${color}${fPl}" stroke="${color}${sPl}" stroke-width="1.5" rx="3"/>`;
+          const caseLabel = forPrint ? (caseLookup[`${f}_${capa}`] ?? '') : '';
+          const isPlaceholder = caseLabel.startsWith('CASE00XXXXX');
+          const fzCase = forPrint ? (halfHeight ? 7 : 9) : 0;
           if (h > minHtag) {
             const midY = y + h / 2;
             const hasQty = h > minHqty;
             const hasKg  = h > minHkg;
-            const lines  = 1 + (hasQty ? 1 : 0) + (hasKg ? 1 : 0);
+            const hasCase = forPrint && h > fzCase * 2.5;
+            const lines  = 1 + (hasQty ? 1 : 0) + (hasKg ? 1 : 0) + (hasCase ? 1 : 0);
             const lineH  = Math.min(h / (lines + 1), fzMod * 1.5);
-            let textY = hasQty || hasKg ? midY - lineH * (lines - 1) / 2 : midY + fzMod * 0.4;
+            let textY = hasQty || hasKg || hasCase ? midY - lineH * (lines - 1) / 2 : midY + fzMod * 0.4;
             pallets += `<text clip-path="url(#${clipId})" x="${(x + w/2).toFixed(1)}" y="${textY.toFixed(1)}" text-anchor="middle" font-size="${fzMod}" font-weight="800" fill="${color}">${tag}</text>`;
             if (hasQty) {
               textY += lineH;
@@ -2020,6 +2050,12 @@ function app() {
             if (hasKg) {
               textY += lineH;
               pallets += `<text clip-path="url(#${clipId})" x="${(x + w/2).toFixed(1)}" y="${textY.toFixed(1)}" text-anchor="middle" font-size="${fzKg2}" fill="${tC2}">${p.pesoKg.toFixed(0)} kg</text>`;
+            }
+            if (hasCase) {
+              textY += lineH;
+              const caseColor = isPlaceholder ? 'rgba(0,0,0,0.3)' : (forPrint ? 'rgba(0,0,100,0.65)' : tCL);
+              const caseText = caseLabel.length > 12 ? caseLabel.slice(-10) : caseLabel;
+              pallets += `<text clip-path="url(#${clipId})" x="${(x + w/2).toFixed(1)}" y="${textY.toFixed(1)}" text-anchor="middle" font-size="${fzCase}" font-family="monospace" fill="${caseColor}"${isPlaceholder ? ' font-style="italic"' : ''}>${caseText}</text>`;
             }
           }
           yBase = y;
@@ -2420,25 +2456,19 @@ function app() {
 
   </div><!-- /pr-page (contenido principal) -->
 
-  <!-- ═══ PÁGINA LANDSCAPE: Elevación Lateral Izquierda ═══ -->
+  <!-- ═══ PÁGINA LANDSCAPE: Elevaciones Laterales L + R (combinado) ═══ -->
   <div class="pr-lateral-page">
     <div class="pr-lateral-inner">
       <div class="pr-svgs-label">
         ◀ ELEVACIÓN LATERAL — LADO IZQUIERDO
         <span class="pr-svgs-kg" x-text="contenedor?.pesoIzquierdoKg?.toLocaleString('es-MX',{maximumFractionDigits:1})+' kg'"></span>
       </div>
-      <div x-html="svgLateral('Izquierdo', true)" style="width:100%;display:block"></div>
-    </div>
-  </div>
-
-  <!-- ═══ PÁGINA LANDSCAPE: Elevación Lateral Derecha ═══ -->
-  <div class="pr-lateral-page">
-    <div class="pr-lateral-inner">
-      <div class="pr-svgs-label">
+      <div x-html="svgLateral('Izquierdo', true, true)" style="width:100%;display:block"></div>
+      <div class="pr-svgs-label" style="margin-top:6pt">
         ELEVACIÓN LATERAL — LADO DERECHO ▶
         <span class="pr-svgs-kg" x-text="contenedor?.pesoDerechoKg?.toLocaleString('es-MX',{maximumFractionDigits:1})+' kg'"></span>
       </div>
-      <div x-html="svgLateral('Derecho', true)" style="width:100%;display:block"></div>
+      <div x-html="svgLateral('Derecho', true, true)" style="width:100%;display:block"></div>
     </div>
   </div>
 
@@ -2464,21 +2494,28 @@ function app() {
 
     <!-- Plan de carga por posición -->
     <div class="pr-sub">Plan de Carga por Posición</div>
+    <div style="font-size:6.5pt;color:#555;margin-bottom:5pt">
+      ▲ = Capa 2 (encima) · ▼ = Capa 1 (piso) · □ = verificación operador
+    </div>
     <table class="pr-table">
       <thead>
         <tr>
-          <th style="width:30pt">Fila</th>
-          <th style="width:12pt">Estado</th>
+          <th style="width:22pt">Fila</th>
+          <th style="width:18pt">Capa</th>
+          <th style="width:10pt"></th>
           <th>Lado Izquierdo — Modelo / Piezas / Peso</th>
-          <th style="width:12pt">Estado</th>
+          <th style="width:10pt"></th>
           <th>Lado Derecho — Modelo / Piezas / Peso</th>
+          <th style="width:20pt;text-align:center">IZQ □</th>
+          <th style="width:20pt;text-align:center">DER □</th>
         </tr>
       </thead>
       <tbody>
         <template x-for="fila in (contenedor?.filasDisponibles || 26)" :key="fila">
           <template x-if="posicionEn(fila,'Izquierdo') || posicionEn(fila,'Derecho')">
-            <tr>
-              <td style="text-align:center;font-weight:700" x-text="fila"></td>
+            <tr :style="posicion2En(fila,'Izquierdo') || posicion2En(fila,'Derecho') ? 'border-bottom:none' : ''">
+              <td style="text-align:center;font-weight:700" :rowspan="(posicion2En(fila,'Izquierdo') || posicion2En(fila,'Derecho')) ? 2 : 1" x-text="fila"></td>
+              <td style="text-align:center;font-size:6pt;color:#888">▼ C1</td>
               <td style="text-align:center">
                 <template x-if="posicionEn(fila,'Izquierdo')">
                   <span :style="'display:inline-block;width:9pt;height:9pt;border-radius:2pt;border:1.5pt solid;background:' + palletColor(posicionEn(fila,'Izquierdo')) + '40;border-color:' + palletColor(posicionEn(fila,'Izquierdo'))"></span>
@@ -2499,6 +2536,35 @@ function app() {
                   <span x-text="posicionEn(fila,'Derecho').modelNo + ' · ' + posicionEn(fila,'Derecho').piezas + ' pzs · ' + posicionEn(fila,'Derecho').pesoKg.toFixed(1) + ' kg' + (!posicionEn(fila,'Derecho').apilable ? ' [NO APILAR]' : posicionEn(fila,'Derecho').esParcial ? ' [PARCIAL]' : '')"></span>
                 </template>
               </td>
+              <td style="text-align:center;font-size:10pt;color:#bbb">☐</td>
+              <td style="text-align:center;font-size:10pt;color:#bbb">☐</td>
+            </tr>
+          </template>
+          <template x-if="posicion2En(fila,'Izquierdo') || posicion2En(fila,'Derecho')">
+            <tr style="background:#f0f4ff">
+              <td style="text-align:center;font-size:6pt;color:#3355aa;font-weight:700">▲ C2</td>
+              <td style="text-align:center">
+                <template x-if="posicion2En(fila,'Izquierdo')">
+                  <span :style="'display:inline-block;width:9pt;height:9pt;border-radius:2pt;border:1.5pt solid;background:' + palletColor(posicion2En(fila,'Izquierdo')) + '40;border-color:' + palletColor(posicion2En(fila,'Izquierdo'))"></span>
+                </template>
+              </td>
+              <td>
+                <template x-if="posicion2En(fila,'Izquierdo')">
+                  <span style="color:#3355aa" x-text="'▲ ' + posicion2En(fila,'Izquierdo').modelNo + ' · ' + posicion2En(fila,'Izquierdo').piezas + ' pzs · ' + posicion2En(fila,'Izquierdo').pesoKg.toFixed(1) + ' kg' + (!posicion2En(fila,'Izquierdo').apilable ? ' [NO APILAR]' : posicion2En(fila,'Izquierdo').esParcial ? ' [PARCIAL]' : '')"></span>
+                </template>
+              </td>
+              <td style="text-align:center">
+                <template x-if="posicion2En(fila,'Derecho')">
+                  <span :style="'display:inline-block;width:9pt;height:9pt;border-radius:2pt;border:1.5pt solid;background:' + palletColor(posicion2En(fila,'Derecho')) + '40;border-color:' + palletColor(posicion2En(fila,'Derecho'))"></span>
+                </template>
+              </td>
+              <td>
+                <template x-if="posicion2En(fila,'Derecho')">
+                  <span style="color:#3355aa" x-text="'▲ ' + posicion2En(fila,'Derecho').modelNo + ' · ' + posicion2En(fila,'Derecho').piezas + ' pzs · ' + posicion2En(fila,'Derecho').pesoKg.toFixed(1) + ' kg' + (!posicion2En(fila,'Derecho').apilable ? ' [NO APILAR]' : posicion2En(fila,'Derecho').esParcial ? ' [PARCIAL]' : '')"></span>
+                </template>
+              </td>
+              <td style="text-align:center;font-size:10pt;color:#bbb">☐</td>
+              <td style="text-align:center;font-size:10pt;color:#bbb">☐</td>
             </tr>
           </template>
         </template>
@@ -2524,7 +2590,7 @@ function app() {
   </div><!-- /pr-page (leyenda + tabla + firmas) -->
 
   <!-- ═══ PÁGINA PICKING: MLO Recalculada ═══ -->
-  <div class="pr-page" style="page-break-before:always" x-show="pickingResult && pickingResult.lineas.length > 0">
+  <div class="pr-page" style="page-break-before:always;border:none" x-show="pickingResult && pickingResult.lineas.filter(l=>l.caseNo!=='(sin MLO)').length > 0">
 
     <div class="pr-header">
       <img src="assets/logo-melco.jpg" class="pr-header-logo" alt="MELCO">
@@ -2564,8 +2630,7 @@ function app() {
         </tr>
       </thead>
       <tbody>
-        <template x-for="l in pickingResult.lineas" :key="l.ordenPicking">
-          <template>
+        <template x-for="l in pickingResult.lineas.filter(l => l.caseNo !== '(sin MLO)')" :key="l.ordenPicking">
             <tr :style="l.necesitaConfirmacion ? 'background:#fffbeb' : l.esParcial ? 'background:#fff8dc' : ''">
               <td style="text-align:center;font-weight:800" x-text="l.ordenPicking"></td>
               <td style="text-align:center;font-weight:700" x-text="l.filaContenedor"></td>
@@ -2593,7 +2658,6 @@ function app() {
                 <span style="font-weight:700">⚠ Staging: </span><span x-text="l.recomendacion"></span>
               </td>
             </tr>
-          </template>
         </template>
       </tbody>
     </table>
