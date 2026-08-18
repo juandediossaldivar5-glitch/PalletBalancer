@@ -129,12 +129,16 @@ public static class MloPickingService
 
     // ── pallet building ───────────────────────────────────────────────────────
 
+    // Internal entry: a CASE with its effective qty (may be remainder after full pallets)
+    private sealed record CaseEntry(MloLinea Linea, int Qty);
+
     private static List<PalletSlot> BuildPallets(
         List<MloLinea> lineas,
         Dictionary<int, (Mlo Mlo, Fdo Fdo)> ownerByMloId,
         int sp)
     {
-        // Sort CASEs individually by location proximity (Rack → Pos → Level)
+        // Sort CASEs by location proximity (Rack → Pos → Level)
+        // Same-location entries stay adjacent → FindExactSum tries them first → implicit location preference
         var sorted = lineas
             .OrderBy(l => MloXlsParser.ParseLocation(l.FromLocation).Rack)
             .ThenBy(l => MloXlsParser.ParseLocation(l.FromLocation).Pos)
@@ -145,7 +149,6 @@ public static class MloPickingService
 
         if (sp == int.MaxValue)
         {
-            // No pallet size known — one entry per CASE
             foreach (var l in sorted)
             {
                 GetOwner(l, ownerByMloId, out var fs, out var mn);
@@ -154,70 +157,116 @@ public static class MloPickingService
             return pallets;
         }
 
-        // Running accumulator for sub-sp remainders
-        // Each entry: (linea, qty taken from it)
-        var accum    = new List<(MloLinea Linea, int Qty)>();
-        int accumQty = 0;
-
-        void EmitAccum(bool isPartial)
+        // Phase 1 — full pallets: each CASE emits floor(qty/sp) complete pallets.
+        // Remainders (qty % sp) go to phase 2 as CaseEntry with reduced qty.
+        var subsp = new List<CaseEntry>();
+        foreach (var l in sorted)
         {
-            if (accum.Count == 0) return;
-            var primary = accum[0];
-            GetOwner(primary.Linea, ownerByMloId, out var fs, out var mn);
-
-            // Multi-ubicación: CASEs de distintos puntos del almacén → requiere staging
-            bool multiLoc = accum.Select(x => x.Linea.FromLocation)
-                                 .Distinct(StringComparer.OrdinalIgnoreCase).Count() > 1;
-
-            // Descripción detallada para el operador (siempre que haya multi-loc)
-            string? rec = multiLoc
-                ? string.Join(" + ", accum.Select(x => $"{x.Linea.CaseNo} ({x.Qty} pzs @ {x.Linea.FromLocation})"))
-                : null;
-
-            pallets.Add(new PalletSlot(
-                accumQty, isPartial, multiLoc, rec,
-                primary.Linea.CaseNo, primary.Linea.FromLocation, fs, mn,
-                accum.Count > 1 ? accum.Skip(1).Select(x => x.Linea.CaseNo).ToList() : []
-            ));
-            accum.Clear();
-            accumQty = 0;
-        }
-
-        foreach (var linea in sorted)
-        {
-            GetOwner(linea, ownerByMloId, out var fdoSlip, out var mloNo);
-            int rem = linea.FromQty;
-
-            // Use this CASE to fill the current accumulator first
-            if (accumQty > 0)
-            {
-                int needed = sp - accumQty;
-                int take   = Math.Min(rem, needed);
-                accum.Add((linea, take));
-                accumQty += take;
-                rem      -= take;
-                if (accumQty == sp) EmitAccum(false); // pallet complete
-            }
-
-            // Emit full pallets from remaining qty of this single CASE — always single location
+            GetOwner(l, ownerByMloId, out var fdoSlip, out var mloNo);
+            int rem = l.FromQty;
             while (rem >= sp)
             {
-                pallets.Add(new PalletSlot(sp, false, false, null, linea.CaseNo, linea.FromLocation, fdoSlip, mloNo, []));
+                pallets.Add(new PalletSlot(sp, false, false, null, l.CaseNo, l.FromLocation, fdoSlip, mloNo, []));
+                rem -= sp;
+            }
+            if (rem > 0) subsp.Add(new CaseEntry(l, rem));
+        }
+
+        // Phase 2 — exact-sum matching: combine sub-sp entries into pallets of exactly sp
+        // WITHOUT splitting any CASE. Uses backtracking to find valid subsets.
+        // Entries sorted by location proximity means same-location partners are tried first.
+        var used = new bool[subsp.Count];
+
+        for (int i = 0; i < subsp.Count; i++)
+        {
+            if (used[i]) continue;
+            var indices = FindExactSum(subsp, used, i + 1, sp - subsp[i].Qty);
+            if (indices != null)
+            {
+                used[i] = true;
+                foreach (var ci in indices) used[ci] = true;
+                var group = new[] { i }.Concat(indices).Select(ci => subsp[ci]).ToList();
+                pallets.Add(MakeGroupPallet(group, sp, false, ownerByMloId));
+            }
+        }
+
+        // Phase 3 — fallback linear accumulation for entries with no exact partner.
+        // Cases MAY be split here as a last resort; clearly signals as CONFIRMAR.
+        var leftover = subsp.Where((_, i) => !used[i]).ToList();
+        var accum    = new List<CaseEntry>();
+        int accumQty = 0;
+
+        foreach (var entry in leftover)
+        {
+            int rem = entry.Qty;
+
+            if (accumQty > 0)
+            {
+                int take = Math.Min(rem, sp - accumQty);
+                accum.Add(new CaseEntry(entry.Linea, take));
+                accumQty += take;
+                rem      -= take;
+                if (accumQty == sp)
+                {
+                    pallets.Add(MakeGroupPallet(accum, sp, false, ownerByMloId));
+                    accum    = [];
+                    accumQty = 0;
+                }
+            }
+
+            while (rem >= sp)
+            {
+                GetOwner(entry.Linea, ownerByMloId, out var fs, out var mn);
+                pallets.Add(new PalletSlot(sp, false, false, null, entry.Linea.CaseNo, entry.Linea.FromLocation, fs, mn, []));
                 rem -= sp;
             }
 
-            // Any leftover starts (or continues) the accumulator
             if (rem > 0)
             {
-                accum.Add((linea, rem));
+                accum.Add(new CaseEntry(entry.Linea, rem));
                 accumQty += rem;
             }
         }
 
-        // Final partial
-        if (accumQty > 0) EmitAccum(true);
+        if (accumQty > 0)
+            pallets.Add(MakeGroupPallet(accum, accumQty, true, ownerByMloId));
 
         return pallets;
+    }
+
+    // Backtracking subset-sum: finds indices in `entries` (from `start` onward, skipping `used`)
+    // whose Qty values sum exactly to `target`. Returns null if no solution exists.
+    // Does NOT modify `used` permanently — caller marks indices on success.
+    private static List<int>? FindExactSum(List<CaseEntry> entries, bool[] used, int start, int target)
+    {
+        if (target == 0) return [];
+        for (int i = start; i < entries.Count; i++)
+        {
+            if (used[i] || entries[i].Qty > target) continue;
+            used[i] = true;
+            var rest = FindExactSum(entries, used, i + 1, target - entries[i].Qty);
+            used[i] = false; // restore for backtracking
+            if (rest != null) return [i, ..rest];
+        }
+        return null;
+    }
+
+    private static PalletSlot MakeGroupPallet(
+        List<CaseEntry> group, int qty, bool isPartial,
+        Dictionary<int, (Mlo Mlo, Fdo Fdo)> ownerByMloId)
+    {
+        var primary = group[0];
+        GetOwner(primary.Linea, ownerByMloId, out var fdoSlip, out var mloNo);
+        bool multiLoc = group.Select(e => e.Linea.FromLocation)
+                             .Distinct(StringComparer.OrdinalIgnoreCase).Count() > 1;
+        string? rec = multiLoc
+            ? string.Join(" + ", group.Select(e => $"{e.Linea.CaseNo} ({e.Qty} pzs @ {e.Linea.FromLocation})"))
+            : null;
+        return new PalletSlot(
+            qty, isPartial, multiLoc, rec,
+            primary.Linea.CaseNo, primary.Linea.FromLocation, fdoSlip, mloNo,
+            group.Count > 1 ? group.Skip(1).Select(e => e.Linea.CaseNo).ToList() : []
+        );
     }
 
     private static void GetOwner(MloLinea linea,
