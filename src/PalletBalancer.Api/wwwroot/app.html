@@ -1218,6 +1218,24 @@
       </div>
     </template>
 
+    <!-- Filtro del catálogo -->
+    <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.9rem">
+      <div style="position:relative;flex:1;max-width:360px">
+        <i class="bi bi-search" style="position:absolute;left:0.65rem;top:50%;transform:translateY(-50%);color:var(--muted);font-size:0.85rem;pointer-events:none"></i>
+        <input type="search" x-model="filtroCatalogo"
+               placeholder="Buscar por modelo o descripción…"
+               style="width:100%;padding:0.45rem 0.75rem 0.45rem 2rem;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:0.87rem;outline:none"
+               @focus="$el.style.borderColor='var(--accent)'"
+               @blur="$el.style.borderColor='var(--border)'">
+      </div>
+      <span x-show="filtroCatalogo" style="font-size:0.78rem;color:var(--muted)"
+            x-text="itemsFiltrados().length + ' resultado(s)'"></span>
+      <button x-show="filtroCatalogo" @click="filtroCatalogo=''"
+              style="font-size:0.78rem;color:var(--muted);background:none;border:none;cursor:pointer;padding:0.2rem 0.4rem">
+        <i class="bi bi-x-lg"></i> Limpiar
+      </button>
+    </div>
+
     <div class="pb-card" style="padding:0;overflow:hidden">
       <table class="pb-table">
         <thead>
@@ -1240,7 +1258,7 @@
               Cargando catálogo...
             </td>
           </tr>
-          <template x-for="item in items" :key="item.modelNo">
+          <template x-for="item in itemsFiltrados()" :key="item.modelNo">
             <tr :style="!item.spPiezasPorPallet ? 'background:rgba(212,0,26,0.04)' : ''">
               <td>
                 <span class="model" x-text="item.modelNo"></span>
@@ -1270,6 +1288,14 @@
               <div class="empty-state">
                 <i class="bi bi-box2"></i>
                 <p>Sin modelos en el catálogo</p>
+              </div>
+            </td>
+          </tr>
+          <tr x-show="!cargandoCatalogo && items.length > 0 && itemsFiltrados().length === 0">
+            <td colspan="8">
+              <div class="empty-state">
+                <i class="bi bi-search"></i>
+                <p>Sin resultados para "<span x-text="filtroCatalogo"></span>"</p>
               </div>
             </td>
           </tr>
@@ -1405,6 +1431,7 @@ function app() {
     itemActual:         null,
     itemForm:           {},
     cargandoCatalogo:   false,
+    filtroCatalogo:     '',
     guardandoItem:      false,
 
     _colorCache: {},
@@ -1939,6 +1966,15 @@ function app() {
 
     puedeEditar() {
       return this.usuario?.rol === 'AMG' || this.usuario?.rol === 'ADM';
+    },
+
+    itemsFiltrados() {
+      const q = (this.filtroCatalogo ?? '').trim().toLowerCase();
+      if (!q) return this.items;
+      return this.items.filter(i =>
+        (i.modelNo     ?? '').toLowerCase().includes(q) ||
+        (i.descripcion ?? '').toLowerCase().includes(q)
+      );
     },
 
     async guardarCantidad(linea) {
