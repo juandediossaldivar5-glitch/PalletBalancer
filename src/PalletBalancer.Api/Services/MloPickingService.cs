@@ -70,6 +70,12 @@ public static class MloPickingService
             queueByModel[modelNo] = new Queue<PalletSlot>(BuildPallets(mloLineas, ownerByMloId, sp));
         }
 
+        // Diagnostic: report what the MLO actually contains so mismatches are visible
+        if (lineaByModel.Count > 0)
+            advertencias.Insert(0, $"[MLO] Modelos en MLO: {string.Join(", ", lineaByModel.Keys.OrderBy(k => k))}");
+        else
+            advertencias.Insert(0, "[MLO] No se encontró ningún MLO asociado a estos FDOs.");
+
         // Map pallets to container positions
         // "piso": load all capa-1 positions across every fila first, then capa-2
         // "fila" (default): deepest fila first, capa is secondary
