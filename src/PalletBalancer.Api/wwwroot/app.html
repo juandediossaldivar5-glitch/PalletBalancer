@@ -410,10 +410,10 @@
       .pr-header-meta { text-align:right;font-size:7pt;color:#666;min-width:70pt;line-height:1.6; }
       .pr-sub { font-size:9.5pt;font-weight:700;color:#1a3a6b;margin:9pt 0 4pt;
                 border-left:3pt solid #1a3a6b;padding-left:5pt; }
-      .pr-table { width:100%;border-collapse:collapse;margin-bottom:8pt; }
-      .pr-table th { background:#1a3a6b;color:white;font-size:7.5pt;padding:3pt 5pt;
+      .pr-table { width:100%;border-collapse:collapse;margin-bottom:7pt; }
+      .pr-table th { background:#1a3a6b;color:white;font-size:7pt;padding:2.5pt 4pt;
                      border:0.5pt solid #1a3a6b;text-align:left; }
-      .pr-table td { font-size:8pt;padding:3pt 5pt;border:0.5pt solid #ccc; }
+      .pr-table td { font-size:7.5pt;padding:2pt 4pt;border:0.5pt solid #ccc; }
       .pr-table tr:nth-child(even) td { background:#f4f6fa; }
       .pr-ok   { color:#1a7a3a;font-weight:700; }
       .pr-err  { color:#c0392b;font-weight:700; }
@@ -2534,29 +2534,28 @@ function app() {
       </div>
     </div>
 
-    <template x-if="pickingResult?.advertencias?.length > 0">
-      <div style="margin-bottom:8pt">
-        <template x-for="adv in pickingResult.advertencias">
-          <div class="pr-warn">⚠ <span x-text="adv"></span></div>
+    <template x-if="pickingResult?.advertencias?.filter(a => !a.startsWith('[MLO]')).length > 0">
+      <div style="margin-bottom:6pt">
+        <template x-for="adv in pickingResult.advertencias.filter(a => !a.startsWith('[MLO]'))">
+          <div class="pr-warn" style="font-size:6.5pt;padding:2pt 5pt">⚠ <span x-text="adv"></span></div>
         </template>
       </div>
     </template>
 
-    <table class="pr-table" style="font-size:7.5pt">
+    <table class="pr-table" style="font-size:7pt">
       <thead>
         <tr>
-          <th style="width:22pt">#</th>
-          <th style="width:26pt">Fila</th>
-          <th style="width:20pt">Lado</th>
-          <th style="width:18pt">Capa</th>
-          <th style="width:55pt">CASE No.</th>
-          <th style="width:80pt">Ubicación</th>
-          <th style="width:60pt">Modelo</th>
+          <th style="width:16pt">#</th>
+          <th style="width:22pt">Fila</th>
+          <th style="width:18pt">Lado</th>
+          <th style="width:16pt">Cap</th>
+          <th style="width:68pt">CASE No.</th>
+          <th style="width:72pt">Ubicación</th>
+          <th style="width:70pt">Modelo</th>
           <th>Descripción</th>
-          <th style="width:28pt">Qty</th>
-          <th style="width:38pt">Consignee</th>
+          <th style="width:22pt">Qty</th>
           <th style="width:22pt">FDO</th>
-          <th style="width:22pt">✓</th>
+          <th style="width:18pt">✓</th>
         </tr>
       </thead>
       <tbody>
@@ -2565,27 +2564,26 @@ function app() {
             <tr :style="l.esParcial ? 'background:#fff8dc' : ''">
               <td style="text-align:center;font-weight:800" x-text="l.ordenPicking"></td>
               <td style="text-align:center;font-weight:700" x-text="l.filaContenedor"></td>
-              <td style="text-align:center;font-size:9px" x-text="l.ladoContenedor === 'Izquierdo' ? 'IZQ' : 'DER'"></td>
+              <td style="text-align:center" x-text="l.ladoContenedor === 'Izquierdo' ? 'IZQ' : 'DER'"></td>
               <td style="text-align:center" x-text="l.capaContenedor"></td>
-              <td style="font-family:monospace;font-size:7pt">
+              <td style="font-family:monospace;font-size:6.5pt">
                 <span x-text="l.caseNo"></span>
                 <template x-if="l.casesAdicionales && l.casesAdicionales.length > 0">
-                  <span style="color:#666;font-size:6pt;display:block" x-text="'+' + l.casesAdicionales.join(', +')"></span>
+                  <span style="color:#777;font-size:5.5pt;display:block" x-text="'+' + l.casesAdicionales.join(', +')"></span>
                 </template>
               </td>
-              <td style="font-family:monospace;font-size:7pt;font-weight:700;color:#1a3a6b" x-text="l.fromLocation"></td>
-              <td style="font-family:monospace" x-text="l.modelNo"></td>
-              <td>
+              <td style="font-family:monospace;font-size:6.5pt;font-weight:700;color:#1a3a6b" x-text="l.fromLocation"></td>
+              <td style="font-family:monospace;font-size:6.5pt" x-text="l.modelNo"></td>
+              <td style="font-size:6.5pt">
                 <span x-text="l.descripcion"></span>
-                <span x-show="l.esParcial" style="color:#b8860b;font-weight:700"> [PARCIAL]</span>
+                <span x-show="l.esParcial" style="color:#b8860b;font-weight:700"> [PARC]</span>
               </td>
               <td style="text-align:right;font-weight:700" x-text="l.qty"></td>
-              <td style="font-size:7pt" x-text="l.consignee"></td>
-              <td style="font-size:7pt;font-family:monospace" x-text="l.fdoSlipNo"></td>
-              <td style="border:0.5pt solid #999;width:18pt"></td>
+              <td style="font-size:6pt;font-family:monospace" x-text="l.fdoSlipNo"></td>
+              <td style="border:0.5pt solid #aaa"></td>
             </tr>
             <tr x-show="l.recomendacion" style="background:#fffaeb">
-              <td colspan="12" style="font-size:6.5pt;color:#7a5000;padding:2pt 6pt;border-top:none">
+              <td colspan="11" style="font-size:6pt;color:#7a5000;padding:1.5pt 6pt;border-top:none">
                 <span style="font-weight:700">⚠ </span><span x-text="l.recomendacion"></span>
               </td>
             </tr>
