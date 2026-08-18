@@ -6,8 +6,8 @@ public class MloLinea
     public int MloId { get; set; }
     public Mlo Mlo { get; set; } = null!;
 
-    public string ModelNo { get; set; } = string.Empty;  // col 0 — "FG Model" header
-    public string SlipNo { get; set; } = string.Empty;  // col 1 — FDO ref
+    public string SlipNo { get; set; } = string.Empty;  // col 0 — "FG Model" header = número de orden
+    public string ModelNo { get; set; } = string.Empty;  // col 1 — "FG Sub No" = número de parte
     public string Class { get; set; } = string.Empty;  // col 3
     public string CaseNo { get; set; } = string.Empty;  // col 5
     public string FromLocation { get; set; } = string.Empty;  // col 6 e.g. MEAX-FG1-56-17-02

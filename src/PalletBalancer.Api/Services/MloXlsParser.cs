@@ -47,10 +47,10 @@ public static class MloXlsParser
 
             mlo.Lineas.Add(new MloLinea
             {
-                // col0 ("FG Model" en el header) contiene el número de parte (ModelNo).
-                // col1 contiene la referencia FDO (SlipNo).
-                ModelNo      = col0,
-                SlipNo       = row[1]?.ToString()?.Trim() ?? "",
+                // col0 "FG Model" header = número de orden (SlipNo, e.g. "2612637")
+                // col1 "FG Sub No"       = número de parte real (ModelNo, e.g. "M009TA0579ZX")
+                SlipNo       = col0,
+                ModelNo      = row[1]?.ToString()?.Trim() ?? "",
                 Class        = row[3]?.ToString()?.Trim() ?? "",
                 CaseNo       = caseNo,
                 FromLocation = row[6]?.ToString()?.Trim() ?? "",
