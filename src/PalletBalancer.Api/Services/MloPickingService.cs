@@ -10,6 +10,7 @@ public static class MloPickingService
     private sealed record PalletSlot(
         int          Qty,
         bool         EsParcial,
+        bool         NecesitaConfirmacion,  // true = CASEs de distintas ubicaciones combinados
         string?      Recomendacion,
         string       PrimaryCaseNo,
         string       PrimaryLocation,
@@ -115,10 +116,11 @@ public static class MloPickingService
                 FromLocation     = slot.PrimaryLocation,
                 ModelNo          = pos.ModelNo,
                 Descripcion      = pos.Descripcion,
-                Qty              = slot.Qty,
-                EsParcial        = slot.EsParcial,
-                Recomendacion    = slot.Recomendacion,
-                CasesAdicionales = slot.CasesAdicionales,
+                Qty                   = slot.Qty,
+                EsParcial             = slot.EsParcial,
+                NecesitaConfirmacion  = slot.NecesitaConfirmacion,
+                Recomendacion         = slot.Recomendacion,
+                CasesAdicionales      = slot.CasesAdicionales,
             });
         }
 
@@ -147,7 +149,7 @@ public static class MloPickingService
             foreach (var l in sorted)
             {
                 GetOwner(l, ownerByMloId, out var fs, out var mn);
-                pallets.Add(new PalletSlot(l.FromQty, false, null, l.CaseNo, l.FromLocation, fs, mn, []));
+                pallets.Add(new PalletSlot(l.FromQty, false, false, null, l.CaseNo, l.FromLocation, fs, mn, []));
             }
             return pallets;
         }
@@ -162,15 +164,18 @@ public static class MloPickingService
             if (accum.Count == 0) return;
             var primary = accum[0];
             GetOwner(primary.Linea, ownerByMloId, out var fs, out var mn);
+
+            // Multi-ubicación: CASEs de distintos puntos del almacén → requiere staging
             bool multiLoc = accum.Select(x => x.Linea.FromLocation)
                                  .Distinct(StringComparer.OrdinalIgnoreCase).Count() > 1;
-            string? rec = isPartial && multiLoc
-                ? "Recomendación: unir " +
-                  string.Join(" + ", accum.Select(x => $"{x.Linea.CaseNo} ({x.Qty} pzs @ {x.Linea.FromLocation})")) +
-                  " en área de staging."
+
+            // Descripción detallada para el operador (siempre que haya multi-loc)
+            string? rec = multiLoc
+                ? string.Join(" + ", accum.Select(x => $"{x.Linea.CaseNo} ({x.Qty} pzs @ {x.Linea.FromLocation})"))
                 : null;
+
             pallets.Add(new PalletSlot(
-                accumQty, isPartial, rec,
+                accumQty, isPartial, multiLoc, rec,
                 primary.Linea.CaseNo, primary.Linea.FromLocation, fs, mn,
                 accum.Count > 1 ? accum.Skip(1).Select(x => x.Linea.CaseNo).ToList() : []
             ));
@@ -194,10 +199,10 @@ public static class MloPickingService
                 if (accumQty == sp) EmitAccum(false); // pallet complete
             }
 
-            // Emit full pallets from remaining qty of this single CASE
+            // Emit full pallets from remaining qty of this single CASE — always single location
             while (rem >= sp)
             {
-                pallets.Add(new PalletSlot(sp, false, null, linea.CaseNo, linea.FromLocation, fdoSlip, mloNo, []));
+                pallets.Add(new PalletSlot(sp, false, false, null, linea.CaseNo, linea.FromLocation, fdoSlip, mloNo, []));
                 rem -= sp;
             }
 

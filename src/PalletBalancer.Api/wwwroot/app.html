@@ -1476,7 +1476,9 @@
         </thead>
         <tbody>
           <template x-for="l in pickingResult?.lineas ?? []" :key="l.ordenPicking">
-            <tr :style="l.caseNo === '(sin MLO)' ? 'background:rgba(212,0,26,0.06)' : l.esParcial ? 'background:rgba(245,166,35,0.07)' : ''">
+            <tr :style="l.caseNo === '(sin MLO)'        ? 'background:rgba(212,0,26,0.06)'    :
+                         l.necesitaConfirmacion             ? 'background:rgba(251,191,36,0.08)'  :
+                         l.esParcial                        ? 'background:rgba(245,166,35,0.05)'  : ''">
               <td style="text-align:center;font-weight:800;color:var(--muted)" x-text="l.ordenPicking"></td>
               <td style="text-align:center;font-weight:700" x-text="l.filaContenedor"></td>
               <td style="text-align:center;font-size:0.72rem"
@@ -1494,17 +1496,20 @@
               <td style="font-family:monospace;font-size:0.75rem" x-text="l.modelNo"></td>
               <td style="font-size:0.78rem">
                 <span x-text="l.descripcion"></span>
+                <span x-show="l.necesitaConfirmacion"
+                      style="font-size:0.63rem;font-weight:700;color:#b45309;background:rgba(251,191,36,0.18);border:1px solid rgba(251,191,36,0.4);border-radius:3px;padding:0 4px;margin-left:4px">⚠ CONFIRMAR</span>
                 <span x-show="l.esParcial && l.caseNo !== '(sin MLO)'"
-                      style="font-size:0.65rem;font-weight:700;color:#d4820a;margin-left:0.3rem">[PARCIAL]</span>
+                      style="font-size:0.63rem;font-weight:700;color:#d4820a;margin-left:4px">[PARCIAL]</span>
                 <span x-show="l.caseNo === '(sin MLO)'"
-                      style="font-size:0.65rem;font-weight:700;color:#e54c4c;margin-left:0.3rem">[SIN MLO]</span>
+                      style="font-size:0.63rem;font-weight:700;color:#e54c4c;margin-left:4px">[SIN MLO]</span>
               </td>
               <td style="text-align:right;font-weight:700" x-text="l.qty"></td>
               <td style="font-size:0.72rem;color:var(--muted)" x-text="l.consignee"></td>
             </tr>
-            <tr x-show="l.recomendacion" style="background:rgba(245,166,35,0.05)">
-              <td colspan="10" style="font-size:0.72rem;color:#9a6e00;padding:0.2rem 0.7rem 0.4rem">
-                <i class="bi bi-exclamation-triangle"></i> <span x-text="l.recomendacion"></span>
+            <tr x-show="l.necesitaConfirmacion" style="background:rgba(251,191,36,0.05)">
+              <td colspan="10" style="font-size:0.72rem;color:#92400e;padding:0.2rem 0.7rem 0.45rem;border-top:none">
+                <i class="bi bi-exclamation-triangle-fill" style="color:#d97706"></i>
+                <strong> Staging requerido:</strong> <span x-text="l.recomendacion"></span>
               </td>
             </tr>
           </template>
@@ -2561,7 +2566,7 @@ function app() {
       <tbody>
         <template x-for="l in pickingResult.lineas" :key="l.ordenPicking">
           <template>
-            <tr :style="l.esParcial ? 'background:#fff8dc' : ''">
+            <tr :style="l.necesitaConfirmacion ? 'background:#fffbeb' : l.esParcial ? 'background:#fff8dc' : ''">
               <td style="text-align:center;font-weight:800" x-text="l.ordenPicking"></td>
               <td style="text-align:center;font-weight:700" x-text="l.filaContenedor"></td>
               <td style="text-align:center" x-text="l.ladoContenedor === 'Izquierdo' ? 'IZQ' : 'DER'"></td>
@@ -2576,15 +2581,16 @@ function app() {
               <td style="font-family:monospace;font-size:6.5pt" x-text="l.modelNo"></td>
               <td style="font-size:6.5pt">
                 <span x-text="l.descripcion"></span>
+                <span x-show="l.necesitaConfirmacion" style="color:#92400e;font-weight:700"> ⚠CONF</span>
                 <span x-show="l.esParcial" style="color:#b8860b;font-weight:700"> [PARC]</span>
               </td>
               <td style="text-align:right;font-weight:700" x-text="l.qty"></td>
               <td style="font-size:6pt;font-family:monospace" x-text="l.fdoSlipNo"></td>
               <td style="border:0.5pt solid #aaa"></td>
             </tr>
-            <tr x-show="l.recomendacion" style="background:#fffaeb">
-              <td colspan="11" style="font-size:6pt;color:#7a5000;padding:1.5pt 6pt;border-top:none">
-                <span style="font-weight:700">⚠ </span><span x-text="l.recomendacion"></span>
+            <tr x-show="l.necesitaConfirmacion" style="background:#fffbeb">
+              <td colspan="11" style="font-size:5.5pt;color:#92400e;padding:1.5pt 6pt;border-top:none">
+                <span style="font-weight:700">⚠ Staging: </span><span x-text="l.recomendacion"></span>
               </td>
             </tr>
           </template>
