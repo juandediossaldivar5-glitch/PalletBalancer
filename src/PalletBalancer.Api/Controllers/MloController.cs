@@ -143,7 +143,7 @@ public class MloController : ControllerBase
             Item: (Item?)null
         )).ToList();
 
-        var resultado = MloPickingService.Calcular(plan, fdoData);
+        var resultado = MloPickingService.Calcular(plan, fdoData, dto.ModoOrden);
         return Ok(resultado);
     }
 }

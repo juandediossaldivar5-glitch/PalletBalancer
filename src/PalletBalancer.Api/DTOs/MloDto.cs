@@ -35,6 +35,8 @@ public class PickingRequestDto
     public string?       TipoContenedor   { get; set; }
     public string?       TipoTractocamion { get; set; }
     public List<string>? OrdenDescarga    { get; set; }
+    /// <summary>"fila" (default) = por fila/lado/capa; "piso" = capa 1 todo antes que capa 2</summary>
+    public string?       ModoOrden        { get; set; }
 }
 
 // One line in the picking list

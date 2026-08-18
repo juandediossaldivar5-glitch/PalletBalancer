@@ -30,7 +30,8 @@ public static class MloPickingService
 
     public static PickingResultadoDto Calcular(
         ContenedorResultadoDto plan,
-        List<(Fdo Fdo, Mlo? Mlo, Item? Item)> fdoData)
+        List<(Fdo Fdo, Mlo? Mlo, Item? Item)> fdoData,
+        string? modoOrden = null)
     {
         var advertencias = new List<string>();
         var lineas       = new List<PickingLineaDto>();
@@ -69,10 +70,16 @@ public static class MloPickingService
             queueByModel[modelNo] = new Queue<PalletSlot>(BuildPallets(mloLineas, ownerByMloId, sp));
         }
 
-        // Map pallets to container positions — deepest first (Fila 1 = pick first)
-        var posiciones = plan.Posiciones
-            .OrderBy(p => p.Fila).ThenBy(p => p.Lado).ThenBy(p => p.Capa)
-            .ToList();
+        // Map pallets to container positions
+        // "piso": load all capa-1 positions across every fila first, then capa-2
+        // "fila" (default): deepest fila first, capa is secondary
+        var posiciones = modoOrden == "piso"
+            ? plan.Posiciones
+                .OrderBy(p => p.Capa).ThenBy(p => p.Fila).ThenBy(p => p.Lado)
+                .ToList()
+            : plan.Posiciones
+                .OrderBy(p => p.Fila).ThenBy(p => p.Lado).ThenBy(p => p.Capa)
+                .ToList();
 
         int orden = 1;
         foreach (var pos in posiciones)

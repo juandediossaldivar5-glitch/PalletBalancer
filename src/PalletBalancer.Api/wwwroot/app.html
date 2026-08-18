@@ -883,11 +883,26 @@
             Exportar PDF
           </button>
         </template>
-        <button @click="generarPicking()"
-                x-show="contenedor && Object.keys(mlosPorFdo).length > 0"
-                style="background:rgba(77,216,132,0.15);border:1px solid var(--accent);color:var(--accent);padding:8px 18px;border-radius:8px;cursor:pointer;font-weight:700;font-size:14px">
-          📋 MLO de Picking
-        </button>
+        <template x-if="contenedor && Object.keys(mlosPorFdo).length > 0">
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="display:flex;border:1px solid rgba(77,216,132,0.3);border-radius:8px;overflow:hidden;font-size:12px;font-weight:600">
+              <button @click="modoOrden='fila'"
+                      :style="modoOrden==='fila' ? 'background:rgba(77,216,132,0.25);color:#4dd884' : 'background:transparent;color:rgba(255,255,255,0.4)'"
+                      style="padding:6px 10px;border:none;cursor:pointer">
+                Por fila
+              </button>
+              <button @click="modoOrden='piso'"
+                      :style="modoOrden==='piso' ? 'background:rgba(77,216,132,0.25);color:#4dd884' : 'background:transparent;color:rgba(255,255,255,0.4)'"
+                      style="padding:6px 10px;border:none;cursor:pointer">
+                Piso primero
+              </button>
+            </div>
+            <button @click="generarPicking()"
+                    style="background:rgba(77,216,132,0.15);border:1px solid var(--accent);color:var(--accent);padding:8px 18px;border-radius:8px;cursor:pointer;font-weight:700;font-size:14px">
+              📋 MLO de Picking
+            </button>
+          </div>
+        </template>
         <template x-if="contenedor">
           <span style="font-size:0.78rem;color:var(--muted)">
             <span x-text="contenedor.filasDisponibles"></span> filas ·
@@ -1512,6 +1527,7 @@ function app() {
     contenedor:         null,
       mlosPorFdo:   {},   // fdoId → { mloNo, lineas[] }
       pickingResult: null,
+      modoOrden: 'fila',
     cargandoContenedor: false,
     alerta:             '',
     cargandoLista:      false,
@@ -2056,10 +2072,11 @@ function app() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fdoIds:          selIds,
-          tipoContenedor:  this.tipoContenedor,
+          fdoIds:           selIds,
+          tipoContenedor:   this.tipoContenedor,
           tipoTractocamion: this.tipoTractocamion,
-          ordenDescarga:   null,
+          ordenDescarga:    null,
+          modoOrden:        this.modoOrden,
         })
       });
       if (!r.ok) { alert('Error al generar picking'); return; }
