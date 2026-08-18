@@ -7,15 +7,6 @@ public static class MloPickingService
 {
     // ── internal types ────────────────────────────────────────────────────────
 
-    private sealed record LocGroup(
-        string Loc,
-        (int R, int P, int L) SortKey,
-        List<MloLinea> Lines)
-    {
-        public int          TotalQty => Lines.Sum(l => l.FromQty);
-        public List<string> CaseNos  => Lines.Select(l => l.CaseNo).ToList();
-    }
-
     private sealed record PalletSlot(
         int          Qty,
         bool         EsParcial,
@@ -141,117 +132,98 @@ public static class MloPickingService
         Dictionary<int, (Mlo Mlo, Fdo Fdo)> ownerByMloId,
         int sp)
     {
-        // Step 1: group CASEs by exact location, sort by proximity (Rack → Pos → Level)
-        var groups = lineas
-            .GroupBy(l => l.FromLocation)
-            .Select(g => new LocGroup(g.Key, MloXlsParser.ParseLocation(g.Key), g.ToList()))
-            .OrderBy(g => g.SortKey.R)
-            .ThenBy(g => g.SortKey.P)
-            .ThenBy(g => g.SortKey.L)
+        // Sort CASEs individually by location proximity (Rack → Pos → Level)
+        var sorted = lineas
+            .OrderBy(l => MloXlsParser.ParseLocation(l.FromLocation).Rack)
+            .ThenBy(l => MloXlsParser.ParseLocation(l.FromLocation).Pos)
+            .ThenBy(l => MloXlsParser.ParseLocation(l.FromLocation).Level)
             .ToList();
 
         var pallets = new List<PalletSlot>();
 
-        // Step 2: accumulate location groups into pallet "attempts".
-        // An attempt collects groups until the total qty ≥ sp, then flushes:
-        //   · complete pallets  = floor(totalQty / sp)
-        //   · remainder         = totalQty % sp   → partial pallet
-        //
-        // Same-location groups are already one logical unit (always complete if
-        // their total is a multiple of sp).  No recommendation is added for
-        // single-location partials.  A recommendation IS added when the partial
-        // results from combining groups across different locations.
-
-        var attempt    = new List<LocGroup>();
-        int attemptQty = 0;
-
-        void Flush()
+        if (sp == int.MaxValue)
         {
-            if (attemptQty == 0) return;
-
-            bool multiLoc    = attempt.Count > 1;
-            int  nComplete   = sp == int.MaxValue ? 1              : attemptQty / sp;
-            int  remainder   = sp == int.MaxValue ? 0              : attemptQty % sp;
-            int  completeQty = sp == int.MaxValue ? attemptQty     : sp;
-
-            // All case nos across the attempt (for CasesAdicionales on complete pallets)
-            var allCaseNos = attempt.SelectMany(g => g.CaseNos).ToList();
-
-            // Emit complete pallets — attribute to first group for location display
-            var first = attempt[0];
-            GetOwner(first, ownerByMloId, out var fdoSlip, out var mloNo);
-
-            for (int k = 0; k < nComplete; k++)
+            // No pallet size known — one entry per CASE
+            foreach (var l in sorted)
             {
-                pallets.Add(new PalletSlot(
-                    completeQty, false, null,
-                    first.CaseNos[0], first.Loc,
-                    fdoSlip, mloNo,
-                    allCaseNos.Count > 1 ? allCaseNos.Skip(1).ToList() : []
-                ));
+                GetOwner(l, ownerByMloId, out var fs, out var mn);
+                pallets.Add(new PalletSlot(l.FromQty, false, null, l.CaseNo, l.FromLocation, fs, mn, []));
             }
-
-            // Emit partial pallet (remainder)
-            int partialQty = remainder > 0 ? remainder
-                           : nComplete == 0 ? attemptQty   // all qty < sp
-                           : 0;
-
-            if (partialQty > 0)
-            {
-                var last = attempt.Last();
-                GetOwner(last, ownerByMloId, out var fdoSlip2, out var mloNo2);
-                string? rec = multiLoc ? BuildRec(attempt, nComplete, completeQty, partialQty) : null;
-
-                pallets.Add(new PalletSlot(
-                    partialQty, true, rec,
-                    last.CaseNos[0], last.Loc,
-                    fdoSlip2, mloNo2, []
-                ));
-            }
-
-            attempt.Clear();
-            attemptQty = 0;
+            return pallets;
         }
 
-        foreach (var group in groups)
-        {
-            attempt.Add(group);
-            attemptQty += group.TotalQty;
+        // Running accumulator for sub-sp remainders
+        // Each entry: (linea, qty taken from it)
+        var accum    = new List<(MloLinea Linea, int Qty)>();
+        int accumQty = 0;
 
-            // Same-location groups are always kept together — only flush when we
-            // have accumulated enough for at least one complete pallet.
-            if (sp != int.MaxValue && attemptQty >= sp)
-                Flush();
+        void EmitAccum(bool isPartial)
+        {
+            if (accum.Count == 0) return;
+            var primary = accum[0];
+            GetOwner(primary.Linea, ownerByMloId, out var fs, out var mn);
+            bool multiLoc = accum.Select(x => x.Linea.FromLocation)
+                                 .Distinct(StringComparer.OrdinalIgnoreCase).Count() > 1;
+            string? rec = isPartial && multiLoc
+                ? "Recomendación: unir " +
+                  string.Join(" + ", accum.Select(x => $"{x.Linea.CaseNo} ({x.Qty} pzs @ {x.Linea.FromLocation})")) +
+                  " en área de staging."
+                : null;
+            pallets.Add(new PalletSlot(
+                accumQty, isPartial, rec,
+                primary.Linea.CaseNo, primary.Linea.FromLocation, fs, mn,
+                accum.Count > 1 ? accum.Skip(1).Select(x => x.Linea.CaseNo).ToList() : []
+            ));
+            accum.Clear();
+            accumQty = 0;
         }
 
-        Flush(); // remaining partial (if qty < sp for all accumulated groups)
+        foreach (var linea in sorted)
+        {
+            GetOwner(linea, ownerByMloId, out var fdoSlip, out var mloNo);
+            int rem = linea.FromQty;
+
+            // Use this CASE to fill the current accumulator first
+            if (accumQty > 0)
+            {
+                int needed = sp - accumQty;
+                int take   = Math.Min(rem, needed);
+                accum.Add((linea, take));
+                accumQty += take;
+                rem      -= take;
+                if (accumQty == sp) EmitAccum(false); // pallet complete
+            }
+
+            // Emit full pallets from remaining qty of this single CASE
+            while (rem >= sp)
+            {
+                pallets.Add(new PalletSlot(sp, false, null, linea.CaseNo, linea.FromLocation, fdoSlip, mloNo, []));
+                rem -= sp;
+            }
+
+            // Any leftover starts (or continues) the accumulator
+            if (rem > 0)
+            {
+                accum.Add((linea, rem));
+                accumQty += rem;
+            }
+        }
+
+        // Final partial
+        if (accumQty > 0) EmitAccum(true);
 
         return pallets;
     }
 
-    private static void GetOwner(LocGroup g,
+    private static void GetOwner(MloLinea linea,
         Dictionary<int, (Mlo Mlo, Fdo Fdo)> map,
         out string fdoSlip, out string mloNo)
     {
-        if (g.Lines.Count > 0 && map.TryGetValue(g.Lines[0].MloId, out var owner))
+        if (map.TryGetValue(linea.MloId, out var owner))
         {
             fdoSlip = owner.Fdo.FdoSlipNo;
             mloNo   = owner.Mlo.MloNo;
         }
         else { fdoSlip = ""; mloNo = ""; }
-    }
-
-    private static string BuildRec(
-        List<LocGroup> groups, int nComplete, int sp, int remainder)
-    {
-        var parts = groups.Select(g =>
-            $"{string.Join("+", g.CaseNos)} ({g.TotalQty} pzs @ {g.Loc})");
-        var sb = new System.Text.StringBuilder("Recomendación: unir ");
-        sb.Append(string.Join(" + ", parts));
-        sb.Append(" en área de staging.");
-        if (nComplete > 0)
-            sb.Append($" Resultado: {nComplete} pallet(s) completo(s) de {sp} pzs +");
-        sb.Append($" {remainder} pzs sobrante (este parcial).");
-        return sb.ToString();
     }
 }
