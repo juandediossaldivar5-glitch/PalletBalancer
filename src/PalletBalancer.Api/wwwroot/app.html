@@ -1396,6 +1396,108 @@
     </div>
   </div>
 
+  <!-- ============================================================ -->
+  <!-- VISTA: PICKING                                                -->
+  <!-- ============================================================ -->
+  <div x-show="vista==='picking'" x-cloak>
+    <div class="pb-page-header">
+      <h1 class="pb-page-title">
+        <i class="bi bi-list-ol"></i> Orden de Picking
+      </h1>
+      <div style="display:flex;gap:0.6rem">
+        <button class="btn-ghost" @click="vista='contenedor'">
+          <i class="bi bi-arrow-left"></i> Volver al contenedor
+        </button>
+        <button class="btn-ghost" style="color:var(--accent);border-color:rgba(77,216,132,0.3)"
+                @click="window.print()">
+          <i class="bi bi-printer"></i> Imprimir
+        </button>
+      </div>
+    </div>
+
+    <!-- Advertencias -->
+    <template x-if="pickingResult?.advertencias?.length > 0">
+      <div class="pb-card" style="margin-bottom:1rem;padding:0.9rem;display:flex;flex-direction:column;gap:0.4rem">
+        <template x-for="adv in pickingResult.advertencias" :key="adv">
+          <div style="font-size:0.83rem;color:#f5a623"><i class="bi bi-exclamation-triangle-fill"></i> <span x-text="adv"></span></div>
+        </template>
+      </div>
+    </template>
+
+    <!-- Resumen -->
+    <div style="display:flex;gap:0.7rem;margin-bottom:1rem;flex-wrap:wrap">
+      <div class="pb-stat-card">
+        <div class="label">Total líneas</div>
+        <div class="val" x-text="pickingResult?.lineas?.length ?? 0"></div>
+      </div>
+      <div class="pb-stat-card">
+        <div class="label">Sin MLO</div>
+        <div class="val" style="color:#f5a623"
+             x-text="pickingResult?.lineas?.filter(l => l.caseNo === '(sin MLO)').length ?? 0"></div>
+      </div>
+      <div class="pb-stat-card">
+        <div class="label">Parciales</div>
+        <div class="val" style="color:#f5a623"
+             x-text="pickingResult?.lineas?.filter(l => l.esParcial && l.caseNo !== '(sin MLO)').length ?? 0"></div>
+      </div>
+    </div>
+
+    <!-- Tabla de picking -->
+    <div class="pb-card" style="padding:0;overflow:hidden">
+      <table class="pb-table" style="font-size:0.8rem">
+        <thead>
+          <tr>
+            <th style="text-align:center;width:36px">#</th>
+            <th style="text-align:center">Fila</th>
+            <th style="text-align:center">Lado</th>
+            <th style="text-align:center">Capa</th>
+            <th>CASE No</th>
+            <th>Ubicación</th>
+            <th>Modelo</th>
+            <th>Descripción</th>
+            <th style="text-align:right">Pzs</th>
+            <th>Destino</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="l in pickingResult?.lineas ?? []" :key="l.ordenPicking">
+            <tr :style="l.caseNo === '(sin MLO)' ? 'background:rgba(212,0,26,0.06)' : l.esParcial ? 'background:rgba(245,166,35,0.07)' : ''">
+              <td style="text-align:center;font-weight:800;color:var(--muted)" x-text="l.ordenPicking"></td>
+              <td style="text-align:center;font-weight:700" x-text="l.filaContenedor"></td>
+              <td style="text-align:center;font-size:0.72rem"
+                  x-text="l.ladoContenedor === 'Izquierdo' ? 'IZQ' : 'DER'"></td>
+              <td style="text-align:center" x-text="l.capaContenedor"></td>
+              <td style="font-family:monospace;font-size:0.75rem">
+                <span x-text="l.caseNo"></span>
+                <template x-if="l.casesAdicionales?.length > 0">
+                  <span style="color:var(--muted);font-size:0.65rem;display:block"
+                        x-text="'+' + l.casesAdicionales.join(', +')"></span>
+                </template>
+              </td>
+              <td style="font-family:monospace;font-size:0.75rem;font-weight:700;color:var(--accent)"
+                  x-text="l.fromLocation"></td>
+              <td style="font-family:monospace;font-size:0.75rem" x-text="l.modelNo"></td>
+              <td style="font-size:0.78rem">
+                <span x-text="l.descripcion"></span>
+                <span x-show="l.esParcial && l.caseNo !== '(sin MLO)'"
+                      style="font-size:0.65rem;font-weight:700;color:#d4820a;margin-left:0.3rem">[PARCIAL]</span>
+                <span x-show="l.caseNo === '(sin MLO)'"
+                      style="font-size:0.65rem;font-weight:700;color:#e54c4c;margin-left:0.3rem">[SIN MLO]</span>
+              </td>
+              <td style="text-align:right;font-weight:700" x-text="l.qty"></td>
+              <td style="font-size:0.72rem;color:var(--muted)" x-text="l.consignee"></td>
+            </tr>
+            <tr x-show="l.recomendacion" style="background:rgba(245,166,35,0.05)">
+              <td colspan="10" style="font-size:0.72rem;color:#9a6e00;padding:0.2rem 0.7rem 0.4rem">
+                <i class="bi bi-exclamation-triangle"></i> <span x-text="l.recomendacion"></span>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js" defer></script>
@@ -1962,6 +2064,7 @@ function app() {
       });
       if (!r.ok) { alert('Error al generar picking'); return; }
       this.pickingResult = await r.json();
+      this.vista = 'picking';
     },
 
     puedeEditar() {
