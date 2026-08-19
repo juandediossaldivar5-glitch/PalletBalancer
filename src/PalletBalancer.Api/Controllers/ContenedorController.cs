@@ -72,8 +72,9 @@ public class ContenedorController : ControllerBase
                 var problemas = new List<string>();
                 if (r.Advertencias.Any(a => a.Contains("posiciones")))
                     problemas.Add("La carga no cabe en el contenedor.");
+                // Solo fallos reales (⛔) descalifican; condicionales (⚠) son advertencias operativas.
                 problemas.AddRange(r.Advertencias
-                    .Where(a => a.Contains("FHWA") || a.Contains("NOM-012") || a.Contains("capacidad de carga")));
+                    .Where(a => a.Contains("⛔") || a.Contains("capacidad de carga")));
 
                 int filasUsadas = r.Destinos.Count > 0
                     ? r.Destinos.Max(d => d.FilaFin) : 0;
