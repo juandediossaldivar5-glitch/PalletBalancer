@@ -287,11 +287,11 @@ public class ContenedorService
     {
         double wCargo = posiciones.Sum(p => p.PesoKg);
 
-        // CG de la carga medido desde el king pin
-        // fila 1 = cabina (cerca del king pin), fila N = puertas (lejos)
-        // centro de fila F = KingPinOffset + (F - 0.5) × palletLargo
+        // CG de la carga medido desde el king pin (positivo = hacia puertas)
+        // Fila 1 empieza en el frente del contenedor, que está KingPinOffsetCm ANTES del king pin.
+        // centro de fila F = (F - 0.5) × palletLargo - KingPinOffsetCm
         double cgCm = wCargo > 0
-            ? posiciones.Sum(p => p.PesoKg * (spec.KingPinOffsetCm + (p.Fila - 0.5) * palletLargo)) / wCargo
+            ? posiciones.Sum(p => p.PesoKg * ((p.Fila - 0.5) * palletLargo - spec.KingPinOffsetCm)) / wCargo
             : spec.KingPinAEjeCm / 2.0;
 
         double wTara = spec.TaraChassisKg + spec.TaraContenedorKg;
