@@ -6,11 +6,13 @@ namespace PalletBalancer.Api.Services;
 
 public class ContenedorService
 {
-    // Límites NOM-012 México (kg) — carreteras federales estándar
-    private const double NOM_W1  =  6_000;
-    private const double NOM_W2  = 16_000;
-    private const double NOM_Wr  = 16_000;
-    private const double NOM_GVW = 40_500;
+    // Límites NOM-012 México (kg) — T3-S2 con suspensión neumática, carreteras federales
+    // W1: eje delantero simple (llanta dual estándar)
+    // W2/Wr: tándem neumático — NOM-012 permite 18,000 kg por tándem (vs 16,000 de suspensión de hoja)
+    private const double NOM_W1  =  6_500;
+    private const double NOM_W2  = 18_000;
+    private const double NOM_Wr  = 18_000;
+    private const double NOM_GVW = 48_000;
 
     // Límites FHWA EE.UU. (kg)
     private const double FHWA_W1  =  5_443;
