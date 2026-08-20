@@ -128,9 +128,14 @@ public class ContenedorService
         }
 
         // Orden de descarga (índice 0 = primero en descargar = cerca de puertas)
+        // Sin orden explícito: más pesado a puertas → reduce W2 (eje drive) al alejar el CG del king pin
+        var pesoPorDestino = stacksPorDestino.ToDictionary(
+            kv => kv.Key,
+            kv => kv.Value.Sum(s => s.Piso.PesoTotalKg + (s.Encima?.PesoTotalKg ?? 0)));
+
         List<string> ordenFinal = ordenDescarga?.Where(d => destinosConPallets.Contains(d,
                 StringComparer.OrdinalIgnoreCase)).ToList()
-            ?? destinosConPallets.OrderBy(d => d).ToList();
+            ?? destinosConPallets.OrderByDescending(d => pesoPorDestino.GetValueOrDefault(d)).ToList();
 
         foreach (var d in destinosConPallets.Where(d =>
             !ordenFinal.Any(o => string.Equals(o, d, StringComparison.OrdinalIgnoreCase))))
