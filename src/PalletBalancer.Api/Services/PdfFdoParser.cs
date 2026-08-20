@@ -6,8 +6,8 @@ namespace PalletBalancer.Api.Services;
 
 public static class PdfFdoParser
 {
-    // K006T91071XB (1L+3D+1L+5D+2L) | A003TV6981BC / M009TA0579ZX (1L+3D+2L+4D+2L)
-    private static readonly Regex ModeloRegex = new(@"\b[A-Z]\d{3}(?:[A-Z]\d{5}|[A-Z]{2}\d{4})[A-Z]{2}\b");
+    // K006T91071XB (1L+3D+1L+5D+2L) | A003TV6981BC / M009TA0579ZX (1L+3D+2L+4D+2L) | W013F504BX (1L+3D+1L+3D+2L)
+    private static readonly Regex ModeloRegex = new(@"\b[A-Z]\d{3}(?:[A-Z]\d{5}|[A-Z]{2}\d{4}|[A-Z]\d{3})[A-Z]{2}\b");
 
     public static FdoImportadoDto Parsear(Stream pdfStream)
     {
