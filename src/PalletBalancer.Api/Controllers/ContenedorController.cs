@@ -100,11 +100,18 @@ public class ContenedorController : ControllerBase
         var orden = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
             { ["20ft"]=0, ["40ft"]=1, ["40ft HC"]=2, ["45ft HC"]=3, ["53ft"]=4 };
 
-        return Ok(resultados
-            .OrderBy(r => r.Viable ? 0 : 1)
-            .ThenBy(r => orden.GetValueOrDefault(r.Contenedor, 9))
+        var viables = resultados
+            .Where(r => r.Viable)
+            .OrderBy(r => orden.GetValueOrDefault(r.Contenedor, 9))
             .ThenBy(r => r.GVWKg)
-            .ToList());
+            .ToList();
+
+        // Si ninguna combinación es viable, devolver todas para que el usuario vea el motivo
+        var salida = viables.Count > 0 ? viables : resultados
+            .OrderBy(r => orden.GetValueOrDefault(r.Contenedor, 9))
+            .ToList();
+
+        return Ok(salida);
     }
 
     private async Task CargarItemsEnFdos(List<Fdo> fdos)
