@@ -20,12 +20,27 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var rawConnection = Environment.GetEnvironmentVariable("DATABASE_URL")
+                 ?? Environment.GetEnvironmentVariable("DATABASE_PRIVATE_URL")
+                 ?? Environment.GetEnvironmentVariable("POSTGRES_URL")
                  ?? builder.Configuration.GetConnectionString("Default")
                  ?? "";
 
-var connectionString = rawConnection.StartsWith("postgresql://") || rawConnection.StartsWith("postgres://")
-    ? ConvertirUrlAConexion(rawConnection)
-    : rawConnection;
+// Normalizar: quitar espacios y comillas accidentales del env var
+rawConnection = rawConnection.Trim().Trim('"', '\'');
+
+string connectionString;
+try
+{
+    connectionString = rawConnection.StartsWith("postgresql://") || rawConnection.StartsWith("postgres://")
+        ? ConvertirUrlAConexion(rawConnection)
+        : rawConnection;
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"⚠ Error parseando DATABASE_URL: {ex.Message}");
+    Console.WriteLine($"⚠ Longitud={rawConnection.Length}, prefijo='{(rawConnection.Length > 20 ? rawConnection[..20] : rawConnection)}'");
+    connectionString = rawConnection;
+}
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
@@ -72,13 +87,22 @@ app.UseSwaggerUI();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapGet("/health", () => Results.Ok(new { status = "ok", version = "v4" }));
+app.MapGet("/health", () => Results.Ok(new { status = "ok", version = "v5" }));
 
 app.MapGet("/debug/env", () =>
 {
-    var raw = Environment.GetEnvironmentVariable("DATABASE_URL") ?? "(no DATABASE_URL)";
-    var preview = raw.Length > 30 ? raw[..30] + "..." : raw;
-    return Results.Ok(new { DATABASE_URL_preview = preview, longitud = raw.Length });
+    var db  = Environment.GetEnvironmentVariable("DATABASE_URL");
+    var dbp = Environment.GetEnvironmentVariable("DATABASE_PRIVATE_URL");
+    var pg  = Environment.GetEnvironmentVariable("POSTGRES_URL");
+    static string Preview(string? v) =>
+        string.IsNullOrEmpty(v) ? "(no set)"
+        : $"len={v.Length}, prefijo='{(v.Length > 20 ? v[..20] : v)}...'";
+    return Results.Ok(new
+    {
+        DATABASE_URL         = Preview(db),
+        DATABASE_PRIVATE_URL = Preview(dbp),
+        POSTGRES_URL         = Preview(pg),
+    });
 });
 
 app.MapGet("/debug/db", async (AppDbContext db) =>

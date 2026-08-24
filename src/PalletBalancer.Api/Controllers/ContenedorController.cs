@@ -58,7 +58,7 @@ public class ContenedorController : ControllerBase
         if (fdos.Count == 0) return NotFound();
         await CargarItemsEnFdos(fdos);
 
-        string[] contenedores   = ["20ft", "40ft", "40ft HC", "45ft HC", "53ft"];
+        string[] contenedores   = ["20ft", "40ft", "40ft HC", "45ft HC", "53ft", "53ft Dry Van"];
         string[] tractocamiones = ["T3-S2 Estándar", "T3-S2 Cabina Larga", "T3-S2 Day Cab"];
 
         var resultados = new List<RecomendacionItemDto>();
@@ -98,7 +98,7 @@ public class ContenedorController : ControllerBase
         }
 
         var orden = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
-            { ["20ft"]=0, ["40ft"]=1, ["40ft HC"]=2, ["45ft HC"]=3, ["53ft"]=4 };
+            { ["20ft"]=0, ["40ft"]=1, ["40ft HC"]=2, ["45ft HC"]=3, ["53ft"]=4, ["53ft Dry Van"]=5 };
 
         var viables = resultados
             .Where(r => r.Viable)
