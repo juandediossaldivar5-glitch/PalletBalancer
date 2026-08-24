@@ -1025,46 +1025,50 @@
           <div style="font-size:0.65rem;color:var(--muted);margin-bottom:0.8rem">
             Rango: mínimo (tanque vacío) → máximo (tanque lleno + conductor). Margen seguridad: <span x-text="contenedor.margenSeguridadPct?.toFixed(0)"></span>%
           </div>
-          <div style="display:grid;gap:0.85rem">
+          <div style="font-size:0.62rem;color:var(--muted);margin-bottom:0.55rem;line-height:1.4">
+            Cada eje se evalúa dos veces: <strong>Mx (T3-S2)</strong> vs NOM-012, y <strong>Frontera (US Class 8)</strong> vs FHWA.
+            El remolque (Wr) es igual en ambos porque no depende del tractor.
+          </div>
+          <div style="display:grid;gap:1.1rem">
             <template x-for="eje in [
-              {label:'Eje delantero (steer)',        kgMin: contenedor.pesoEjeDelanteroMinKg, kgMax: contenedor.pesoEjeDelanteroMaxKg, eF: contenedor.estadoFhwaW1, eN: contenedor.estadoNomW1,  fhwa: 5443,  nom: 6000},
-              {label:'Eje tractor (drive tándem)',   kgMin: contenedor.pesoEjeTractorMinKg,   kgMax: contenedor.pesoEjeTractorMaxKg,   eF: contenedor.estadoFhwaW2, eN: contenedor.estadoNomW2,  fhwa: 15422, nom: 16000},
-              {label:'Eje remolque (trailer tándem)',kgMin: contenedor.pesoEjeRemolqueKg,     kgMax: contenedor.pesoEjeRemolqueKg,     eF: contenedor.estadoFhwaWr, eN: contenedor.estadoNomWr,  fhwa: 15422, nom: 16000},
-              {label:'GVW total',                    kgMin: contenedor.pesoTotalGVWMinKg,     kgMax: contenedor.pesoTotalGVWMaxKg,     eF: contenedor.estadoFhwaW2, eN: contenedor.estadoNomW2,  fhwa: 36287, nom: 40500}
+              {label:'Eje delantero (steer)',        kgMin: contenedor.pesoEjeDelanteroMinKg, kgMax: contenedor.pesoEjeDelanteroMaxKg, kgUsMin: contenedor.pesoEjeDelanteroUsMinKg, kgUsMax: contenedor.pesoEjeDelanteroUsMaxKg, eF: contenedor.estadoFhwaW1, eN: contenedor.estadoNomW1,  fhwa: 5443,  nom: 8000},
+              {label:'Eje tractor (drive tándem)',   kgMin: contenedor.pesoEjeTractorMinKg,   kgMax: contenedor.pesoEjeTractorMaxKg,   kgUsMin: contenedor.pesoEjeTractorUsMinKg,   kgUsMax: contenedor.pesoEjeTractorUsMaxKg,   eF: contenedor.estadoFhwaW2, eN: contenedor.estadoNomW2,  fhwa: 15422, nom: 18000},
+              {label:'Eje remolque (trailer tándem)',kgMin: contenedor.pesoEjeRemolqueKg,     kgMax: contenedor.pesoEjeRemolqueKg,     kgUsMin: contenedor.pesoEjeRemolqueKg,       kgUsMax: contenedor.pesoEjeRemolqueKg,       eF: contenedor.estadoFhwaWr, eN: contenedor.estadoNomWr,  fhwa: 15422, nom: 18000},
+              {label:'GVW total',                    kgMin: contenedor.pesoTotalGVWMinKg,     kgMax: contenedor.pesoTotalGVWMaxKg,     kgUsMin: contenedor.pesoTotalGVWUsMinKg,     kgUsMax: contenedor.pesoTotalGVWUsMaxKg,     eF: contenedor.estadoFhwaW2, eN: contenedor.estadoNomW2,  fhwa: 36287, nom: 48000}
             ]" :key="eje.label">
               <div>
-                <!-- Label + badges de estado -->
-                <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.3rem">
-                  <span style="font-size:0.75rem;color:var(--muted);flex:1" x-text="eje.label"></span>
-                  <!-- Badge FHWA -->
-                  <span style="font-size:0.62rem;font-weight:700;padding:1px 5px;border-radius:3px;white-space:nowrap"
-                        :style="'background:' + (eje.eF==='Seguro'?'#d5f5e3':eje.eF==='Condicional'?'#fef9e7':'#fdecea') + ';color:' + (eje.eF==='Seguro'?'#1a7a3a':eje.eF==='Condicional'?'#9a6e00':'#c0392b')"
-                        x-text="(eje.eF==='Seguro'?'✓':eje.eF==='Condicional'?'⚠':'✗') + ' FHWA'"></span>
-                  <!-- Badge NOM -->
-                  <span style="font-size:0.62rem;font-weight:700;padding:1px 5px;border-radius:3px;white-space:nowrap"
+                <div style="font-size:0.78rem;font-weight:600;color:var(--text);margin-bottom:0.4rem" x-text="eje.label"></div>
+
+                <!-- Fila Mx / NOM -->
+                <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.68rem;margin-bottom:0.25rem">
+                  <span style="width:70px;color:var(--muted)">🇲🇽 Mx</span>
+                  <span style="flex:1;font-weight:600" x-text="(eje.kgMin??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + '–' + (eje.kgMax??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + ' kg'"></span>
+                  <span style="color:var(--muted)">NOM lím. <strong x-text="eje.nom.toLocaleString('es-MX')"></strong></span>
+                  <span style="font-size:0.62rem;font-weight:700;padding:1px 5px;border-radius:3px;white-space:nowrap;min-width:78px;text-align:center"
                         :style="'background:' + (eje.eN==='Seguro'?'#d5f5e3':eje.eN==='Condicional'?'#fef9e7':'#fdecea') + ';color:' + (eje.eN==='Seguro'?'#1a7a3a':eje.eN==='Condicional'?'#9a6e00':'#c0392b')"
-                        x-text="(eje.eN==='Seguro'?'✓':eje.eN==='Condicional'?'⚠':'✗') + ' NOM'"></span>
+                        x-text="(eje.eN==='Seguro'?'✓ ':eje.eN==='Condicional'?'⚠ ':'✗ ') + eje.eN"></span>
                 </div>
-                <!-- Barra de rango -->
-                <div class="balance-bar-wrap" style="position:relative;height:10px">
-                  <!-- Relleno hasta kgMax -->
+                <div class="balance-bar-wrap" style="position:relative;height:8px;margin-bottom:0.45rem">
                   <div class="balance-bar-fill" style="position:absolute;top:0;left:0;height:100%;border-radius:4px"
-                       :style="'width:' + Math.min((eje.kgMax??0) / eje.fhwa * 100, 100) + '%;background:' +
+                       :style="'width:' + Math.min((eje.kgMax??0) / eje.nom * 100, 100) + '%;background:' +
+                               (eje.eN==='Seguro'?'#4dd884':eje.eN==='Condicional'?'#f5a623':'#e54c4c')">
+                  </div>
+                </div>
+
+                <!-- Fila US / FHWA -->
+                <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.68rem;margin-bottom:0.25rem">
+                  <span style="width:70px;color:var(--muted)">🇺🇸 Frontera</span>
+                  <span style="flex:1;font-weight:600" x-text="(eje.kgUsMin??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + '–' + (eje.kgUsMax??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + ' kg'"></span>
+                  <span style="color:var(--muted)">FHWA lím. <strong x-text="eje.fhwa.toLocaleString('es-MX')"></strong></span>
+                  <span style="font-size:0.62rem;font-weight:700;padding:1px 5px;border-radius:3px;white-space:nowrap;min-width:78px;text-align:center"
+                        :style="'background:' + (eje.eF==='Seguro'?'#d5f5e3':eje.eF==='Condicional'?'#fef9e7':'#fdecea') + ';color:' + (eje.eF==='Seguro'?'#1a7a3a':eje.eF==='Condicional'?'#9a6e00':'#c0392b')"
+                        x-text="(eje.eF==='Seguro'?'✓ ':eje.eF==='Condicional'?'⚠ ':'✗ ') + eje.eF"></span>
+                </div>
+                <div class="balance-bar-wrap" style="position:relative;height:8px">
+                  <div class="balance-bar-fill" style="position:absolute;top:0;left:0;height:100%;border-radius:4px"
+                       :style="'width:' + Math.min((eje.kgUsMax??0) / eje.fhwa * 100, 100) + '%;background:' +
                                (eje.eF==='Seguro'?'#4dd884':eje.eF==='Condicional'?'#f5a623':'#e54c4c')">
                   </div>
-                  <!-- Marcador inicio del rango (kgMin) -->
-                  <div style="position:absolute;top:0;height:100%;width:2px;background:rgba(0,0,0,0.35);border-radius:1px"
-                       :style="'left:' + Math.min((eje.kgMin??0) / eje.fhwa * 100, 100) + '%'">
-                  </div>
-                  <!-- Línea del límite FHWA -->
-                  <div style="position:absolute;top:-2px;height:calc(100% + 4px);width:2px;background:#cc3300;opacity:0.7"
-                       style="left:100%"></div>
-                </div>
-                <!-- Valores -->
-                <div style="display:flex;justify-content:space-between;margin-top:0.2rem;font-size:0.7rem">
-                  <span style="color:var(--muted)"
-                        x-text="(eje.kgMin??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + ' – ' + (eje.kgMax??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + ' kg'"></span>
-                  <span style="color:var(--muted)">lím. FHWA <strong x-text="eje.fhwa.toLocaleString('es-MX')"></strong> / NOM <strong x-text="eje.nom.toLocaleString('es-MX')"></strong></span>
                 </div>
               </div>
             </template>

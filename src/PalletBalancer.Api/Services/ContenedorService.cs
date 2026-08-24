@@ -275,6 +275,13 @@ public class ContenedorService
             EstadoFhwaW2           = estFhwaW2,
             EstadoFhwaWr           = estFhwaWr,
             MargenSeguridadPct     = MARGEN_SEGURIDAD * 100,
+            // Ejes evaluados con US Class 8 (frontera)
+            PesoEjeDelanteroUsMinKg = ejesUs.w1Min,
+            PesoEjeDelanteroUsMaxKg = ejesUs.w1Max,
+            PesoEjeTractorUsMinKg   = ejesUs.w2Min,
+            PesoEjeTractorUsMaxKg   = ejesUs.w2Max,
+            PesoTotalGVWUsMinKg     = ejesUs.gvwMin,
+            PesoTotalGVWUsMaxKg     = ejesUs.gvwMax,
         };
     }
 
