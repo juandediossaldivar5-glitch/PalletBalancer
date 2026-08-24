@@ -200,15 +200,21 @@ public class ContenedorService
             advertencias.Add($"Dos tarimas lado a lado ({palletAncho * 2} cm) exceden el ancho interior del contenedor {spec.Tipo} ({spec.AnchoCm} cm).");
 
         // Cálculo de ejes con rango (RF-08)
+        // NOM-012 se evalúa con el tractor seleccionado (T3-S2 mexicano)
+        // FHWA se evalúa con US Class 8 (drayage en frontera EE.UU.) — mismo remolque, otro tractor
         var ejes = CalcularEjes(posiciones, palletLargo, spec, trac);
+        var tracUs = TractocamionSpecs.Get("US Class 8 Day Cab");
+        var ejesUs = trac.Tipo == tracUs.Tipo
+            ? ejes
+            : CalcularEjes(posiciones, palletLargo, spec, tracUs);
 
-        // Estado de cumplimiento por eje y norma
-        var estNomW1  = EstadoCumplimiento(ejes.w1Min, ejes.w1Max, NOM_W1);
-        var estNomW2  = EstadoCumplimiento(ejes.w2Min, ejes.w2Max, NOM_W2);
-        var estNomWr  = EstadoCumplimiento(ejes.wr,    ejes.wr,    NOM_Wr);
-        var estFhwaW1 = EstadoCumplimiento(ejes.w1Min, ejes.w1Max, FHWA_W1);
-        var estFhwaW2 = EstadoCumplimiento(ejes.w2Min, ejes.w2Max, FHWA_W2);
-        var estFhwaWr = EstadoCumplimiento(ejes.wr,    ejes.wr,    FHWA_Wr);
+        // Estado de cumplimiento por eje y norma (cada uno con su tractor correspondiente)
+        var estNomW1  = EstadoCumplimiento(ejes.w1Min,   ejes.w1Max,   NOM_W1);
+        var estNomW2  = EstadoCumplimiento(ejes.w2Min,   ejes.w2Max,   NOM_W2);
+        var estNomWr  = EstadoCumplimiento(ejes.wr,      ejes.wr,      NOM_Wr);
+        var estFhwaW1 = EstadoCumplimiento(ejesUs.w1Min, ejesUs.w1Max, FHWA_W1);
+        var estFhwaW2 = EstadoCumplimiento(ejesUs.w2Min, ejesUs.w2Max, FHWA_W2);
+        var estFhwaWr = EstadoCumplimiento(ejesUs.wr,    ejesUs.wr,    FHWA_Wr);
 
         // Advertencias: Falla bloqueante, Condicional como alerta
         void WarnEje(string estado, string eje, double max, double lim, string norma)
@@ -219,10 +225,10 @@ public class ContenedorService
                 advertencias.Add($"⚠ {eje} CONDICIONAL — puede exceder {norma} ({lim:N0} kg) con tanque lleno (máx. {max:N0} kg).");
         }
 
-        WarnEje(estFhwaW1, "Eje delantero", ejes.w1Max, FHWA_W1, "FHWA");
-        WarnEje(estFhwaW2, "Eje tractor",   ejes.w2Max, FHWA_W2, "FHWA");
-        WarnEje(estFhwaWr, "Eje remolque",  ejes.wr,    FHWA_Wr, "FHWA");
-        if (ejes.gvwMax > FHWA_GVW) advertencias.Add($"GVW máx. posible ({ejes.gvwMax:N0} kg) excede FHWA ({FHWA_GVW:N0} kg).");
+        WarnEje(estFhwaW1, "Eje delantero", ejesUs.w1Max, FHWA_W1, "FHWA");
+        WarnEje(estFhwaW2, "Eje tractor",   ejesUs.w2Max, FHWA_W2, "FHWA");
+        WarnEje(estFhwaWr, "Eje remolque",  ejesUs.wr,    FHWA_Wr, "FHWA");
+        if (ejesUs.gvwMax > FHWA_GVW) advertencias.Add($"GVW máx. posible ({ejesUs.gvwMax:N0} kg) excede FHWA ({FHWA_GVW:N0} kg).");
         WarnEje(estNomW1,  "Eje delantero", ejes.w1Max, NOM_W1,  "NOM-012");
         WarnEje(estNomW2,  "Eje tractor",   ejes.w2Max, NOM_W2,  "NOM-012");
         WarnEje(estNomWr,  "Eje remolque",  ejes.wr,    NOM_Wr,  "NOM-012");
