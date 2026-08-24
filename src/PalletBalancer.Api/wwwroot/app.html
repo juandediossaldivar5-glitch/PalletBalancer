@@ -1152,7 +1152,7 @@
                     <div class="cont-cell ocupada"
                          :style="'background:' + palletColor(posicionEn(fila,'Izquierdo')) + '22;border-color:' + palletColor(posicionEn(fila,'Izquierdo')) + '99'">
                       <template x-if="posicion2En(fila,'Izquierdo')">
-                        <span class="cs">×2 ESTIB.</span>
+                        <span class="cs" style="color:#f5a623;font-weight:800">▲ 2 EN ESTIBA</span>
                       </template>
                       <template x-if="!posicionEn(fila,'Izquierdo').apilable">
                         <span class="cs" style="color:rgba(255,100,100,0.8)">NO APILAR</span>
@@ -1171,7 +1171,7 @@
                     <div class="cont-cell ocupada"
                          :style="'background:' + palletColor(posicionEn(fila,'Derecho')) + '22;border-color:' + palletColor(posicionEn(fila,'Derecho')) + '99'">
                       <template x-if="posicion2En(fila,'Derecho')">
-                        <span class="cs">×2 ESTIB.</span>
+                        <span class="cs" style="color:#f5a623;font-weight:800">▲ 2 EN ESTIBA</span>
                       </template>
                       <template x-if="!posicionEn(fila,'Derecho').apilable">
                         <span class="cs" style="color:rgba(255,100,100,0.8)">NO APILAR</span>
@@ -2036,6 +2036,14 @@ function app() {
           }
           pallets += `<clipPath id="${clipId}"><rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}"/></clipPath>`;
           pallets += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="${color}${fPl}" stroke="${color}${sPl}" stroke-width="1.5" rx="3"/>`;
+          // Badge de capa en esquina superior izquierda: ▲ = encima (C2), ▼ = piso (C1)
+          const badgeCol = capa === 2 ? '#c05000' : '#1a7a3a';
+          const badgeSym = capa === 2 ? '▲' : '▼';
+          const bSize = Math.min(fzMod * 1.3, w * 0.28, h * 0.4);
+          if (bSize >= 8) {
+            pallets += `<rect x="${(x+1).toFixed(1)}" y="${(y+1).toFixed(1)}" width="${bSize.toFixed(1)}" height="${bSize.toFixed(1)}" rx="2" fill="${badgeCol}" opacity="0.92"/>`;
+            pallets += `<text x="${(x+1+bSize/2).toFixed(1)}" y="${(y+1+bSize*0.78).toFixed(1)}" text-anchor="middle" font-size="${(bSize*0.75).toFixed(1)}" font-weight="900" fill="white">${badgeSym}</text>`;
+          }
           const caseLabel = forPrint ? (caseLookup[`${f}_${capa}`] ?? '') : '';
           const isPlaceholder = caseLabel.startsWith('CASE00XXXXX');
           const fzCase = forPrint ? (halfHeight ? 7 : 9) : 0;
