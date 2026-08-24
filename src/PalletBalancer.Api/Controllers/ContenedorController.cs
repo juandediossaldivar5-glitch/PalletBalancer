@@ -67,15 +67,21 @@ public class ContenedorController : ControllerBase
         {
             foreach (var trac in tractocamiones)
             {
+                // Lado Mx: T3-S2 seleccionado → checar NOM-012
                 var r = new ContenedorService().Calcular(fdos, null, cont, trac);
+                // Lado US: mismo contenedor + US Class 8 → checar FHWA (drayage en frontera)
+                var rUs = new ContenedorService().Calcular(fdos, null, cont, "US Class 8 Day Cab");
 
                 var problemas = new List<string>();
                 if (r.Advertencias.Any(a => a.Contains("posiciones")))
                     problemas.Add("La carga no cabe en el contenedor.");
-                // Solo fallos NOM-012 y exceso de payload descalifican.
-                // FHWA aplica al truck americano (distinto vehículo) → queda informativo, no bloquea.
+                // NOM-012 (T3-S2 en México) — Falla descalifica
                 problemas.AddRange(r.Advertencias
                     .Where(a => (a.Contains("⛔") && a.Contains("NOM-012")) || a.Contains("capacidad de carga")));
+                // FHWA (US Class 8 en frontera) — Falla descalifica, se marca como US
+                problemas.AddRange(rUs.Advertencias
+                    .Where(a => a.Contains("⛔") && a.Contains("FHWA"))
+                    .Select(a => a.Replace("⛔", "⛔ [US]")));
 
                 int filasUsadas = r.Destinos.Count > 0
                     ? r.Destinos.Max(d => d.FilaFin) : 0;
