@@ -272,14 +272,14 @@ public class ContenedorService
         };
     }
 
-    // "Seguro"      → W_max ≤ límite × (1 − margen)  — no fallará bajo ninguna condición razonable
-    // "Condicional" → W_min ≤ límite × (1 − margen) < W_max  — depende del nivel de combustible
-    // "Falla"       → W_min > límite × (1 − margen)  — falla incluso en el mejor escenario
+    // "Seguro"      → W_max ≤ límite × (1 − margen)  — margen completo, no fallará ni con incertidumbre
+    // "Condicional" → dentro del margen pero W_min ≤ límite legal  — al límite, puede pasar
+    // "Falla"       → W_min > límite legal  — falla incluso en el mejor escenario
     private static string EstadoCumplimiento(double min, double max, double limite)
     {
         double limEfectivo = limite * (1 - MARGEN_SEGURIDAD);
         if (max <= limEfectivo) return "Seguro";
-        if (min <= limEfectivo) return "Condicional";
+        if (min <= limite)      return "Condicional";
         return "Falla";
     }
 
