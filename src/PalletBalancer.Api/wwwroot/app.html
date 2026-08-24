@@ -395,6 +395,7 @@
     .print-only { display:none; }
     @media print {
       * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+      html { background:white !important; }
       body { background:white !important; color:#111 !important; font-family:'Segoe UI',sans-serif; margin:0; padding:0; }
       .no-print { display:none !important; }
       .print-only { display:block !important; }
@@ -1859,7 +1860,7 @@ function app() {
       const en1 = this.contenedor.estadoNomW1??'Seguro';
       const en2 = this.contenedor.estadoNomW2??'Seguro';
       const enr = this.contenedor.estadoNomWr??'Seguro';
-      return `<svg viewBox="0 0 720 248" xmlns="http://www.w3.org/2000/svg" style="width:100%;font-family:'Segoe UI',sans-serif">
+      return `<svg viewBox="0 -14 720 262" xmlns="http://www.w3.org/2000/svg" style="width:100%;font-family:'Segoe UI',sans-serif">
         <!-- Chasis -->
         <rect x="18" y="77" width="662" height="7" rx="2" fill="#aaa" stroke="#777" stroke-width="1"/>
         <!-- Contenedor -->
@@ -2019,10 +2020,10 @@ function app() {
           const x = xBase + (cellW - w) / 2;
           const y = yBase - h;
           const color = this.palletColor(p);
-          // Print: VW=740 ≈ 1pt/unit (landscape full-width); font-size 16 ≈ 16pt legible
-          const fzMod = forPrint ? 16 : 13;
-          const fzSub = forPrint ? 12 : 11;
-          const fzKg2 = forPrint ? 10 : 10;
+          // Print: VW=740 ≈ 1pt/unit (landscape full-width); font-size ajustado para no desbordar celda
+          const fzMod = forPrint ? 13 : 11;
+          const fzSub = forPrint ? 10 : 10;
+          const fzKg2 = forPrint ? 9  : 9;
           const minHtag = fzMod * 1.6;
           const minHqty = fzMod * 3.4;
           const minHkg  = fzMod * 2.4;
@@ -2498,14 +2499,16 @@ function app() {
 
     <!-- Plan de carga por posición -->
     <div class="pr-sub">Plan de Carga por Posición</div>
-    <div style="font-size:6.5pt;color:#555;margin-bottom:5pt">
-      ▲ = Capa 2 (encima) · ▼ = Capa 1 (piso) · □ = verificación operador
+    <div style="font-size:7pt;color:#555;margin-bottom:5pt">
+      <span style="color:#1a7a3a;font-weight:800">▼ PISO</span> = Capa 1 (contra el suelo) ·
+      <span style="color:#c05000;font-weight:800">▲ ENCIMA</span> = Capa 2 (estibada arriba) ·
+      □ = casilla de verificación operador
     </div>
     <table class="pr-table">
       <thead>
         <tr>
           <th style="width:22pt">Fila</th>
-          <th style="width:18pt">Capa</th>
+          <th style="width:26pt">Capa</th>
           <th style="width:10pt"></th>
           <th>Lado Izquierdo — Modelo / Piezas / Peso</th>
           <th style="width:10pt"></th>
@@ -2517,9 +2520,9 @@ function app() {
       <tbody>
         <template x-for="fila in (contenedor?.filasDisponibles || 26)" :key="fila">
           <template x-if="posicionEn(fila,'Izquierdo') || posicionEn(fila,'Derecho')">
-            <tr :style="posicion2En(fila,'Izquierdo') || posicion2En(fila,'Derecho') ? 'border-bottom:none' : ''">
+            <tr :style="posicion2En(fila,'Izquierdo') || posicion2En(fila,'Derecho') ? 'border-bottom:none;background:#eaf6ec' : 'background:#eaf6ec'">
               <td style="text-align:center;font-weight:700" :rowspan="(posicion2En(fila,'Izquierdo') || posicion2En(fila,'Derecho')) ? 2 : 1" x-text="fila"></td>
-              <td style="text-align:center;font-size:6pt;color:#888">▼ C1</td>
+              <td style="text-align:center;font-size:9pt;color:#1a7a3a;font-weight:800">▼ PISO</td>
               <td style="text-align:center">
                 <template x-if="posicionEn(fila,'Izquierdo')">
                   <span :style="'display:inline-block;width:9pt;height:9pt;border-radius:2pt;border:1.5pt solid;background:' + palletColor(posicionEn(fila,'Izquierdo')) + '40;border-color:' + palletColor(posicionEn(fila,'Izquierdo'))"></span>
@@ -2527,7 +2530,7 @@ function app() {
               </td>
               <td>
                 <template x-if="posicionEn(fila,'Izquierdo')">
-                  <span x-text="posicionEn(fila,'Izquierdo').modelNo + ' · ' + posicionEn(fila,'Izquierdo').piezas + ' pzs · ' + posicionEn(fila,'Izquierdo').pesoKg.toFixed(1) + ' kg' + (!posicionEn(fila,'Izquierdo').apilable ? ' [NO APILAR]' : posicionEn(fila,'Izquierdo').esParcial ? ' [PARCIAL]' : '')"></span>
+                  <span x-text="'▼ ' + posicionEn(fila,'Izquierdo').modelNo + ' · ' + posicionEn(fila,'Izquierdo').piezas + ' pzs · ' + posicionEn(fila,'Izquierdo').pesoKg.toFixed(1) + ' kg' + (!posicionEn(fila,'Izquierdo').apilable ? ' [NO APILAR]' : posicionEn(fila,'Izquierdo').esParcial ? ' [PARCIAL]' : '')"></span>
                 </template>
               </td>
               <td style="text-align:center">
@@ -2537,7 +2540,7 @@ function app() {
               </td>
               <td>
                 <template x-if="posicionEn(fila,'Derecho')">
-                  <span x-text="posicionEn(fila,'Derecho').modelNo + ' · ' + posicionEn(fila,'Derecho').piezas + ' pzs · ' + posicionEn(fila,'Derecho').pesoKg.toFixed(1) + ' kg' + (!posicionEn(fila,'Derecho').apilable ? ' [NO APILAR]' : posicionEn(fila,'Derecho').esParcial ? ' [PARCIAL]' : '')"></span>
+                  <span x-text="'▼ ' + posicionEn(fila,'Derecho').modelNo + ' · ' + posicionEn(fila,'Derecho').piezas + ' pzs · ' + posicionEn(fila,'Derecho').pesoKg.toFixed(1) + ' kg' + (!posicionEn(fila,'Derecho').apilable ? ' [NO APILAR]' : posicionEn(fila,'Derecho').esParcial ? ' [PARCIAL]' : '')"></span>
                 </template>
               </td>
               <td style="text-align:center;font-size:10pt;color:#bbb">☐</td>
@@ -2545,8 +2548,8 @@ function app() {
             </tr>
           </template>
           <template x-if="posicion2En(fila,'Izquierdo') || posicion2En(fila,'Derecho')">
-            <tr style="background:#f0f4ff">
-              <td style="text-align:center;font-size:6pt;color:#3355aa;font-weight:700">▲ C2</td>
+            <tr style="background:#ffe8d0">
+              <td style="text-align:center;font-size:9pt;color:#c05000;font-weight:800">▲ ENCIMA</td>
               <td style="text-align:center">
                 <template x-if="posicion2En(fila,'Izquierdo')">
                   <span :style="'display:inline-block;width:9pt;height:9pt;border-radius:2pt;border:1.5pt solid;background:' + palletColor(posicion2En(fila,'Izquierdo')) + '40;border-color:' + palletColor(posicion2En(fila,'Izquierdo'))"></span>
@@ -2554,7 +2557,7 @@ function app() {
               </td>
               <td>
                 <template x-if="posicion2En(fila,'Izquierdo')">
-                  <span style="color:#3355aa" x-text="'▲ ' + posicion2En(fila,'Izquierdo').modelNo + ' · ' + posicion2En(fila,'Izquierdo').piezas + ' pzs · ' + posicion2En(fila,'Izquierdo').pesoKg.toFixed(1) + ' kg' + (!posicion2En(fila,'Izquierdo').apilable ? ' [NO APILAR]' : posicion2En(fila,'Izquierdo').esParcial ? ' [PARCIAL]' : '')"></span>
+                  <span style="color:#c05000;font-weight:600" x-text="'▲ ' + posicion2En(fila,'Izquierdo').modelNo + ' · ' + posicion2En(fila,'Izquierdo').piezas + ' pzs · ' + posicion2En(fila,'Izquierdo').pesoKg.toFixed(1) + ' kg' + (!posicion2En(fila,'Izquierdo').apilable ? ' [NO APILAR]' : posicion2En(fila,'Izquierdo').esParcial ? ' [PARCIAL]' : '')"></span>
                 </template>
               </td>
               <td style="text-align:center">
@@ -2564,7 +2567,7 @@ function app() {
               </td>
               <td>
                 <template x-if="posicion2En(fila,'Derecho')">
-                  <span style="color:#3355aa" x-text="'▲ ' + posicion2En(fila,'Derecho').modelNo + ' · ' + posicion2En(fila,'Derecho').piezas + ' pzs · ' + posicion2En(fila,'Derecho').pesoKg.toFixed(1) + ' kg' + (!posicion2En(fila,'Derecho').apilable ? ' [NO APILAR]' : posicion2En(fila,'Derecho').esParcial ? ' [PARCIAL]' : '')"></span>
+                  <span style="color:#c05000;font-weight:600" x-text="'▲ ' + posicion2En(fila,'Derecho').modelNo + ' · ' + posicion2En(fila,'Derecho').piezas + ' pzs · ' + posicion2En(fila,'Derecho').pesoKg.toFixed(1) + ' kg' + (!posicion2En(fila,'Derecho').apilable ? ' [NO APILAR]' : posicion2En(fila,'Derecho').esParcial ? ' [PARCIAL]' : '')"></span>
                 </template>
               </td>
               <td style="text-align:center;font-size:10pt;color:#bbb">☐</td>
