@@ -440,6 +440,18 @@
       .pr-warn { background:#fff8dc;border:0.5pt solid #e6a817;padding:4pt 6pt;
                  border-radius:3pt;font-size:7.5pt;margin-bottom:5pt; }
       .pr-truck { margin:8pt 0 6pt;border:0.5pt solid #ccc;border-radius:4pt;padding:8pt;background:#fafbfd; }
+      /* Vista de arriba (top-down) para impresión */
+      .pr-topdown { width:100%;border-collapse:separate;border-spacing:2pt 1pt;margin:4pt 0 8pt;table-layout:fixed; }
+      .pr-topdown th { background:#1a3a6b;color:white;font-size:6.5pt;padding:2pt;text-align:center;border-radius:2pt; }
+      .pr-topdown td { padding:0;vertical-align:middle;height:26pt; }
+      .pr-topdown .td-fila { text-align:center;font-weight:700;font-size:8pt;color:#333;background:#f0f0f0;width:22pt; }
+      .pr-topdown .td-cell { position:relative;padding:0;border:0.5pt solid #ccc;border-radius:3pt;overflow:hidden; }
+      .pr-topdown .td-cell.ocupada { border-width:1pt; }
+      .pr-topdown .encima { padding:1pt 4pt;font-size:6pt;font-weight:800;color:#c05000;background:rgba(245,166,35,0.18);border-bottom:0.75pt dashed rgba(192,80,0,0.55);display:flex;justify-content:space-between;line-height:1.1; }
+      .pr-topdown .piso   { padding:1pt 4pt;font-size:6.5pt;color:#111;line-height:1.15;display:flex;flex-direction:column;justify-content:center; }
+      .pr-topdown .piso .p-model { font-weight:700; }
+      .pr-topdown .piso .p-info  { font-size:5.5pt;color:#555; }
+      .pr-topdown .arrow-down { color:#1a7a3a;font-weight:800;font-size:7pt; }
       .pr-legend { display:flex;gap:14pt;margin:5pt 0 8pt;align-items:center;flex-wrap:wrap; }
       .pr-legend-item { display:flex;align-items:center;gap:4pt;font-size:7.5pt;color:#333; }
       .pr-legend-dot { width:11pt;height:11pt;border-radius:2pt;border:2pt solid;flex-shrink:0; }
@@ -982,20 +994,20 @@
           <div class="stat-card">
             <label><i class="bi bi-arrow-left-short"></i> Lado Izquierdo</label>
             <div class="val" style="color:#88c4ff"
-                 x-text="contenedor.pesoIzquierdoKg.toLocaleString('es-MX', {maximumFractionDigits:1}) + ' kg'"></div>
+                 x-text="fmtKgLb(contenedor.pesoIzquierdoKg, 1)"></div>
           </div>
           <div class="stat-card">
             <label><i class="bi bi-arrow-right-short"></i> Lado Derecho</label>
             <div class="val" style="color:#ffb06b"
-                 x-text="contenedor.pesoDerechoKg.toLocaleString('es-MX', {maximumFractionDigits:1}) + ' kg'"></div>
+                 x-text="fmtKgLb(contenedor.pesoDerechoKg, 1)"></div>
           </div>
           <div class="stat-card">
             <label><i class="bi bi-box-seam"></i> Peso Total</label>
             <div class="val" style="color:var(--text)"
-                 x-text="contenedor.pesoTotalKg.toLocaleString('es-MX', {maximumFractionDigits:1}) + ' kg'"></div>
+                 x-text="fmtKgLb(contenedor.pesoTotalKg, 1)"></div>
             <div style="font-size:0.65rem;color:var(--muted);margin-top:2px"
                  x-show="contenedor.tolerancePesoTotalKg > 0"
-                 x-text="'± ' + (contenedor.tolerancePesoTotalKg??0).toLocaleString('es-MX') + ' kg (tolerancia)'"></div>
+                 x-text="'± ' + (contenedor.tolerancePesoTotalKg??0).toLocaleString('es-MX') + ' kg / ± ' + toLb(contenedor.tolerancePesoTotalKg).toLocaleString('es-MX') + ' lb'"></div>
           </div>
           <div class="stat-card">
             <label><i class="bi bi-distribute-horizontal"></i> Balance L/R</label>
@@ -1046,8 +1058,8 @@
                 <!-- Fila Mx / NOM -->
                 <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.68rem;margin-bottom:0.25rem">
                   <span style="width:70px;color:var(--muted)">🇲🇽 Mx</span>
-                  <span style="flex:1;font-weight:600" x-text="(eje.kgMin??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + '–' + (eje.kgMax??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + ' kg'"></span>
-                  <span style="color:var(--muted)">NOM lím. <strong x-text="eje.nom.toLocaleString('es-MX')"></strong></span>
+                  <span style="flex:1;font-weight:600" x-text="(eje.kgMin??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + '–' + (eje.kgMax??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + ' kg  (' + toLb(eje.kgMin).toLocaleString('es-MX') + '–' + toLb(eje.kgMax).toLocaleString('es-MX') + ' lb)'"></span>
+                  <span style="color:var(--muted)">NOM lím. <strong x-text="eje.nom.toLocaleString('es-MX') + ' kg / ' + toLb(eje.nom).toLocaleString('es-MX') + ' lb'"></strong></span>
                   <span style="font-size:0.62rem;font-weight:700;padding:1px 5px;border-radius:3px;white-space:nowrap;min-width:78px;text-align:center"
                         :style="'background:' + (eje.eN==='Seguro'?'#d5f5e3':eje.eN==='Condicional'?'#fef9e7':'#fdecea') + ';color:' + (eje.eN==='Seguro'?'#1a7a3a':eje.eN==='Condicional'?'#9a6e00':'#c0392b')"
                         x-text="(eje.eN==='Seguro'?'✓ ':eje.eN==='Condicional'?'⚠ ':'✗ ') + eje.eN"></span>
@@ -1062,8 +1074,8 @@
                 <!-- Fila US / FHWA -->
                 <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.68rem;margin-bottom:0.25rem">
                   <span style="width:70px;color:var(--muted)">🇺🇸 Frontera</span>
-                  <span style="flex:1;font-weight:600" x-text="(eje.kgUsMin??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + '–' + (eje.kgUsMax??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + ' kg'"></span>
-                  <span style="color:var(--muted)">FHWA lím. <strong x-text="eje.fhwa.toLocaleString('es-MX')"></strong></span>
+                  <span style="flex:1;font-weight:600" x-text="(eje.kgUsMin??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + '–' + (eje.kgUsMax??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + ' kg  (' + toLb(eje.kgUsMin).toLocaleString('es-MX') + '–' + toLb(eje.kgUsMax).toLocaleString('es-MX') + ' lb)'"></span>
+                  <span style="color:var(--muted)">FHWA lím. <strong x-text="eje.fhwa.toLocaleString('es-MX') + ' kg / ' + toLb(eje.fhwa).toLocaleString('es-MX') + ' lb'"></strong></span>
                   <span style="font-size:0.62rem;font-weight:700;padding:1px 5px;border-radius:3px;white-space:nowrap;min-width:78px;text-align:center"
                         :style="'background:' + (eje.eF==='Seguro'?'#d5f5e3':eje.eF==='Condicional'?'#fef9e7':'#fdecea') + ';color:' + (eje.eF==='Seguro'?'#1a7a3a':eje.eF==='Condicional'?'#9a6e00':'#c0392b')"
                         x-text="(eje.eF==='Seguro'?'✓ ':eje.eF==='Condicional'?'⚠ ':'✗ ') + eje.eF"></span>
@@ -1609,6 +1621,16 @@ function app() {
       if (!p.apilable)  return '#dc3545';   // rojo  — no se puede estibar
       if (p.esParcial)  return '#ffc107';   // amarillo — pallet parcial
       return '#28a745';                      // verde — pallet completo
+    },
+
+    // Conversión kg → lb (1 kg = 2.20462 lb)
+    toLb(kg) {
+      return Math.round((kg ?? 0) * 2.20462);
+    },
+    fmtKgLb(kg, decimals = 0) {
+      const k = (kg ?? 0).toLocaleString('es-MX', {maximumFractionDigits: decimals});
+      const l = this.toLb(kg).toLocaleString('es-MX');
+      return `${k} kg / ${l} lb`;
     },
 
     posicionEn(fila, lado) {
@@ -2524,8 +2546,74 @@ function app() {
       </div>
     </div>
 
+    <!-- Vista de arriba (top-down) del contenedor -->
+    <div class="pr-sub">Vista desde Arriba — Distribución de Tarimas</div>
+    <div style="font-size:7pt;color:#555;margin-bottom:4pt">
+      <span style="color:#1a7a3a;font-weight:800">▼ PISO</span> = Capa 1 (contra el suelo) ·
+      <span style="color:#c05000;font-weight:800">▲ ENCIMA</span> = Capa 2 (estibada arriba) ·
+      Cabina ← Filas 1..N → Puertas
+    </div>
+    <table class="pr-topdown">
+      <thead>
+        <tr>
+          <th style="width:22pt">Fila</th>
+          <th>◀ Lado Izquierdo</th>
+          <th>Lado Derecho ▶</th>
+        </tr>
+      </thead>
+      <tbody>
+        <template x-for="fila in (contenedor?.filasDisponibles || 26)" :key="'td_'+fila">
+          <template x-if="posicionEn(fila,'Izquierdo') || posicionEn(fila,'Derecho')">
+            <tr>
+              <td class="td-fila" x-text="fila"></td>
+              <!-- Izquierdo -->
+              <td class="td-cell"
+                  :class="posicionEn(fila,'Izquierdo') ? 'ocupada' : ''"
+                  :style="posicionEn(fila,'Izquierdo') ? 'background:' + palletColor(posicionEn(fila,'Izquierdo')) + '22;border-color:' + palletColor(posicionEn(fila,'Izquierdo')) : ''">
+                <template x-if="posicion2En(fila,'Izquierdo')">
+                  <div class="encima">
+                    <span>▲ ENCIMA</span>
+                    <span x-text="posicion2En(fila,'Izquierdo').modelNo + ' · ' + posicion2En(fila,'Izquierdo').piezas + 'p · ' + posicion2En(fila,'Izquierdo').pesoKg.toFixed(0) + 'kg'"></span>
+                  </div>
+                </template>
+                <template x-if="posicionEn(fila,'Izquierdo')">
+                  <div class="piso">
+                    <span class="p-model">
+                      <template x-if="posicion2En(fila,'Izquierdo')"><span class="arrow-down">▼ </span></template>
+                      <span x-text="posicionEn(fila,'Izquierdo').modelNo"></span>
+                    </span>
+                    <span class="p-info" x-text="posicionEn(fila,'Izquierdo').piezas + ' pzs · ' + posicionEn(fila,'Izquierdo').pesoKg.toFixed(0) + ' kg' + (!posicionEn(fila,'Izquierdo').apilable ? ' · NO APILAR' : posicionEn(fila,'Izquierdo').esParcial ? ' · PARCIAL' : '')"></span>
+                  </div>
+                </template>
+              </td>
+              <!-- Derecho -->
+              <td class="td-cell"
+                  :class="posicionEn(fila,'Derecho') ? 'ocupada' : ''"
+                  :style="posicionEn(fila,'Derecho') ? 'background:' + palletColor(posicionEn(fila,'Derecho')) + '22;border-color:' + palletColor(posicionEn(fila,'Derecho')) : ''">
+                <template x-if="posicion2En(fila,'Derecho')">
+                  <div class="encima">
+                    <span>▲ ENCIMA</span>
+                    <span x-text="posicion2En(fila,'Derecho').modelNo + ' · ' + posicion2En(fila,'Derecho').piezas + 'p · ' + posicion2En(fila,'Derecho').pesoKg.toFixed(0) + 'kg'"></span>
+                  </div>
+                </template>
+                <template x-if="posicionEn(fila,'Derecho')">
+                  <div class="piso">
+                    <span class="p-model">
+                      <template x-if="posicion2En(fila,'Derecho')"><span class="arrow-down">▼ </span></template>
+                      <span x-text="posicionEn(fila,'Derecho').modelNo"></span>
+                    </span>
+                    <span class="p-info" x-text="posicionEn(fila,'Derecho').piezas + ' pzs · ' + posicionEn(fila,'Derecho').pesoKg.toFixed(0) + ' kg' + (!posicionEn(fila,'Derecho').apilable ? ' · NO APILAR' : posicionEn(fila,'Derecho').esParcial ? ' · PARCIAL' : '')"></span>
+                  </div>
+                </template>
+              </td>
+            </tr>
+          </template>
+        </template>
+      </tbody>
+    </table>
+
     <!-- Plan de carga por posición -->
-    <div class="pr-sub">Plan de Carga por Posición</div>
+    <div class="pr-sub" style="page-break-before:always">Plan de Carga por Posición</div>
     <div style="font-size:7pt;color:#555;margin-bottom:5pt">
       <span style="color:#1a7a3a;font-weight:800">▼ PISO</span> = Capa 1 (contra el suelo) ·
       <span style="color:#c05000;font-weight:800">▲ ENCIMA</span> = Capa 2 (estibada arriba) ·
