@@ -1047,10 +1047,10 @@
           </div>
           <div style="display:grid;gap:1.1rem">
             <template x-for="eje in [
-              {label:'Eje delantero (steer)',        kgMin: contenedor.pesoEjeDelanteroMinKg, kgMax: contenedor.pesoEjeDelanteroMaxKg, kgUsMin: contenedor.pesoEjeDelanteroUsMinKg, kgUsMax: contenedor.pesoEjeDelanteroUsMaxKg, eF: contenedor.estadoFhwaW1, eN: contenedor.estadoNomW1,  fhwa: 5443,  nom: 8000},
-              {label:'Eje tractor (drive tándem)',   kgMin: contenedor.pesoEjeTractorMinKg,   kgMax: contenedor.pesoEjeTractorMaxKg,   kgUsMin: contenedor.pesoEjeTractorUsMinKg,   kgUsMax: contenedor.pesoEjeTractorUsMaxKg,   eF: contenedor.estadoFhwaW2, eN: contenedor.estadoNomW2,  fhwa: 15422, nom: 18000},
-              {label:'Eje remolque (trailer tándem)',kgMin: contenedor.pesoEjeRemolqueKg,     kgMax: contenedor.pesoEjeRemolqueKg,     kgUsMin: contenedor.pesoEjeRemolqueKg,       kgUsMax: contenedor.pesoEjeRemolqueKg,       eF: contenedor.estadoFhwaWr, eN: contenedor.estadoNomWr,  fhwa: 15422, nom: 18000},
-              {label:'GVW total',                    kgMin: contenedor.pesoTotalGVWMinKg,     kgMax: contenedor.pesoTotalGVWMaxKg,     kgUsMin: contenedor.pesoTotalGVWUsMinKg,     kgUsMax: contenedor.pesoTotalGVWUsMaxKg,     eF: contenedor.estadoFhwaW2, eN: contenedor.estadoNomW2,  fhwa: 36287, nom: 48000}
+              {label:'STEER AXLE — Eje Direccional (W1)',        kgMin: contenedor.pesoEjeDelanteroMinKg, kgMax: contenedor.pesoEjeDelanteroMaxKg, kgUsMin: contenedor.pesoEjeDelanteroUsMinKg, kgUsMax: contenedor.pesoEjeDelanteroUsMaxKg, eF: contenedor.estadoFhwaW1, eN: contenedor.estadoNomW1,  fhwa: 5443,  nom: 8000},
+              {label:'DRIVE AXLE — Eje Motriz tándem (W2)',      kgMin: contenedor.pesoEjeTractorMinKg,   kgMax: contenedor.pesoEjeTractorMaxKg,   kgUsMin: contenedor.pesoEjeTractorUsMinKg,   kgUsMax: contenedor.pesoEjeTractorUsMaxKg,   eF: contenedor.estadoFhwaW2, eN: contenedor.estadoNomW2,  fhwa: 15422, nom: 18000},
+              {label:'TRAILER AXLE — Eje del Remolque tándem (Wr)',kgMin: contenedor.pesoEjeRemolqueKg,   kgMax: contenedor.pesoEjeRemolqueKg,     kgUsMin: contenedor.pesoEjeRemolqueKg,       kgUsMax: contenedor.pesoEjeRemolqueKg,       eF: contenedor.estadoFhwaWr, eN: contenedor.estadoNomWr,  fhwa: 15422, nom: 18000},
+              {label:'GROSS WEIGHT — Peso Bruto Total (GVW)',    kgMin: contenedor.pesoTotalGVWMinKg,     kgMax: contenedor.pesoTotalGVWMaxKg,     kgUsMin: contenedor.pesoTotalGVWUsMinKg,     kgUsMax: contenedor.pesoTotalGVWUsMaxKg,     eF: contenedor.estadoFhwaW2, eN: contenedor.estadoNomW2,  fhwa: 36287, nom: 48000}
             ]" :key="eje.label">
               <div>
                 <div style="font-size:0.78rem;font-weight:600;color:var(--text);margin-bottom:0.4rem" x-text="eje.label"></div>
@@ -1938,19 +1938,19 @@ function app() {
         <!-- W1 steer -->
         <line x1="75" y1="81" x2="75" y2="114" stroke="${w1ok}" stroke-width="2.5"/>
         ${wheel(75)}
-        <text x="75"  y="130" text-anchor="middle" font-size="9.5" fill="#555">W1 — Steer</text>
+        <text x="75"  y="130" text-anchor="middle" font-size="9.5" fill="#555">STEER (Direccional)</text>
         <text x="75"  y="146" text-anchor="middle" font-size="13" font-weight="800" fill="${w1ok}">${w1} kg</text>
         <text x="75"  y="159" text-anchor="middle" font-size="9" fill="${pctCol(p1)}">${p1}% del lím.</text>
         <!-- W2 drive -->
         <line x1="131" y1="81" x2="131" y2="114" stroke="${w2ok}" stroke-width="2.5"/>
         ${wheel(119)} ${wheel(143)}
-        <text x="131" y="130" text-anchor="middle" font-size="9.5" fill="#555">W2 — Drive</text>
+        <text x="131" y="130" text-anchor="middle" font-size="9.5" fill="#555">DRIVE (Motriz)</text>
         <text x="131" y="146" text-anchor="middle" font-size="13" font-weight="800" fill="${w2ok}">${w2} kg</text>
         <text x="131" y="159" text-anchor="middle" font-size="9" fill="${pctCol(p2)}">${p2}% del lím.</text>
         <!-- Wr remolque -->
         <line x1="605" y1="81" x2="605" y2="114" stroke="${wrok}" stroke-width="2.5"/>
         ${wheel(593)} ${wheel(617)}
-        <text x="605" y="130" text-anchor="middle" font-size="9.5" fill="#555">Wr — Remolque</text>
+        <text x="605" y="130" text-anchor="middle" font-size="9.5" fill="#555">TRAILER (Remolque)</text>
         <text x="605" y="146" text-anchor="middle" font-size="13" font-weight="800" fill="${wrok}">${wr} kg</text>
         <text x="605" y="159" text-anchor="middle" font-size="9" fill="${pctCol(pr)}">${pr}% del lím.</text>
         <!-- GVW -->
@@ -2450,44 +2450,44 @@ function app() {
       </thead>
       <tbody>
         <tr>
-          <td>Delantero — steer (W1)</td>
-          <td x-text="(contenedor?.pesoEjeDelanteroMinKg??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + ' – ' + (contenedor?.pesoEjeDelanteroMaxKg??0).toLocaleString('es-MX',{maximumFractionDigits:0})"></td>
-          <td>5,443</td>
+          <td><strong>STEER AXLE</strong> — Eje Direccional (W1)</td>
+          <td x-text="(contenedor?.pesoEjeDelanteroMinKg??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + '–' + (contenedor?.pesoEjeDelanteroMaxKg??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + ' kg / ' + toLb(contenedor?.pesoEjeDelanteroMinKg).toLocaleString('es-MX') + '–' + toLb(contenedor?.pesoEjeDelanteroMaxKg).toLocaleString('es-MX') + ' lb'"></td>
+          <td>5,443 kg / 12,000 lb</td>
           <td :class="contenedor?.estadoFhwaW1==='Falla'?'pr-err':contenedor?.estadoFhwaW1==='Condicional'?'pr-warn':'pr-ok'"
               x-text="contenedor?.estadoFhwaW1==='Falla'?'✗ FALLA':contenedor?.estadoFhwaW1==='Condicional'?'⚠ CONDICIONAL':'✓ SEGURO'"></td>
-          <td>6,000</td>
+          <td>8,000 kg / 17,637 lb</td>
           <td :class="contenedor?.estadoNomW1==='Falla'?'pr-err':contenedor?.estadoNomW1==='Condicional'?'pr-warn':'pr-ok'"
               x-text="contenedor?.estadoNomW1==='Falla'?'✗ FALLA':contenedor?.estadoNomW1==='Condicional'?'⚠ CONDICIONAL':'✓ SEGURO'"></td>
         </tr>
         <tr>
-          <td>Tractor tándem — drive (W2)</td>
-          <td x-text="(contenedor?.pesoEjeTractorMinKg??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + ' – ' + (contenedor?.pesoEjeTractorMaxKg??0).toLocaleString('es-MX',{maximumFractionDigits:0})"></td>
-          <td>15,422</td>
+          <td><strong>DRIVE AXLE</strong> — Eje Motriz tándem (W2)</td>
+          <td x-text="(contenedor?.pesoEjeTractorMinKg??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + '–' + (contenedor?.pesoEjeTractorMaxKg??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + ' kg / ' + toLb(contenedor?.pesoEjeTractorMinKg).toLocaleString('es-MX') + '–' + toLb(contenedor?.pesoEjeTractorMaxKg).toLocaleString('es-MX') + ' lb'"></td>
+          <td>15,422 kg / 34,000 lb</td>
           <td :class="contenedor?.estadoFhwaW2==='Falla'?'pr-err':contenedor?.estadoFhwaW2==='Condicional'?'pr-warn':'pr-ok'"
               x-text="contenedor?.estadoFhwaW2==='Falla'?'✗ FALLA':contenedor?.estadoFhwaW2==='Condicional'?'⚠ CONDICIONAL':'✓ SEGURO'"></td>
-          <td>16,000</td>
+          <td>18,000 kg / 39,683 lb</td>
           <td :class="contenedor?.estadoNomW2==='Falla'?'pr-err':contenedor?.estadoNomW2==='Condicional'?'pr-warn':'pr-ok'"
               x-text="contenedor?.estadoNomW2==='Falla'?'✗ FALLA':contenedor?.estadoNomW2==='Condicional'?'⚠ CONDICIONAL':'✓ SEGURO'"></td>
         </tr>
         <tr>
-          <td>Remolque tándem — trailer (Wr)</td>
-          <td x-text="(contenedor?.pesoEjeRemolqueKg??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + ' kg (fijo)'"></td>
-          <td>15,422</td>
+          <td><strong>TRAILER AXLE</strong> — Eje del Remolque tándem (Wr)</td>
+          <td x-text="(contenedor?.pesoEjeRemolqueKg??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + ' kg / ' + toLb(contenedor?.pesoEjeRemolqueKg).toLocaleString('es-MX') + ' lb (fijo)'"></td>
+          <td>15,422 kg / 34,000 lb</td>
           <td :class="contenedor?.estadoFhwaWr==='Falla'?'pr-err':contenedor?.estadoFhwaWr==='Condicional'?'pr-warn':'pr-ok'"
               x-text="contenedor?.estadoFhwaWr==='Falla'?'✗ FALLA':contenedor?.estadoFhwaWr==='Condicional'?'⚠ CONDICIONAL':'✓ SEGURO'"></td>
-          <td>16,000</td>
+          <td>18,000 kg / 39,683 lb</td>
           <td :class="contenedor?.estadoNomWr==='Falla'?'pr-err':contenedor?.estadoNomWr==='Condicional'?'pr-warn':'pr-ok'"
               x-text="contenedor?.estadoNomWr==='Falla'?'✗ FALLA':contenedor?.estadoNomWr==='Condicional'?'⚠ CONDICIONAL':'✓ SEGURO'"></td>
         </tr>
         <tr style="font-weight:700">
-          <td>GVW Total</td>
-          <td x-text="(contenedor?.pesoTotalGVWMinKg??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + ' – ' + (contenedor?.pesoTotalGVWMaxKg??0).toLocaleString('es-MX',{maximumFractionDigits:0})"></td>
-          <td>36,287</td>
+          <td><strong>GROSS WEIGHT</strong> — Peso Bruto Total (GVW)</td>
+          <td x-text="(contenedor?.pesoTotalGVWMinKg??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + '–' + (contenedor?.pesoTotalGVWMaxKg??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + ' kg / ' + toLb(contenedor?.pesoTotalGVWMinKg).toLocaleString('es-MX') + '–' + toLb(contenedor?.pesoTotalGVWMaxKg).toLocaleString('es-MX') + ' lb'"></td>
+          <td>36,287 kg / 80,000 lb</td>
           <td :class="(contenedor?.pesoTotalGVWMaxKg??0) > 36287 ? 'pr-err' : 'pr-ok'"
               x-text="(contenedor?.pesoTotalGVWMaxKg??0) > 36287 ? '✗ EXCEDE' : '✓ OK'"></td>
-          <td>40,500</td>
-          <td :class="(contenedor?.pesoTotalGVWMaxKg??0) > 40500 ? 'pr-err' : 'pr-ok'"
-              x-text="(contenedor?.pesoTotalGVWMaxKg??0) > 40500 ? '✗ EXCEDE' : '✓ OK'"></td>
+          <td>48,000 kg / 105,822 lb</td>
+          <td :class="(contenedor?.pesoTotalGVWMaxKg??0) > 48000 ? 'pr-err' : 'pr-ok'"
+              x-text="(contenedor?.pesoTotalGVWMaxKg??0) > 48000 ? '✗ EXCEDE' : '✓ OK'"></td>
         </tr>
       </tbody>
     </table>
