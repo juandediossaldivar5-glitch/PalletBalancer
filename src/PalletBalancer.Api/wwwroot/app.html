@@ -993,6 +993,9 @@
             <label><i class="bi bi-box-seam"></i> Peso Total</label>
             <div class="val" style="color:var(--text)"
                  x-text="contenedor.pesoTotalKg.toLocaleString('es-MX', {maximumFractionDigits:1}) + ' kg'"></div>
+            <div style="font-size:0.65rem;color:var(--muted);margin-top:2px"
+                 x-show="contenedor.tolerancePesoTotalKg > 0"
+                 x-text="'± ' + (contenedor.tolerancePesoTotalKg??0).toLocaleString('es-MX') + ' kg (tolerancia)'"></div>
           </div>
           <div class="stat-card">
             <label><i class="bi bi-distribute-horizontal"></i> Balance L/R</label>

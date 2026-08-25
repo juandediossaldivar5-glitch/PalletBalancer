@@ -23,6 +23,10 @@ public class ContenedorService
     // Margen de seguridad (RF-08): alerta cuando W_max > límite × (1 − margen)
     private const double MARGEN_SEGURIDAD = 0.02;
 
+    // Incertidumbre de peso por pallet (variación real vs catálogo: tarima madera, humedad, etc.)
+    // Se aplica a peor caso: todos los pallets +4 kg simultáneamente
+    private const double TOLERANCIA_PALLET_KG = 4.0;
+
     public ContenedorResultadoDto Calcular(
         IEnumerable<Fdo> fdos,
         List<string>? ordenDescarga    = null,
@@ -275,6 +279,7 @@ public class ContenedorService
             EstadoFhwaW2           = estFhwaW2,
             EstadoFhwaWr           = estFhwaWr,
             MargenSeguridadPct     = MARGEN_SEGURIDAD * 100,
+            TolerancePesoTotalKg   = posiciones.Count * TOLERANCIA_PALLET_KG,
             // Ejes evaluados con US Class 8 (frontera)
             PesoEjeDelanteroUsMinKg = ejesUs.w1Min,
             PesoEjeDelanteroUsMaxKg = ejesUs.w1Max,
@@ -317,27 +322,38 @@ public class ContenedorService
         double wTara = spec.TaraChassisKg + spec.TaraContenedorKg;
         double L     = spec.KingPinAEjeCm;
 
+        // Incertidumbre de peso: todos los pallets pueden ser +/- TOLERANCIA_PALLET_KG
+        // Peor caso simultáneo (todos más pesados): tolCargo = N × tol.
+        // Se asume distribución similar → CG no cambia, solo la magnitud de la carga.
+        double tolCargo = posiciones.Count * TOLERANCIA_PALLET_KG;
+        double wCargoMin = Math.Max(0, wCargo - tolCargo);
+        double wCargoMax = wCargo + tolCargo;
+
         // Viga simplemente apoyada: king pin (x=0) y eje remolque (x=L)
-        // Wr es el mismo para ambos escenarios (solo depende de la carga del contenedor)
-        double wr  = (wCargo * cgCm + wTara * (L / 2.0)) / L;
-        double fkp = wCargo + wTara - wr;   // reacción en quinta rueda
+        // Wr con rango: depende de wCargo (que ahora es rango) y del CG
+        double wrMin = (wCargoMin * cgCm + wTara * (L / 2.0)) / L;
+        double wrMax = (wCargoMax * cgCm + wTara * (L / 2.0)) / L;
+        double wr    = (wCargo    * cgCm + wTara * (L / 2.0)) / L;   // nominal
+        // fkp peor caso: max cuando cargo max y wr min → max carga sobre 5a rueda
+        double fkpMin = wCargoMin + wTara - wrMax;
+        double fkpMax = wCargoMax + wTara - wrMin;
 
         // Modelo tractor: eje delantero (x=0), eje trasero (x=WB), quinta rueda (x=WB-Q)
         double wb = trac.WheelbaseCm;
         double q  = trac.QuintaRuedaCm;    // distancia quinta rueda ADELANTE del eje trasero
 
-        double w2Min = trac.TaraEjeTraseroMinKg  + fkp * (wb - q) / wb;
-        double w2Max = trac.TaraEjeTraseroMaxKg  + fkp * (wb - q) / wb;
-        double w1Min = trac.TaraEjeDelanteroMinKg + fkp * q / wb;
-        double w1Max = trac.TaraEjeDelanteroMaxKg + fkp * q / wb;
+        double w2Min = trac.TaraEjeTraseroMinKg   + fkpMin * (wb - q) / wb;
+        double w2Max = trac.TaraEjeTraseroMaxKg   + fkpMax * (wb - q) / wb;
+        double w1Min = trac.TaraEjeDelanteroMinKg + fkpMin * q / wb;
+        double w1Max = trac.TaraEjeDelanteroMaxKg + fkpMax * q / wb;
 
-        double gvwMin = w1Min + w2Min + wr;
-        double gvwMax = w1Max + w2Max + wr;
+        double gvwMin = w1Min + w2Min + wrMin;
+        double gvwMax = w1Max + w2Max + wrMax;
         double cgPct  = L > 0 ? Math.Round(cgCm / L * 100, 1) : 50.0;
 
         return (Math.Round(w1Min, 0), Math.Round(w1Max, 0),
                 Math.Round(w2Min, 0), Math.Round(w2Max, 0),
-                Math.Round(wr, 0),
+                Math.Round(wrMax, 0),   // reporta peor caso Wr
                 Math.Round(gvwMin, 0), Math.Round(gvwMax, 0),
                 Math.Round(cgCm, 0), cgPct);
     }

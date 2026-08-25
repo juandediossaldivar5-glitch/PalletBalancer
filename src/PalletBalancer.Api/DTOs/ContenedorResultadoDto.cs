@@ -50,6 +50,8 @@ public class ContenedorResultadoDto
     public string EstadoFhwaW2              { get; set; } = "";
     public string EstadoFhwaWr              { get; set; } = "";
     public double MargenSeguridadPct        { get; set; }
+    // Incertidumbre acumulada del peso total (N pallets × ±X kg/pallet)
+    public double TolerancePesoTotalKg      { get; set; }
 
     // Ejes con US Class 8 Day Cab — el tractor que hace drayage en frontera EE.UU.
     // Se evalúan aparte porque FHWA aplica a este tractor, no al T3-S2 mexicano
