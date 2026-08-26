@@ -186,6 +186,21 @@ public class ContenedorService
             filaActual = filaFin + 1;
         }
 
+        // Auto-shift: si hay filas de sobra, empujar toda la carga hacia puertas
+        // hasta el punto que MINIMICE W1 y W2 sin exceder Wr (usa US Class 8 para FHWA)
+        int filasExtra = filasPorLado - rowsTotalesNecesarios;
+        if (filasExtra > 0 && posiciones.Count > 0)
+        {
+            int shift = CalcularShiftOptimo(
+                posiciones, palletLargo, spec, filasExtra,
+                TractocamionSpecs.Get("US Class 8 Day Cab"));
+            if (shift > 0)
+            {
+                foreach (var p in posiciones)  p.Fila += shift;
+                foreach (var d in destinoInfos) { d.FilaInicio += shift; d.FilaFin += shift; }
+            }
+        }
+
         // Balance L/R
         double mayor   = Math.Max(pesoIzq, pesoDer);
         double menor   = Math.Min(pesoIzq, pesoDer);
@@ -288,6 +303,42 @@ public class ContenedorService
             PesoTotalGVWUsMinKg     = ejesUs.gvwMin,
             PesoTotalGVWUsMaxKg     = ejesUs.gvwMax,
         };
+    }
+
+    // Encuentra el shift (número de filas hacia puertas) que minimiza la carga en W1 y W2
+    // sin exceder Wr (según FHWA con truck US Class 8 que es el que cruza báscula frontera).
+    // La CG se desplaza linealmente: cgNew = cgBase + shift × palletLargo
+    private static int CalcularShiftOptimo(
+        List<PosicionResultadoDto> posiciones, double palletLargo,
+        ContenedorSpec spec, int filasExtra, TractocamionSpec trac)
+    {
+        double wCargo = posiciones.Sum(p => p.PesoKg);
+        if (wCargo <= 0) return 0;
+        double kpOff = spec.KingPinOffsetCm;
+        double cgBase = posiciones.Sum(p => p.PesoKg *
+                          ((p.Fila - 0.5) * palletLargo - kpOff)) / wCargo;
+        double wTara = spec.TaraChassisKg + spec.TaraContenedorKg;
+        double L = spec.KingPinAEjeCm;
+        double wb = trac.WheelbaseCm, q = trac.QuintaRuedaCm;
+
+        int bestShift = 0;
+        double bestScore = double.MaxValue;
+        for (int s = 0; s <= filasExtra; s++)
+        {
+            double cg = cgBase + s * palletLargo;
+            double wr = (wCargo * cg + wTara * L / 2) / L;
+            double fkp = wCargo + wTara - wr;
+            double w2 = trac.TaraEjeTraseroMaxKg  + fkp * (wb - q) / wb;
+            double w1 = trac.TaraEjeDelanteroMaxKg + fkp * q / wb;
+
+            // Descarta si Wr excedería el límite legal (con margen)
+            if (wr > FHWA_Wr * (1 - MARGEN_SEGURIDAD)) continue;
+
+            // Score: max relativo al límite (queremos minimizar el peor)
+            double score = Math.Max(Math.Max(wr / FHWA_Wr, w1 / FHWA_W1), w2 / FHWA_W2);
+            if (score < bestScore) { bestScore = score; bestShift = s; }
+        }
+        return bestShift;
     }
 
     // "Seguro"      → W_max ≤ límite × (1 − margen)  — margen completo, no fallará ni con incertidumbre
