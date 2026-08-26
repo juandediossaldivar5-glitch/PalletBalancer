@@ -31,9 +31,14 @@ public class ContenedorService
         IEnumerable<Fdo> fdos,
         List<string>? ordenDescarga    = null,
         string?       tipoContenedor   = null,
-        string?       tipoTractocamion = null)
+        string?       tipoTractocamion = null,
+        int?          posicionTandemCm = null)
     {
-        var spec = ContenedorSpecs.Get(tipoContenedor);
+        var specBase = ContenedorSpecs.Get(tipoContenedor);
+        // Si se provee posición de tandem, sobrescribir KingPinAEjeCm del spec
+        var spec = posicionTandemCm.HasValue && posicionTandemCm.Value > 0
+            ? specBase with { KingPinAEjeCm = posicionTandemCm.Value }
+            : specBase;
         var trac = TractocamionSpecs.Get(tipoTractocamion);
         var sinDatos = new List<string>();
 
@@ -280,6 +285,7 @@ public class ContenedorService
             EstadoFhwaWr           = estFhwaWr,
             MargenSeguridadPct     = MARGEN_SEGURIDAD * 100,
             TolerancePesoTotalKg   = posiciones.Count * TOLERANCIA_PALLET_KG,
+            PosicionTandemCm       = spec.KingPinAEjeCm,
             // Ejes evaluados con US Class 8 (frontera)
             PesoEjeDelanteroUsMinKg = ejesUs.w1Min,
             PesoEjeDelanteroUsMaxKg = ejesUs.w1Max,

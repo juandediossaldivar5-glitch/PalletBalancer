@@ -36,7 +36,7 @@ public class ContenedorController : ControllerBase
         await CargarItemsEnFdos(fdos);
 
         var resultado = new ContenedorService().Calcular(fdos, dto.OrdenDescarga,
-            dto.TipoContenedor, dto.TipoTractocamion);
+            dto.TipoContenedor, dto.TipoTractocamion, dto.PosicionTandemCm);
         return Ok(resultado);
     }
 
