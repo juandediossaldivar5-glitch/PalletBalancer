@@ -186,35 +186,62 @@ public class ContenedorService
             }
         }
 
-        foreach (var dest in ordenCarga)
+        // Prueba ambas orientaciones dentro de las zonas (pesados-al-frente vs pesados-al-fondo)
+        // y escoge la que dé mejor cumplimiento FHWA (evaluado con US Class 8 en frontera).
+        // Cada embarque es distinto: a veces conviene una, a veces la otra.
+        (List<PosicionResultadoDto>, List<DestinoInfoDto>, double, double)
+            AsignarConOrientacion(bool pesadosAlFondo)
         {
-            var stacks = stacksPorDestino.GetValueOrDefault(dest, []);
-            if (stacks.Count == 0) continue;
-
-            if (filaActual > filasPorLado) break;
-
-            int rowsNec = (int)Math.Ceiling(stacks.Count / 2.0);
-            int filaFin = Math.Min(filaActual + rowsNec - 1, filasPorLado);
-
-            var (posDest, pIzq, pDer) = BalancearZona(stacks, dest, filaActual, filaFin, descMap);
-
-            posiciones.AddRange(posDest);
-            pesoIzq  += pIzq;
-            pesoDer  += pDer;
-
-            int totalPallets = stacks.Sum(s => s.Encima is null ? 1 : 2);
-            destinoInfos.Add(new DestinoInfoDto
+            var _pos     = new List<PosicionResultadoDto>();
+            var _dInfos  = new List<DestinoInfoDto>();
+            double _pI = 0, _pD = 0;
+            int _fA = 1;
+            foreach (var dest in ordenCarga)
             {
-                Consignee     = dest,
-                OrdenDescarga = ordenFinal.IndexOf(
-                    ordenFinal.First(o => string.Equals(o, dest, StringComparison.OrdinalIgnoreCase))) + 1,
-                TotalPallets  = totalPallets,
-                FilaInicio    = filaActual,
-                FilaFin       = filaFin,
-            });
-
-            filaActual = filaFin + 1;
+                var stacks = stacksPorDestino.GetValueOrDefault(dest, []);
+                if (stacks.Count == 0) continue;
+                if (_fA > filasPorLado) break;
+                int rN = (int)Math.Ceiling(stacks.Count / 2.0);
+                int fF = Math.Min(_fA + rN - 1, filasPorLado);
+                var (pD, pI, pDr) = BalancearZona(stacks, dest, _fA, fF, descMap, pesadosAlFondo);
+                _pos.AddRange(pD);
+                _pI += pI; _pD += pDr;
+                _dInfos.Add(new DestinoInfoDto
+                {
+                    Consignee     = dest,
+                    OrdenDescarga = ordenFinal.IndexOf(
+                        ordenFinal.First(o => string.Equals(o, dest, StringComparison.OrdinalIgnoreCase))) + 1,
+                    TotalPallets  = stacks.Sum(s => s.Encima is null ? 1 : 2),
+                    FilaInicio    = _fA, FilaFin = fF,
+                });
+                _fA = fF + 1;
+            }
+            return (_pos, _dInfos, _pI, _pD);
         }
+
+        var tracUsScore = TractocamionSpecs.Get("US Class 8 Day Cab");
+        double EvalScore(List<PosicionResultadoDto> pList)
+        {
+            if (pList.Count == 0) return double.MaxValue;
+            var e = CalcularEjes(pList, palletLargo, spec, tracUsScore);
+            // Descartar violación de Wr, W1 o W2 real (con margen)
+            double penalty = 0;
+            if (e.wr > FHWA_Wr)   penalty += (e.wr - FHWA_Wr) * 10;
+            if (e.w2Max > FHWA_W2) penalty += (e.w2Max - FHWA_W2) * 10;
+            if (e.w1Max > FHWA_W1) penalty += (e.w1Max - FHWA_W1) * 10;
+            // score = max ratio a límite
+            return Math.Max(Math.Max(e.wr / FHWA_Wr, e.w2Max / FHWA_W2), e.w1Max / FHWA_W1) + penalty;
+        }
+
+        var rFondo  = AsignarConOrientacion(pesadosAlFondo: true);
+        var rFrente = AsignarConOrientacion(pesadosAlFondo: false);
+        var mejor = EvalScore(rFondo.Item1) <= EvalScore(rFrente.Item1) ? rFondo : rFrente;
+
+        posiciones   = mejor.Item1;
+        destinoInfos = mejor.Item2;
+        pesoIzq      = mejor.Item3;
+        pesoDer      = mejor.Item4;
+        filaActual   = destinoInfos.Count > 0 ? destinoInfos.Max(d => d.FilaFin) + 1 : 1;
 
         // Balance L/R
         double mayor   = Math.Max(pesoIzq, pesoDer);
@@ -390,7 +417,8 @@ public class ContenedorService
 
     private static (List<PosicionResultadoDto> pos, double pesoIzq, double pesoDer)
         BalancearZona(List<(Pallet Piso, Pallet? Encima, bool Apilable, bool PisoEsParcial, bool EncimaEsParcial)> stacks,
-                      string destino, int filaInicio, int filaFin, Dictionary<string, string> descMap)
+                      string destino, int filaInicio, int filaFin, Dictionary<string, string> descMap,
+                      bool pesadosAlFondo = false)
     {
         var pos     = new List<PosicionResultadoDto>();
         var izq     = new List<(Pallet Piso, Pallet? Encima, bool Apilable, bool PisoEsParcial, bool EncimaEsParcial)>();
@@ -404,12 +432,11 @@ public class ContenedorService
             else              { der.Add(s); pDer += w; }
         }
 
-        // Ordenar dentro de la zona: LIGEROS al frente (filaInicio, hacia cabina),
-        // PESADOS al fondo (filaFin, hacia puertas). Aleja el peso pesado del king pin,
-        // baja W1/W2 y aumenta un poco Wr. Los pesados van al último slot antes de
-        // los pallets desapilados (que fueron marcados con Apilable=false originalmente).
-        izq.Reverse();
-        der.Reverse();
+        // Si pesadosAlFondo=true → invierte para que los ligeros arranquen en filaInicio (cabina)
+        // y los pesados terminen en filaFin (puertas). Esto ALEJA el peso del king pin,
+        // baja W1/W2 y sube Wr. Ideal cuando el drive tandem (W2) es el eje crítico.
+        // Si false → orden normal (pesados al frente): sube W2 pero baja Wr.
+        if (pesadosAlFondo) { izq.Reverse(); der.Reverse(); }
 
         int fila   = filaInicio;
         int maxFil = filaFin;
