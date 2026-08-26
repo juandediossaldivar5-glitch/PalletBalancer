@@ -156,6 +156,36 @@ public class ContenedorService
         int rowsTotalesNecesarios = stacksPorDestino.Values
             .Sum(sl => (int)Math.Ceiling(sl.Count / 2.0));
 
+        // Un-stacking: si hay filas de sobra, desapilar tarimas de la ÚLTIMA zona
+        // (la que va a puertas) hacia esas filas extra a piso. Baja W1/W2 al alejar peso del KP.
+        int filasSobra = filasPorLado - rowsTotalesNecesarios;
+        if (filasSobra > 0)
+        {
+            var ultimaZona = ordenCarga.LastOrDefault();  // último en cargar = puertas
+            if (ultimaZona != null && stacksPorDestino.TryGetValue(ultimaZona, out var stacksUlt))
+            {
+                // Cada un-stack de un pallet apilado (Encima) libera al C2 pero ocupa 1 slot más
+                // 2 slots liberados = 1 fila extra. Máximo desapilar filasSobra × 2 stacks.
+                int maxDesapilar = Math.Min(filasSobra * 2, stacksUlt.Count(s => s.Encima != null));
+                var desapilados = stacksUlt
+                    .Where(s => s.Encima != null)
+                    .OrderByDescending(s => s.Encima!.PesoTotalKg)  // desapila los más pesados primero
+                    .Take(maxDesapilar)
+                    .ToList();
+                foreach (var s in desapilados)
+                {
+                    stacksUlt.Remove(s);
+                    // El piso queda solo (sin C2)
+                    stacksUlt.Add((s.Piso, null, false, s.PisoEsParcial, false));
+                    // El que iba encima ahora va a piso también, en su propio slot
+                    stacksUlt.Add((s.Encima!, null, false, s.EncimaEsParcial, false));
+                }
+                // Recalcular filas necesarias
+                rowsTotalesNecesarios = stacksPorDestino.Values
+                    .Sum(sl => (int)Math.Ceiling(sl.Count / 2.0));
+            }
+        }
+
         foreach (var dest in ordenCarga)
         {
             var stacks = stacksPorDestino.GetValueOrDefault(dest, []);
@@ -184,21 +214,6 @@ public class ContenedorService
             });
 
             filaActual = filaFin + 1;
-        }
-
-        // Auto-shift: si hay filas de sobra, empujar toda la carga hacia puertas
-        // hasta el punto que MINIMICE W1 y W2 sin exceder Wr (usa US Class 8 para FHWA)
-        int filasExtra = filasPorLado - rowsTotalesNecesarios;
-        if (filasExtra > 0 && posiciones.Count > 0)
-        {
-            int shift = CalcularShiftOptimo(
-                posiciones, palletLargo, spec, filasExtra,
-                TractocamionSpecs.Get("US Class 8 Day Cab"));
-            if (shift > 0)
-            {
-                foreach (var p in posiciones)  p.Fila += shift;
-                foreach (var d in destinoInfos) { d.FilaInicio += shift; d.FilaFin += shift; }
-            }
         }
 
         // Balance L/R
@@ -305,42 +320,6 @@ public class ContenedorService
         };
     }
 
-    // Encuentra el shift (número de filas hacia puertas) que minimiza la carga en W1 y W2
-    // sin exceder Wr (según FHWA con truck US Class 8 que es el que cruza báscula frontera).
-    // La CG se desplaza linealmente: cgNew = cgBase + shift × palletLargo
-    private static int CalcularShiftOptimo(
-        List<PosicionResultadoDto> posiciones, double palletLargo,
-        ContenedorSpec spec, int filasExtra, TractocamionSpec trac)
-    {
-        double wCargo = posiciones.Sum(p => p.PesoKg);
-        if (wCargo <= 0) return 0;
-        double kpOff = spec.KingPinOffsetCm;
-        double cgBase = posiciones.Sum(p => p.PesoKg *
-                          ((p.Fila - 0.5) * palletLargo - kpOff)) / wCargo;
-        double wTara = spec.TaraChassisKg + spec.TaraContenedorKg;
-        double L = spec.KingPinAEjeCm;
-        double wb = trac.WheelbaseCm, q = trac.QuintaRuedaCm;
-
-        int bestShift = 0;
-        double bestScore = double.MaxValue;
-        for (int s = 0; s <= filasExtra; s++)
-        {
-            double cg = cgBase + s * palletLargo;
-            double wr = (wCargo * cg + wTara * L / 2) / L;
-            double fkp = wCargo + wTara - wr;
-            double w2 = trac.TaraEjeTraseroMaxKg  + fkp * (wb - q) / wb;
-            double w1 = trac.TaraEjeDelanteroMaxKg + fkp * q / wb;
-
-            // Descarta si Wr excedería el límite legal (con margen)
-            if (wr > FHWA_Wr * (1 - MARGEN_SEGURIDAD)) continue;
-
-            // Score: max relativo al límite (queremos minimizar el peor)
-            double score = Math.Max(Math.Max(wr / FHWA_Wr, w1 / FHWA_W1), w2 / FHWA_W2);
-            if (score < bestScore) { bestScore = score; bestShift = s; }
-        }
-        return bestShift;
-    }
-
     // "Seguro"      → W_max ≤ límite × (1 − margen)  — margen completo, no fallará ni con incertidumbre
     // "Condicional" → dentro del margen pero W_min ≤ límite legal  — al límite, puede pasar
     // "Falla"       → W_min > límite legal  — falla incluso en el mejor escenario
@@ -424,6 +403,13 @@ public class ContenedorService
             if (pIzq <= pDer) { izq.Add(s); pIzq += w; }
             else              { der.Add(s); pDer += w; }
         }
+
+        // Ordenar dentro de la zona: LIGEROS al frente (filaInicio, hacia cabina),
+        // PESADOS al fondo (filaFin, hacia puertas). Aleja el peso pesado del king pin,
+        // baja W1/W2 y aumenta un poco Wr. Los pesados van al último slot antes de
+        // los pallets desapilados (que fueron marcados con Apilable=false originalmente).
+        izq.Reverse();
+        der.Reverse();
 
         int fila   = filaInicio;
         int maxFil = filaFin;
