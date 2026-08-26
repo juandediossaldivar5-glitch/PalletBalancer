@@ -883,16 +883,19 @@
           <option value="T3-S2 Day Cab">T3-S2 Day Cab</option>
           <option value="US Class 8 Day Cab">US Class 8 Day Cab (frontera)</option>
         </select>
-        <!-- Slider tandem deslizable — solo para 53ft Dry Van -->
-        <template x-if="tipoContenedor==='53ft Dry Van'">
-          <div style="display:flex;flex-direction:column;gap:2px;min-width:220px;padding:4px 8px;border:1px solid var(--border);border-radius:8px;background:rgba(245,166,35,0.05)">
+        <!-- Slider tandem deslizable — para chasis 40ft+, 45ft HC, 53ft y dry van -->
+        <template x-if="['40ft','40ft HC','45ft HC','53ft','53ft Dry Van'].includes(tipoContenedor)">
+          <div style="display:flex;flex-direction:column;gap:2px;min-width:250px;padding:4px 8px;border:1px solid var(--border);border-radius:8px;background:rgba(245,166,35,0.05)">
             <label style="font-size:0.7rem;color:var(--muted)">
               Tandem KP→eje:
-              <strong x-text="(posicionTandemCm || 1220) + ' cm (' + ((posicionTandemCm || 1220)/30.48).toFixed(1) + ' ft)'"></strong>
+              <strong x-text="(posicionTandemCm ? posicionTandemCm : (contenedor?.posicionTandemCm ?? '—')) + ' cm (' + (posicionTandemCm ? (posicionTandemCm/30.48).toFixed(1) : (contenedor?.posicionTandemCm ? (contenedor.posicionTandemCm/30.48).toFixed(1) : '—')) + ' ft)'"></strong>
+              <span x-show="!posicionTandemCm" style="color:var(--muted);font-size:0.62rem">(default)</span>
             </label>
-            <input type="range" min="1067" max="1400" step="15" x-model.number="posicionTandemCm"
+            <input type="range" min="900" max="1500" step="15" x-model.number="posicionTandemCm"
+                   :value="posicionTandemCm || contenedor?.posicionTandemCm || 1220"
                    style="width:100%;accent-color:#f5a623">
-            <div style="display:flex;gap:4px;font-size:0.6rem">
+            <div style="display:flex;gap:4px;font-size:0.6rem;flex-wrap:wrap">
+              <button class="btn-ghost" style="padding:1px 5px;font-size:0.62rem" @click="posicionTandemCm=null" title="Usa el default del contenedor">Default</button>
               <button class="btn-ghost" style="padding:1px 5px;font-size:0.62rem" @click="posicionTandemCm=1067">Frente (35ft)</button>
               <button class="btn-ghost" style="padding:1px 5px;font-size:0.62rem" @click="posicionTandemCm=1220">CA legal (40ft)</button>
               <button class="btn-ghost" style="padding:1px 5px;font-size:0.62rem" @click="posicionTandemCm=1310">Mid (43ft)</button>
