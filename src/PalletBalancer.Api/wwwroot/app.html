@@ -521,7 +521,7 @@
     <div class="sel-bar" x-show="seleccionados.length > 0" x-cloak>
       <i class="bi bi-check2-square" style="color:#ff8090;font-size:1.1rem"></i>
       <span x-text="seleccionados.length + ' FDO' + (seleccionados.length > 1 ? 's' : '') + ' seleccionado' + (seleccionados.length > 1 ? 's' : '')"></span>
-      <button class="btn-primary-grad" @click="iniciarContenedor()">
+      <button class="btn-primary-grad" disabled>
         <i class="bi bi-box-seam"></i> Ver Contenedor
       </button>
       <button class="btn-ghost" @click="seleccionados = []" style="padding:0.4rem 0.75rem">
@@ -568,8 +568,7 @@
                   <label :for="'mlo-'+f.id" style="cursor:pointer;font-size:12px;color:var(--accent);border:1px solid var(--accent);border-radius:6px;padding:3px 10px" @click.stop>
                     <span x-text="mlosPorFdo[f.id] ? '✓ MLO ' + mlosPorFdo[f.id].mloNo : '+ Cargar MLO'"></span>
                   </label>
-                  <input :id="'mlo-'+f.id" type="file" accept=".xls,.xlsx" style="display:none"
-                         @change.stop="cargarMlo(f.id, $event.target.files[0])">
+                  <input :id="'mlo-'+f.id" type="file" accept=".xls,.xlsx" style="display:none" disabled>
                   <span x-show="mlosPorFdo[f.id]" style="font-size:11px;color:var(--muted)"
                         x-text="mlosPorFdo[f.id]?.lineas?.length + ' CASEs'"></span>
                 </div>
@@ -637,7 +636,7 @@
             <i class="bi bi-table"></i> Líneas de producto
           </h2>
           <div style="display:flex;gap:0.6rem;align-items:center">
-            <button class="btn-primary-grad" @click="verContenedor()">
+            <button class="btn-primary-grad" disabled>
               <i class="bi bi-box-seam"></i> Ver Contenedor
             </button>
             <button x-show="usuario?.rol === 'ADM'" class="btn-ghost"
