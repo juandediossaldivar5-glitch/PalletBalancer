@@ -1756,28 +1756,42 @@ function app() {
       ghost.position.copy(wire.position);
       scene.add(ghost);
 
-      // ── Pallet meshes (mismo color que vista lateral) ───────────
+      // ── Pallet meshes: color por modelo, aristas rojas si no apilable ──
       const palletMeshes = [];
       pos.forEach(p => {
         const pw = p.anchoCm ?? anchoCm;
         const ph = p.altoCm  ?? 150;
         const pd = p.largoCm ?? largoCm;
 
-        const capa1  = pos.find(q => q.fila === p.fila && q.lado === p.lado && q.capa === 1);
-        const yBase  = p.capa === 1 ? 0 : (capa1?.altoCm ?? ph);
+        const capa1   = pos.find(q => q.fila === p.fila && q.lado === p.lado && q.capa === 1);
+        const yBase   = p.capa === 1 ? 0 : (capa1?.altoCm ?? ph);
         const yCenter = yBase + ph / 2;
 
         const x = p.lado === 'Izquierdo' ? -(pw / 2 + 2) : (pw / 2 + 2);
         const z = (p.fila - 0.5) * largoCm;
 
-        const geo  = new THREE.BoxGeometry(pw - 2, ph - 1, pd - 2);
-        const col  = new THREE.Color(this.palletColor(p));   // verde/amarillo/rojo igual que 2D
-        const mat  = new THREE.MeshLambertMaterial({ color: col });
+        const geo = new THREE.BoxGeometry(pw - 2, ph - 1, pd - 2);
+
+        // Color único por modelo; opacidad reducida si es parcial
+        const col = new THREE.Color(this.colorModelo(p.modelNo));
+        const mat = new THREE.MeshLambertMaterial({
+          color:       col,
+          transparent: p.esParcial,
+          opacity:     p.esParcial ? 0.65 : 1.0,
+        });
         const mesh = new THREE.Mesh(geo, mat);
         mesh.position.set(x, yCenter, z);
         mesh.userData.pallet = p;
         scene.add(mesh);
         palletMeshes.push(mesh);
+
+        // Aristas rojas para pallets no apilables
+        if (!p.apilable) {
+          const edgesMat = new THREE.LineBasicMaterial({ color: 0xff3040, linewidth: 2 });
+          const edges    = new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgesMat);
+          edges.position.copy(mesh.position);
+          scene.add(edges);
+        }
       });
 
       // ── OrbitControls ───────────────────────────────────────────
