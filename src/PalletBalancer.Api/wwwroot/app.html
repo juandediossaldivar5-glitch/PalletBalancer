@@ -1698,7 +1698,166 @@ function app() {
     },
 
     async render3D() {
-      // implemented in Task 4
+      const THREE = await import('three');
+      const { OrbitControls } = await import('three/addons/controls/OrbitControls.js');
+
+      const canvas = document.getElementById('canvas3d');
+      const W = canvas.clientWidth  || window.innerWidth;
+      const H = canvas.clientHeight || (window.innerHeight - 56);
+
+      // ── Renderer ──────────────────────────────────────────────
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+      renderer.setSize(W, H);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setClearColor(0x080d1a);
+      this._three3dRenderer = renderer;
+
+      // ── Scene + Camera ─────────────────────────────────────────
+      const scene  = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(50, W / H, 1, 50000);
+
+      // ── Container dimensions ───────────────────────────────────
+      const pos     = this.contenedor.posiciones ?? [];
+      const largoCm = this.contenedor.palletLargoCm  ?? 120;
+      const anchoCm = this.contenedor.palletAnchoCm  ?? 100;
+      const filas   = this.contenedor.filasDisponibles ?? 12;
+
+      const containerL = filas * largoCm;
+      const containerW = anchoCm * 2 + 8;
+      const containerH = 270;
+
+      camera.position.set(containerW * 2.2, containerH * 1.6, -containerL * 0.25);
+      camera.lookAt(0, containerH * 0.35, containerL * 0.5);
+
+      // ── Lights ─────────────────────────────────────────────────
+      scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+      const dir = new THREE.DirectionalLight(0xffffff, 0.6);
+      dir.position.set(containerW, containerH * 2, 0);
+      scene.add(dir);
+
+      // ── Floor ──────────────────────────────────────────────────
+      const floorGeo = new THREE.PlaneGeometry(containerW + 40, containerL + 40);
+      const floorMat = new THREE.MeshBasicMaterial({ color: 0x050a12, side: THREE.DoubleSide });
+      const floor    = new THREE.Mesh(floorGeo, floorMat);
+      floor.rotation.x = -Math.PI / 2;
+      floor.position.set(0, -0.5, containerL / 2);
+      scene.add(floor);
+
+      // ── Container wireframe + ghost walls ──────────────────────
+      const boxGeo  = new THREE.BoxGeometry(containerW, containerH, containerL);
+      const edges   = new THREE.EdgesGeometry(boxGeo);
+      const wireMat = new THREE.LineBasicMaterial({ color: 0x2a3f66 });
+      const wire    = new THREE.LineSegments(edges, wireMat);
+      wire.position.set(0, containerH / 2, containerL / 2);
+      scene.add(wire);
+
+      const ghostMat = new THREE.MeshBasicMaterial({ color: 0x1a2a50, transparent: true, opacity: 0.07, side: THREE.BackSide });
+      const ghost    = new THREE.Mesh(boxGeo, ghostMat);
+      ghost.position.copy(wire.position);
+      scene.add(ghost);
+
+      // ── Destino → color ────────────────────────────────────────
+      const destinos = [...new Set(pos.map(p => p.destino))];
+      const destinoColor = {};
+      destinos.forEach((d, i) => { destinoColor[d] = this._paleta[i % this._paleta.length]; });
+
+      // ── Pallet meshes ───────────────────────────────────────────
+      const palletMeshes = [];
+      pos.forEach(p => {
+        const pw = p.anchoCm ?? anchoCm;
+        const ph = p.altoCm  ?? 150;
+        const pd = p.largoCm ?? largoCm;
+
+        const capa1  = pos.find(q => q.fila === p.fila && q.lado === p.lado && q.capa === 1);
+        const yBase  = p.capa === 1 ? 0 : (capa1?.altoCm ?? ph);
+        const yCenter = yBase + ph / 2;
+
+        const x = p.lado === 'Izquierdo' ? -(pw / 2 + 2) : (pw / 2 + 2);
+        const z = (p.fila - 0.5) * largoCm;
+
+        const geo  = new THREE.BoxGeometry(pw - 2, ph - 1, pd - 2);
+        const col  = new THREE.Color(destinoColor[p.destino] ?? '#4a9eff');
+        const mat  = new THREE.MeshLambertMaterial({ color: col });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(x, yCenter, z);
+        mesh.userData.pallet = p;
+        scene.add(mesh);
+        palletMeshes.push(mesh);
+      });
+
+      // ── OrbitControls ───────────────────────────────────────────
+      const controls        = new OrbitControls(camera, renderer.domElement);
+      controls.target.set(0, containerH * 0.35, containerL / 2);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.08;
+      controls.minDistance   = 50;
+      controls.maxDistance   = containerL * 4;
+      controls.update();
+
+      // ── Raycaster ───────────────────────────────────────────────
+      const raycaster   = new THREE.Raycaster();
+      const mouse       = new THREE.Vector2();
+      let   hoveredMesh = null;
+
+      const onMouseMove = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        mouse.x =  ((e.clientX - rect.left) / rect.width)  * 2 - 1;
+        mouse.y = -((e.clientY - rect.top)  / rect.height) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        const hits = raycaster.intersectObjects(palletMeshes);
+        if (hoveredMesh && hoveredMesh !== this._selected3dMesh)
+          hoveredMesh.material.emissive.set(0x000000);
+        hoveredMesh = hits.length ? hits[0].object : null;
+        if (hoveredMesh && hoveredMesh !== this._selected3dMesh)
+          hoveredMesh.material.emissive.set(0x333333);
+        canvas.style.cursor = hoveredMesh ? 'pointer' : 'default';
+      };
+
+      const onClick = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        mouse.x =  ((e.clientX - rect.left) / rect.width)  * 2 - 1;
+        mouse.y = -((e.clientY - rect.top)  / rect.height) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        const hits = raycaster.intersectObjects(palletMeshes);
+        if (this._selected3dMesh)
+          this._selected3dMesh.material.emissive.set(0x000000);
+        if (hits.length) {
+          this._selected3dMesh = hits[0].object;
+          this._selected3dMesh.material.emissive.set(0x555555);
+          this.pallet3dSeleccionado = hits[0].object.userData.pallet;
+        } else {
+          this._selected3dMesh      = null;
+          this.pallet3dSeleccionado = null;
+        }
+      };
+
+      canvas.addEventListener('mousemove', onMouseMove);
+      canvas.addEventListener('click',     onClick);
+
+      // ── Resize handler ──────────────────────────────────────────
+      const onResize = () => {
+        const nW = canvas.clientWidth;
+        const nH = canvas.clientHeight;
+        camera.aspect = nW / nH;
+        camera.updateProjectionMatrix();
+        renderer.setSize(nW, nH);
+      };
+      window.addEventListener('resize', onResize);
+
+      this._three3dCleanup = () => {
+        canvas.removeEventListener('mousemove', onMouseMove);
+        canvas.removeEventListener('click',     onClick);
+        window.removeEventListener('resize',    onResize);
+      };
+
+      // ── Animation loop ──────────────────────────────────────────
+      const animate = () => {
+        if (!this.modal3dAbierto) return;
+        this._three3dAnimFrame = requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+      };
+      animate();
     },
 
     palletColor(p) {
