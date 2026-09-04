@@ -1669,6 +1669,38 @@ function app() {
       return this._colorCache[modelNo];
     },
 
+    async abrirVista3D() {
+      this.modal3dAbierto = true;
+      this.pallet3dSeleccionado = null;
+      this._selected3dMesh = null;
+      this.cargando3d = true;
+      await this.$nextTick();
+      await this.render3D();
+      this.cargando3d = false;
+    },
+
+    cerrarVista3D() {
+      this.modal3dAbierto = false;
+      this.pallet3dSeleccionado = null;
+      this._selected3dMesh = null;
+      if (this._three3dAnimFrame) {
+        cancelAnimationFrame(this._three3dAnimFrame);
+        this._three3dAnimFrame = null;
+      }
+      if (this._three3dCleanup) {
+        this._three3dCleanup();
+        this._three3dCleanup = null;
+      }
+      if (this._three3dRenderer) {
+        this._three3dRenderer.dispose();
+        this._three3dRenderer = null;
+      }
+    },
+
+    async render3D() {
+      // implemented in Task 4
+    },
+
     palletColor(p) {
       if (!p) return '#6c757d';
       if (!p.apilable)  return '#dc3545';   // rojo  — no se puede estibar
