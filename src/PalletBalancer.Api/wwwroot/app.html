@@ -1772,14 +1772,15 @@ function app() {
       window._leaflet3d = true;
 
       const canvas = document.getElementById('canvas3d');
-      const W = canvas.clientWidth  || window.innerWidth;
-      const H = canvas.clientHeight || (window.innerHeight - 56);
+      const wrap   = document.getElementById('canvas3d-wrap');
+      const W = wrap.clientWidth  || window.innerWidth;
+      const H = wrap.clientHeight || (window.innerHeight - 56);
 
       // ── Renderer ──────────────────────────────────────────────
       const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-      renderer.setSize(W, H);
+      renderer.setSize(W, H, false);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      renderer.setClearColor(0x000000, 0);   // fondo transparente — el mapa se ve detrás
+      renderer.setClearColor(0x060c1a, 0.78);  // oscuro semi-transparente — mapa visible detrás
       this._three3dRenderer = renderer;
 
       // ── Scene + Camera ─────────────────────────────────────────
@@ -1981,11 +1982,11 @@ function app() {
 
       // ── Resize handler ──────────────────────────────────────────
       const onResize = () => {
-        const nW = canvas.clientWidth;
-        const nH = canvas.clientHeight;
+        const nW = wrap.clientWidth;
+        const nH = wrap.clientHeight;
         camera.aspect = nW / nH;
         camera.updateProjectionMatrix();
-        renderer.setSize(nW, nH);
+        renderer.setSize(nW, nH, false);
         cssRenderer.setSize(nW, nH);
       };
       window.addEventListener('resize', onResize);
