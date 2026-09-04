@@ -1819,6 +1819,48 @@ function app() {
       labelPuertas.position.set(0, containerH * 0.55, containerL);
       scene.add(labelPuertas);
 
+      // ── Zonas de destino en el piso (mapa de descarga) ─────────
+      const zonaPaleta = ['#e05c6e','#4a9eff','#2ec27e','#f5a623','#b57cf0','#1bc8b8','#ff7c3a','#5b8dd9'];
+      (this.contenedor.destinos ?? []).forEach((d, i) => {
+        const zStart  = (d.filaInicio - 1) * largoCm;
+        const zEnd    = d.filaFin * largoCm;
+        const zLen    = zEnd - zStart;
+        const zCenter = zStart + zLen / 2;
+        const hexStr  = zonaPaleta[i % zonaPaleta.length];
+        const col     = new THREE.Color(hexStr);
+
+        // Franja en el piso
+        const planeGeo = new THREE.PlaneGeometry(containerW - 4, zLen - 2);
+        const planeMat = new THREE.MeshBasicMaterial({
+          color: col, transparent: true, opacity: 0.18, side: THREE.DoubleSide,
+        });
+        const plane = new THREE.Mesh(planeGeo, planeMat);
+        plane.rotation.x = -Math.PI / 2;
+        plane.position.set(0, 0.5, zCenter);
+        scene.add(plane);
+
+        // Borde de la franja
+        const borderGeo = new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(-(containerW / 2 - 2), 0.6, zStart + 1),
+          new THREE.Vector3( (containerW / 2 - 2), 0.6, zStart + 1),
+          new THREE.Vector3( (containerW / 2 - 2), 0.6, zEnd   - 1),
+          new THREE.Vector3(-(containerW / 2 - 2), 0.6, zEnd   - 1),
+          new THREE.Vector3(-(containerW / 2 - 2), 0.6, zStart + 1),
+        ]);
+        scene.add(new THREE.Line(borderGeo, new THREE.LineBasicMaterial({ color: col, opacity: 0.6, transparent: true })));
+
+        // Label CSS2D con nombre del destino
+        const div = document.createElement('div');
+        div.className   = 'label-3d';
+        div.style.color = hexStr;
+        div.style.borderColor = hexStr + '55';
+        div.style.background  = 'rgba(13,22,41,0.82)';
+        div.textContent = `${d.ordenDescarga}. ${d.consignee}`;
+        const label = new CSS2DObject(div);
+        label.position.set(0, 2, zCenter);
+        scene.add(label);
+      });
+
       // ── Pallet meshes: color por modelo, aristas rojas si no apilable ──
       const palletMeshes = [];
       pos.forEach(p => {
