@@ -1756,12 +1756,7 @@ function app() {
       ghost.position.copy(wire.position);
       scene.add(ghost);
 
-      // ── Destino → color ────────────────────────────────────────
-      const destinos = [...new Set(pos.map(p => p.destino))];
-      const destinoColor = {};
-      destinos.forEach((d, i) => { destinoColor[d] = this._paleta[i % this._paleta.length]; });
-
-      // ── Pallet meshes ───────────────────────────────────────────
+      // ── Pallet meshes (mismo color que vista lateral) ───────────
       const palletMeshes = [];
       pos.forEach(p => {
         const pw = p.anchoCm ?? anchoCm;
@@ -1776,7 +1771,7 @@ function app() {
         const z = (p.fila - 0.5) * largoCm;
 
         const geo  = new THREE.BoxGeometry(pw - 2, ph - 1, pd - 2);
-        const col  = new THREE.Color(destinoColor[p.destino] ?? '#4a9eff');
+        const col  = new THREE.Color(this.palletColor(p));   // verde/amarillo/rojo igual que 2D
         const mat  = new THREE.MeshLambertMaterial({ color: col });
         const mesh = new THREE.Mesh(geo, mat);
         mesh.position.set(x, yCenter, z);
