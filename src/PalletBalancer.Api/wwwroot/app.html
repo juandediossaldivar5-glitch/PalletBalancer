@@ -558,7 +558,7 @@
     <div class="sel-bar" x-show="seleccionados.length > 0" x-cloak>
       <i class="bi bi-check2-square" style="color:#ff8090;font-size:1.1rem"></i>
       <span x-text="seleccionados.length + ' FDO' + (seleccionados.length > 1 ? 's' : '') + ' seleccionado' + (seleccionados.length > 1 ? 's' : '')"></span>
-      <button class="btn-primary-grad" disabled>
+      <button class="btn-primary-grad" @click="iniciarContenedor()">
         <i class="bi bi-box-seam"></i> Ver Contenedor
       </button>
       <button class="btn-ghost" @click="seleccionados = []" style="padding:0.4rem 0.75rem">
@@ -673,7 +673,7 @@
             <i class="bi bi-table"></i> Líneas de producto
           </h2>
           <div style="display:flex;gap:0.6rem;align-items:center">
-            <button class="btn-primary-grad" disabled>
+            <button class="btn-primary-grad" @click="verContenedor()">
               <i class="bi bi-box-seam"></i> Ver Contenedor
             </button>
             <button x-show="usuario?.rol === 'ADM'" class="btn-ghost"
