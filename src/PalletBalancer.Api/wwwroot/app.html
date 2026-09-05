@@ -1713,12 +1713,10 @@ function app() {
       this.modal3dAbierto = true;
       this.pallet3dSeleccionado = null;
       this._selected3dMesh = null;
-      this.cargando3d = true;
+      this.cargando3d = false;   // visible desde el inicio para que Leaflet/Three midan dimensiones
       await this.$nextTick();
-      // Esperar un frame más para que el DOM mida dimensiones reales
       await new Promise(r => requestAnimationFrame(r));
       await this.render3D();
-      this.cargando3d = false;
     },
 
     cerrarVista3D() {
@@ -1761,6 +1759,7 @@ function app() {
       L.circleMarker(ruta[0], { radius: 8, color: '#ff8090', fillColor: '#ff8090', fillOpacity: 1 }).addTo(lmap);
       L.circleMarker(ruta[ruta.length - 1], { radius: 8, color: '#4dd884', fillColor: '#4dd884', fillOpacity: 1 }).addTo(lmap);
       lmap.fitBounds(L.latLngBounds(ruta), { padding: [50, 50] });
+      setTimeout(() => lmap.invalidateSize(), 100);
 
       const canvas = document.getElementById('canvas3d');
       const wrap   = document.getElementById('canvas3d-wrap');
