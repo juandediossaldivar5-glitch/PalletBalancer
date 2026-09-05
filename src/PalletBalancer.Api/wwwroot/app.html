@@ -1687,6 +1687,7 @@ function app() {
     _three3dRenderer:     null,
     _three3dCleanup:      null,
     _selected3dMesh:      null,
+    _mapAnimInterval:     null,
 
     _colorCache: {},
     _paleta: ['#e05c6e','#4a9eff','#2ec27e','#f5a623','#b57cf0','#1bc8b8','#ff7c3a','#5b8dd9','#e67e98','#62c97d'],
@@ -1749,17 +1750,60 @@ function app() {
       mapDiv._leafletMap = lmap;
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(lmap);
 
-      const ruta = [
+      const waypoints = [
         [20.5888, -100.3899], // Querétaro — Planta MELCO
         [22.1565, -100.9855], // San Luis Potosí
         [25.6866, -100.3161], // Monterrey
         [27.4760, -99.5075],  // Laredo TX — Báscula CAT Scale
       ];
-      L.polyline(ruta, { color: '#ff8090', weight: 4, opacity: 0.95, dashArray: '10 7' }).addTo(lmap);
-      L.circleMarker(ruta[0], { radius: 8, color: '#ff8090', fillColor: '#ff8090', fillOpacity: 1 }).addTo(lmap);
-      L.circleMarker(ruta[ruta.length - 1], { radius: 8, color: '#4dd884', fillColor: '#4dd884', fillOpacity: 1 }).addTo(lmap);
-      lmap.fitBounds(L.latLngBounds(ruta), { padding: [50, 50] });
+
+      // Marcadores fijos: origen y destino
+      L.circleMarker(waypoints[0], { radius: 7, color: '#ff8090', fillColor: '#ff8090', fillOpacity: 1 })
+        .bindTooltip('Planta MELCO — Querétaro', { permanent: true, direction: 'right', className: 'label-3d' }).addTo(lmap);
+      L.circleMarker(waypoints[waypoints.length - 1], { radius: 7, color: '#4dd884', fillColor: '#4dd884', fillOpacity: 1 })
+        .bindTooltip('Báscula — Laredo TX', { permanent: true, direction: 'right', className: 'label-3d' }).addTo(lmap);
+
+      lmap.fitBounds(L.latLngBounds(waypoints), { padding: [60, 60] });
       setTimeout(() => lmap.invalidateSize(), 100);
+
+      // Interpolar ~200 puntos suaves entre los waypoints
+      const interpolar = (pts, total) => {
+        const result = [];
+        const segs = pts.length - 1;
+        const perSeg = Math.ceil(total / segs);
+        for (let i = 0; i < segs; i++) {
+          for (let j = 0; j < perSeg; j++) {
+            const t = j / perSeg;
+            result.push([
+              pts[i][0] + (pts[i+1][0] - pts[i][0]) * t,
+              pts[i][1] + (pts[i+1][1] - pts[i][1]) * t,
+            ]);
+          }
+        }
+        result.push(pts[pts.length - 1]);
+        return result;
+      };
+      const allPoints = interpolar(waypoints, 220);
+
+      // Línea gris punteada de fondo (ruta completa)
+      L.polyline(waypoints, { color: '#ffffff', weight: 2, opacity: 0.18, dashArray: '6 8' }).addTo(lmap);
+
+      // Línea animada + punto móvil
+      const animLine = L.polyline([], { color: '#ff8090', weight: 4, opacity: 0.9 }).addTo(lmap);
+      const movingDot = L.circleMarker(allPoints[0], {
+        radius: 7, color: '#fff', weight: 2,
+        fillColor: '#ff8090', fillOpacity: 1,
+      }).addTo(lmap);
+
+      let idx = 0;
+      const step = 2;  // puntos por tick (velocidad)
+      const animInterval = setInterval(() => {
+        idx += step;
+        if (idx >= allPoints.length) { idx = 0; animLine.setLatLngs([]); return; }
+        animLine.setLatLngs(allPoints.slice(0, idx + 1));
+        movingDot.setLatLng(allPoints[idx]);
+      }, 40);
+      this._mapAnimInterval = animInterval;
 
       const canvas = document.getElementById('canvas3d');
       const wrap   = document.getElementById('canvas3d-wrap');
@@ -1988,6 +2032,7 @@ function app() {
         canvas.removeEventListener('click',     onClick);
         window.removeEventListener('resize',    onResize);
         cssRenderer.domElement.remove();
+        if (this._mapAnimInterval) { clearInterval(this._mapAnimInterval); this._mapAnimInterval = null; }
         const md = document.getElementById('map3d');
         if (md?._leafletMap) { md._leafletMap.remove(); md._leafletMap = null; }
       };
