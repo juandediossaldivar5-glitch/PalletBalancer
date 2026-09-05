@@ -15,6 +15,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
   <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     [x-cloak] { display: none !important; }
     *, *::before, *::after { box-sizing: border-box; }
@@ -1744,34 +1745,22 @@ function app() {
       const { CSS2DRenderer, CSS2DObject } = await import('three/addons/renderers/CSS2DRenderer.js');
 
       // ── Leaflet mapa de ruta (fondo) ────────────────────────────
-      if (!window._leaflet3d) {
-        await new Promise(res => {
-          const s = document.createElement('script');
-          s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-          s.onload = res; document.head.appendChild(s);
-        });
-      }
-      const L = window.L;
       const mapDiv = document.getElementById('map3d');
-      if (mapDiv._leafletMap) { mapDiv._leafletMap.remove(); }
+      if (mapDiv._leafletMap) { mapDiv._leafletMap.remove(); mapDiv._leafletMap = null; }
       const lmap = L.map('map3d', { zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false });
       mapDiv._leafletMap = lmap;
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(lmap);
 
-      // Ruta: Querétaro → Monterrey → Nuevo Laredo → Laredo TX
       const ruta = [
-        [20.5888, -100.3899], // Querétaro (planta MELCO)
+        [20.5888, -100.3899], // Querétaro — Planta MELCO
         [22.1565, -100.9855], // San Luis Potosí
         [25.6866, -100.3161], // Monterrey
-        [27.4760, -99.5075],  // Nuevo Laredo / Laredo TX (báscula CAT Scale)
+        [27.4760, -99.5075],  // Laredo TX — Báscula CAT Scale
       ];
-      L.polyline(ruta, { color: '#ff8090', weight: 3, opacity: 0.9, dashArray: '8 6' }).addTo(lmap);
-      L.circleMarker(ruta[0], { radius: 7, color: '#ff8090', fillColor: '#ff8090', fillOpacity: 1 })
-        .bindTooltip('Planta MELCO — Querétaro', { permanent: false }).addTo(lmap);
-      L.circleMarker(ruta[ruta.length - 1], { radius: 7, color: '#4dd884', fillColor: '#4dd884', fillOpacity: 1 })
-        .bindTooltip('Báscula — Laredo TX', { permanent: false }).addTo(lmap);
-      lmap.fitBounds(L.latLngBounds(ruta), { padding: [40, 40] });
-      window._leaflet3d = true;
+      L.polyline(ruta, { color: '#ff8090', weight: 4, opacity: 0.95, dashArray: '10 7' }).addTo(lmap);
+      L.circleMarker(ruta[0], { radius: 8, color: '#ff8090', fillColor: '#ff8090', fillOpacity: 1 }).addTo(lmap);
+      L.circleMarker(ruta[ruta.length - 1], { radius: 8, color: '#4dd884', fillColor: '#4dd884', fillOpacity: 1 }).addTo(lmap);
+      lmap.fitBounds(L.latLngBounds(ruta), { padding: [50, 50] });
 
       const canvas = document.getElementById('canvas3d');
       const wrap   = document.getElementById('canvas3d-wrap');
@@ -1784,7 +1773,7 @@ function app() {
       const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
       renderer.setSize(W, H, false);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      renderer.setClearColor(0x060c1a, 0.78);  // oscuro semi-transparente — mapa visible detrás
+      renderer.setClearColor(0x060c1a, 0.55);  // semi-transparente — mapa visible detrás
       this._three3dRenderer = renderer;
 
       // ── Scene + Camera ─────────────────────────────────────────
@@ -2002,7 +1991,6 @@ function app() {
         cssRenderer.domElement.remove();
         const md = document.getElementById('map3d');
         if (md?._leafletMap) { md._leafletMap.remove(); md._leafletMap = null; }
-        window._leaflet3d = false;
       };
 
       // ── Animation loop ──────────────────────────────────────────
@@ -2799,7 +2787,7 @@ function app() {
 
     <div id="canvas3d-wrap" x-show="!cargando3d" style="flex:1;position:relative;overflow:hidden">
       <!-- Mapa de ruta como fondo -->
-      <div id="map3d" style="position:absolute;inset:0;z-index:0;filter:brightness(0.45) saturate(0.7)"></div>
+      <div id="map3d" style="position:absolute;inset:0;z-index:0;filter:brightness(0.55) saturate(0.6)"></div>
       <!-- Canvas Three.js encima del mapa -->
       <canvas id="canvas3d" style="position:absolute;inset:0;z-index:1;width:100%;height:100%"></canvas>
     </div>
