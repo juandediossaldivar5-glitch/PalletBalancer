@@ -635,7 +635,8 @@
                   <label :for="'mlo-'+f.id" style="cursor:pointer;font-size:12px;color:var(--accent);border:1px solid var(--accent);border-radius:6px;padding:3px 10px" @click.stop>
                     <span x-text="mlosPorFdo[f.id] ? '✓ MLO ' + mlosPorFdo[f.id].mloNo : '+ Cargar MLO'"></span>
                   </label>
-                  <input :id="'mlo-'+f.id" type="file" accept=".xls,.xlsx" style="display:none" disabled>
+                  <input :id="'mlo-'+f.id" type="file" accept=".xls,.xlsx" style="display:none"
+                         @change.stop="cargarMlo(f.id, $event.target.files[0])">
                   <span x-show="mlosPorFdo[f.id]" style="font-size:11px;color:var(--muted)"
                         x-text="mlosPorFdo[f.id]?.lineas?.length + ' CASEs'"></span>
                 </div>
