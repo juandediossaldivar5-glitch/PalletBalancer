@@ -16,6 +16,9 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
   <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Cabinet+Grotesk:wght@400;500;700;900&display=swap" rel="stylesheet">
   <style>
     [x-cloak] { display: none !important; }
     *, *::before, *::after { box-sizing: border-box; }
@@ -26,8 +29,10 @@
       --border:   rgba(255,255,255,0.08);
       --text:     #e8eaf0;
       --muted:    rgba(255,255,255,0.38);
-      --red:      #d4001a;
-      --red-dim:  rgba(212,0,26,0.15);
+      --red:      #3b82f6;
+      --red-dim:  rgba(59, 130, 246, 0.15);
+      --sans:    'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
+      --display: 'Cabinet Grotesk', 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
       --green:    #1a8a45;
       --green-dim:rgba(26,138,69,0.15);
       --accent:   #4dd884;
@@ -37,7 +42,7 @@
       margin: 0;
       background: var(--bg);
       color: var(--text);
-      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-family: var(--sans);
       min-height: 100vh;
     }
 
@@ -76,6 +81,7 @@
     }
 
     .pb-sidebar-brand .brand-text {
+      font-family: var(--display);
       font-weight: 700;
       font-size: 13px;
       color: #e8eaf0;
@@ -105,18 +111,18 @@
       cursor: pointer;
       width: 100%;
       text-align: left;
-      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-family: var(--sans);
       transition: background 0.15s, color 0.15s;
     }
 
     .pb-nav-btn:hover {
-      background: rgba(212, 0, 26, 0.1);
+      background: rgba(59, 130, 246, 0.1);
       color: #e8eaf0;
     }
 
     .pb-nav-btn.active {
-      background: rgba(212, 0, 26, 0.15);
-      color: #ff6070;
+      background: rgba(59, 130, 246, 0.15);
+      color: #93c5fd;
     }
 
     .pb-nav-btn i { font-size: 14px; flex-shrink: 0; }
@@ -153,7 +159,7 @@
       font-size: 0.68rem;
       font-weight: 700;
       background: var(--red-dim);
-      color: #ff6070;
+      color: #93c5fd;
       border-radius: 4px;
       padding: 0.1rem 0.4rem;
       letter-spacing: 0.5px;
@@ -202,6 +208,7 @@
       gap: 0.75rem;
     }
     .pb-page-title {
+      font-family: var(--display);
       font-size: 1.1rem;
       font-weight: 700;
       color: #fff;
@@ -210,7 +217,7 @@
       align-items: center;
       gap: 0.5rem;
     }
-    .pb-page-title i { color: #ff6070; }
+    .pb-page-title i { color: #93c5fd; }
 
     /* ── CARD ── */
     .pb-card {
@@ -247,7 +254,7 @@
     .pb-table tbody tr:last-child { border-bottom: none; }
     .pb-table tbody td { padding: 0.72rem 1rem; color: var(--text); vertical-align: middle; }
     .pb-table .clickable { cursor: pointer; }
-    .pb-table .fdo-no { font-weight: 700; color: #ff8090; font-family: monospace; font-size: 0.92rem; }
+    .pb-table .fdo-no { font-weight: 700; color: #93c5fd; font-family: monospace; font-size: 0.92rem; }
     .pb-table .model   { font-family: monospace; font-weight: 600; color: #88c4ff; font-size: 0.82rem; }
     .pb-table .po-no   { font-family: monospace; font-size: 0.82rem; color: var(--muted); }
     .pb-table .qty     { font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -259,7 +266,7 @@
 
     /* ── BUTTONS ── */
     .btn-primary-grad {
-      background: linear-gradient(135deg, #d4001a, #8f0012);
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
       border: none;
       border-radius: 9px;
       color: #fff;
@@ -271,7 +278,7 @@
       display: inline-flex;
       align-items: center;
       gap: 0.45rem;
-      box-shadow: 0 4px 14px rgba(212,0,26,0.25);
+      box-shadow: 0 4px 14px rgba(59, 130, 246, 0.25);
     }
     .btn-primary-grad:hover:not(:disabled) { opacity: 0.85; transform: translateY(-1px); }
     .btn-primary-grad:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -309,7 +316,7 @@
       transition: border-color 0.2s, box-shadow 0.2s;
       outline: none;
     }
-    .pb-input:focus { border-color: rgba(212,0,26,0.55); box-shadow: 0 0 0 3px rgba(212,0,26,0.1); }
+    .pb-input:focus { border-color: rgba(59, 130, 246, 0.55); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
     .pb-input::placeholder { color: rgba(255,255,255,0.18); }
 
     .pb-input-sm {
@@ -322,13 +329,13 @@
       width: 100%;
       outline: none;
     }
-    .pb-input-sm:focus { border-color: rgba(212,0,26,0.5); }
+    .pb-input-sm:focus { border-color: rgba(59, 130, 246, 0.5); }
 
     .pb-label { display: block; font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.9px; margin-bottom: 0.35rem; font-weight: 700; }
 
     /* ── ALERTS ── */
     .pb-alert { border-radius: 10px; font-size: 0.87rem; padding: 0.72rem 1rem; display: flex; align-items: flex-start; gap: 0.6rem; margin-bottom: 1.25rem; }
-    .pb-alert-danger { background: var(--red-dim); border: 1px solid rgba(212,0,26,0.25); color: #ff8888; }
+    .pb-alert-danger { background: var(--red-dim); border: 1px solid rgba(59, 130, 246, 0.25); color: #ff8888; }
     .pb-alert-info   { background: rgba(100,160,255,0.08); border: 1px solid rgba(100,160,255,0.2); color: #88b8ff; }
 
     /* ── DROP ZONE ── */
@@ -341,7 +348,7 @@
       cursor: pointer;
       display: block;
     }
-    .drop-zone:hover { border-color: rgba(212,0,26,0.45); background: var(--red-dim); }
+    .drop-zone:hover { border-color: rgba(59, 130, 246, 0.45); background: var(--red-dim); }
     .drop-zone i { font-size: 2.2rem; color: var(--muted); display: block; margin-bottom: 0.6rem; }
     .drop-zone p { color: var(--muted); margin: 0; font-size: 0.87rem; }
     .drop-zone .hint { font-size: 0.75rem; opacity: 0.5; margin-top: 0.4rem; }
@@ -359,8 +366,8 @@
 
     /* ── SELECTION BAR ── */
     .sel-bar {
-      background: rgba(212,0,26,0.1);
-      border: 1px solid rgba(212,0,26,0.25);
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.25);
       border-radius: 12px;
       padding: 0.65rem 1.1rem;
       display: flex;
@@ -369,7 +376,7 @@
       margin-bottom: 1rem;
       flex-wrap: wrap;
     }
-    .sel-bar span { font-size: 0.87rem; color: #ff8090; font-weight: 600; flex:1; }
+    .sel-bar span { font-size: 0.87rem; color: #93c5fd; font-weight: 600; flex:1; }
 
     /* Checkbox custom */
     .pb-check { width: 16px; height: 16px; accent-color: var(--red); cursor: pointer; flex-shrink:0; }
@@ -387,7 +394,7 @@
     }
     .dest-orden-num {
       width: 28px; height: 28px; border-radius: 50%;
-      background: var(--red-dim); color: #ff8090;
+      background: var(--red-dim); color: #93c5fd;
       font-weight: 800; font-size: 0.85rem;
       display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     }
@@ -648,7 +655,7 @@
 
     <!-- Barra de selección -->
     <div class="sel-bar" x-show="seleccionados.length > 0" x-cloak>
-      <i class="bi bi-check2-square" style="color:#ff8090;font-size:1.1rem"></i>
+      <i class="bi bi-check2-square" style="color:#93c5fd;font-size:1.1rem"></i>
       <span x-text="seleccionados.length + ' FDO' + (seleccionados.length > 1 ? 's' : '') + ' seleccionado' + (seleccionados.length > 1 ? 's' : '')"></span>
       <button class="btn-primary-grad" @click="iniciarContenedor()">
         <i class="bi bi-box-seam"></i> Ver Contenedor
@@ -684,7 +691,7 @@
           <template x-for="f in fdos" :key="f.id">
             <tr :class="seleccionados.includes(f.id) ? 'clickable' : 'clickable'"
                 style="transition:background 0.1s"
-                :style="seleccionados.includes(f.id) ? 'background:rgba(212,0,26,0.06)' : ''">
+                :style="seleccionados.includes(f.id) ? 'background:rgba(59,130,246,0.06)' : ''">
               <td @click.stop>
                 <input type="checkbox" class="pb-check"
                        :checked="seleccionados.includes(f.id)"
@@ -740,7 +747,7 @@
           <div class="meta-grid">
             <div class="meta-item">
               <label>FDO Slip No</label>
-              <span style="color:#ff8090;font-family:monospace" x-text="fdoActual.fdoSlipNo"></span>
+              <span style="color:#93c5fd;font-family:monospace" x-text="fdoActual.fdoSlipNo"></span>
             </div>
             <div class="meta-item">
               <label>DSB Date</label>
@@ -1400,7 +1407,7 @@
       <h1 class="pb-page-title">
         <i class="bi bi-box2-fill"></i> Catálogo de modelos
         <template x-if="items.filter(i => !i.spPiezasPorPallet).length > 0">
-          <span style="background:var(--red-dim);color:#ff6070;border:1px solid rgba(212,0,26,0.3);border-radius:20px;font-size:0.72rem;font-weight:700;padding:0.15rem 0.65rem;letter-spacing:0.3px"
+          <span style="background:var(--red-dim);color:#93c5fd;border:1px solid rgba(59,130,246,0.3);border-radius:20px;font-size:0.72rem;font-weight:700;padding:0.15rem 0.65rem;letter-spacing:0.3px"
                 x-text="items.filter(i => !i.spPiezasPorPallet).length + ' pendiente(s)'"></span>
         </template>
       </h1>
@@ -1459,15 +1466,15 @@
             </td>
           </tr>
           <template x-for="item in itemsFiltrados()" :key="item.modelNo">
-            <tr :style="!item.spPiezasPorPallet ? 'background:rgba(212,0,26,0.04)' : ''">
+            <tr :style="!item.spPiezasPorPallet ? 'background:rgba(59,130,246,0.04)' : ''">
               <td>
                 <span class="model" x-text="item.modelNo"></span>
                 <template x-if="!item.spPiezasPorPallet">
-                  <span style="margin-left:0.4rem;font-size:0.65rem;font-weight:700;background:var(--red-dim);color:#ff6070;border-radius:4px;padding:0.1rem 0.4rem;vertical-align:middle">INCOMPLETO</span>
+                  <span style="margin-left:0.4rem;font-size:0.65rem;font-weight:700;background:var(--red-dim);color:#93c5fd;border-radius:4px;padding:0.1rem 0.4rem;vertical-align:middle">INCOMPLETO</span>
                 </template>
               </td>
               <td style="font-size:0.85rem" x-text="item.descripcion"></td>
-              <td style="text-align:right;font-variant-numeric:tabular-nums" :style="!item.spPiezasPorPallet ? 'color:#ff6070;font-weight:700' : ''" x-text="item.spPiezasPorPallet || '—'"></td>
+              <td style="text-align:right;font-variant-numeric:tabular-nums" :style="!item.spPiezasPorPallet ? 'color:#93c5fd;font-weight:700' : ''" x-text="item.spPiezasPorPallet || '—'"></td>
               <td style="text-align:right;font-variant-numeric:tabular-nums" x-text="item.spPesoKg || '—'"></td>
               <td style="text-align:right;color:var(--muted);font-size:0.82rem" x-text="item.spLargoCm ? item.spLargoCm + ' cm' : '—'"></td>
               <td style="text-align:right;color:var(--muted);font-size:0.82rem" x-text="item.spAnchoCm ? item.spAnchoCm + ' cm' : '—'"></td>
@@ -1522,13 +1529,13 @@
       <div class="row g-3">
         <!-- Model No — solo editable en creación -->
         <div class="col-12 col-md-4">
-          <label class="pb-label">Model No <span style="color:#ff6070">*</span></label>
+          <label class="pb-label">Model No <span style="color:#93c5fd">*</span></label>
           <input class="pb-input" x-model="itemForm.modelNo" :disabled="!!itemActual"
                  placeholder="K006T91071XB"
                  :style="itemActual ? 'opacity:0.5' : ''">
         </div>
         <div class="col-12 col-md-8">
-          <label class="pb-label">Descripción <span style="color:#ff6070">*</span></label>
+          <label class="pb-label">Descripción <span style="color:#93c5fd">*</span></label>
           <input class="pb-input" x-model="itemForm.descripcion" placeholder="Ej. 4G-VCT MPC">
         </div>
 
@@ -1539,7 +1546,7 @@
           </div>
         </div>
         <div class="col-6 col-md-3">
-          <label class="pb-label">Piezas/Pallet <span style="color:#ff6070">*</span></label>
+          <label class="pb-label">Piezas/Pallet <span style="color:#93c5fd">*</span></label>
           <input class="pb-input" type="number" min="1" x-model.number="itemForm.spPiezasPorPallet" placeholder="0">
         </div>
         <div class="col-6 col-md-3">
@@ -1661,7 +1668,7 @@
         </thead>
         <tbody>
           <template x-for="l in pickingResult?.lineas ?? []" :key="l.ordenPicking">
-            <tr :style="l.caseNo === '(sin MLO)'        ? 'background:rgba(212,0,26,0.06)'    :
+            <tr :style="l.caseNo === '(sin MLO)'        ? 'background:rgba(59,130,246,0.06)'  :
                          l.necesitaConfirmacion             ? 'background:rgba(251,191,36,0.08)'  :
                          l.esParcial                        ? 'background:rgba(245,166,35,0.05)'  : ''">
               <td style="text-align:center;font-weight:800;color:var(--muted)" x-text="l.ordenPicking"></td>
@@ -1823,7 +1830,7 @@ function app() {
       ];
 
       // Marcadores fijos: origen y destino
-      L.circleMarker(waypoints[0], { radius: 7, color: '#ff8090', fillColor: '#ff8090', fillOpacity: 1 })
+      L.circleMarker(waypoints[0], { radius: 7, color: '#93c5fd', fillColor: '#93c5fd', fillOpacity: 1 })
         .bindTooltip('Planta MELCO — Querétaro', { permanent: true, direction: 'right', className: 'label-3d' }).addTo(lmap);
       L.circleMarker(waypoints[waypoints.length - 1], { radius: 7, color: '#4dd884', fillColor: '#4dd884', fillOpacity: 1 })
         .bindTooltip('Báscula — Laredo TX', { permanent: true, direction: 'right', className: 'label-3d' }).addTo(lmap);
@@ -1854,10 +1861,10 @@ function app() {
       L.polyline(waypoints, { color: '#ffffff', weight: 2, opacity: 0.18, dashArray: '6 8' }).addTo(lmap);
 
       // Línea animada + punto móvil
-      const animLine = L.polyline([], { color: '#ff8090', weight: 4, opacity: 0.9 }).addTo(lmap);
+      const animLine = L.polyline([], { color: '#93c5fd', weight: 4, opacity: 0.9 }).addTo(lmap);
       const movingDot = L.circleMarker(allPoints[0], {
         radius: 7, color: '#fff', weight: 2,
-        fillColor: '#ff8090', fillOpacity: 1,
+        fillColor: '#93c5fd', fillOpacity: 1,
       }).addTo(lmap);
 
       let idx = 0;
@@ -2879,7 +2886,7 @@ function app() {
   <div class="modal-3d-overlay no-print" x-show="modal3dAbierto" x-cloak>
     <div class="modal-3d-header">
       <h2><i class="bi bi-box-seam"></i> Vista 3D —
-        <span style="color:#ff8090;font-family:monospace"
+        <span style="color:#93c5fd;font-family:monospace"
               x-text="seleccionados.length > 1 ? seleccionados.length + ' FDOs' : 'FDO ' + (fdoActual?.fdoSlipNo ?? '')">
         </span>
       </h2>
