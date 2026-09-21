@@ -103,8 +103,9 @@ public class ContenedorController : ControllerBase
             }
         }
 
+        // 53ft primero (más común en logística), luego por tamaño descendente
         var orden = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
-            { ["20ft"]=0, ["40ft"]=1, ["40ft HC"]=2, ["45ft HC"]=3, ["53ft"]=4, ["53ft Dry Van"]=5 };
+            { ["53ft"]=0, ["53ft Dry Van"]=1, ["45ft HC"]=2, ["40ft HC"]=3, ["40ft"]=4, ["20ft"]=5 };
 
         var viables = resultados
             .Where(r => r.Viable)
