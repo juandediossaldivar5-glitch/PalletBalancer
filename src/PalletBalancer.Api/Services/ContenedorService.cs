@@ -195,7 +195,9 @@ public class ContenedorService
             var _pos     = new List<PosicionResultadoDto>();
             var _dInfos  = new List<DestinoInfoDto>();
             double _pI = 0, _pD = 0;
-            int _fA = 1;
+            // Empezar desde filas traseras (puertas) cuando hay espacio sobrante,
+            // para alejar el CG del king pin y reducir carga en eje motriz (W2).
+            int _fA = Math.Max(1, filasPorLado - rowsTotalesNecesarios + 1);
             foreach (var dest in ordenCarga)
             {
                 var stacks = stacksPorDestino.GetValueOrDefault(dest, []);
