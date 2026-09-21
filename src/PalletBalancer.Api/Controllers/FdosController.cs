@@ -40,8 +40,8 @@ public class FdosController : ControllerBase
         var fdo = new Fdo
         {
             FdoSlipNo = dto.FdoSlipNo,
-            DsbDate   = DateOnly.Parse(dto.DsbDate),
-            ShipDate  = DateOnly.Parse(dto.ShipDate),
+            DsbDate   = DateOnly.TryParse(dto.DsbDate,  out var dsb)  ? dsb  : DateOnly.MinValue,
+            ShipDate  = DateOnly.TryParse(dto.ShipDate, out var ship) ? ship : DateOnly.MinValue,
             Customer  = dto.Customer,
             Consignee = dto.Consignee,
             Lineas    = dto.Lineas.Select(l => new FdoLinea

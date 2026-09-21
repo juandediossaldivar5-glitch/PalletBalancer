@@ -28,13 +28,15 @@ public static class PdfFdoParser
                 && TryExtraerValor(linea, "FDO Slip No.", out var v))
                 dto.FdoSlipNo = v.Split(' ')[0].Trim();
 
-            if (string.IsNullOrEmpty(dto.DsbDate)
-                && TryExtraerValor(linea, "Dsb. Date", out v))
-                dto.DsbDate = NormalizarFecha(v.Split(' ')[0]);
+            if (string.IsNullOrEmpty(dto.DsbDate))
+                foreach (var lbl in new[] { "Dsb. Date", "Dsb Date", "DSB DATE", "Dsb.Date" })
+                    if (TryExtraerValor(linea, lbl, out v))
+                    { dto.DsbDate = NormalizarFecha(v.Split(' ')[0]); break; }
 
-            if (string.IsNullOrEmpty(dto.ShipDate)
-                && TryExtraerValor(linea, "Ship Date", out v))
-                dto.ShipDate = NormalizarFecha(v.Split(' ')[0]);
+            if (string.IsNullOrEmpty(dto.ShipDate))
+                foreach (var lbl in new[] { "Ship Date", "SHIP DATE", "ShipDate" })
+                    if (TryExtraerValor(linea, lbl, out v))
+                    { dto.ShipDate = NormalizarFecha(v.Split(' ')[0]); break; }
 
             // Evitar que "Customer PO No." o "Customer Model" disparen este campo
             if (string.IsNullOrEmpty(dto.Customer)
