@@ -1006,8 +1006,8 @@
       <!-- Selector de tipo de contenedor -->
       <div style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap">
         <select class="pb-input" style="width:auto;padding-right:2rem" x-model="tipoContenedor">
-          <option value="53ft">53ft — 1,600 cm (contenedor + chasis)</option>
           <option value="53ft Dry Van">53ft Dry Van (US drayage)</option>
+          <option value="53ft">53ft — 1,600 cm (contenedor + chasis ISO)</option>
           <option value="45ft HC">45ft HC — 1,351 cm</option>
           <option value="40ft HC">40ft HC — 1,200 cm</option>
           <option value="40ft">40ft — 1,200 cm</option>
@@ -1737,7 +1737,7 @@ function app() {
     seleccionados:      [],
     ordenDescarga:      [],
     contenedorBack:     'detalle',
-    tipoContenedor:     '53ft',
+    tipoContenedor:     '53ft Dry Van',
     tipoTractocamion:        'T3-S2 Estándar',
     mostrandoRecomendaciones: false,
     recomendaciones:          [],

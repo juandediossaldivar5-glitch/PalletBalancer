@@ -274,10 +274,10 @@ public class ContenedorService
         // Estado de cumplimiento por eje y norma (cada uno con su tractor correspondiente)
         var estNomW1  = EstadoCumplimiento(ejes.w1Min,   ejes.w1Max,   NOM_W1);
         var estNomW2  = EstadoCumplimiento(ejes.w2Min,   ejes.w2Max,   NOM_W2);
-        var estNomWr  = EstadoCumplimiento(ejes.wr,      ejes.wr,      NOM_Wr);
+        var estNomWr  = EstadoCumplimiento(ejes.wrMin,      ejes.wr,      NOM_Wr);
         var estFhwaW1 = EstadoCumplimiento(ejesUs.w1Min, ejesUs.w1Max, FHWA_W1);
         var estFhwaW2 = EstadoCumplimiento(ejesUs.w2Min, ejesUs.w2Max, FHWA_W2);
-        var estFhwaWr = EstadoCumplimiento(ejesUs.wr,    ejesUs.wr,    FHWA_Wr);
+        var estFhwaWr = EstadoCumplimiento(ejesUs.wrMin, ejesUs.wr,    FHWA_Wr);
 
         // Advertencias: Falla bloqueante, Condicional como alerta
         void WarnEje(string estado, string eje, double max, double lim, string norma)
@@ -364,7 +364,7 @@ public class ContenedorService
     // Wr es determinístico (depende solo de la carga, no del tractor).
     // W1 y W2 tienen rango según tara mínima/máxima del tractocamión.
     private static (double w1Min, double w1Max, double w2Min, double w2Max,
-                    double wr, double gvwMin, double gvwMax,
+                    double wrMin, double wr, double gvwMin, double gvwMax,
                     double cgCm, double cgPct)
         CalcularEjes(List<PosicionResultadoDto> posiciones, double palletLargo,
                      ContenedorSpec spec, TractocamionSpec trac)
@@ -412,7 +412,7 @@ public class ContenedorService
 
         return (Math.Round(w1Min, 0), Math.Round(w1Max, 0),
                 Math.Round(w2Min, 0), Math.Round(w2Max, 0),
-                Math.Round(wrMax, 0),   // reporta peor caso Wr
+                Math.Round(wrMin, 0), Math.Round(wrMax, 0),
                 Math.Round(gvwMin, 0), Math.Round(gvwMax, 0),
                 Math.Round(cgCm, 0), cgPct);
     }
