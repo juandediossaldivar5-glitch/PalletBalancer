@@ -3002,6 +3002,7 @@ function app() {
     <!-- Cargas por eje (RF-08: rango min/max + tres estados) -->
     <div class="pr-sub">Verificación de Cargas por Eje</div>
     <div style="font-size:0.7rem;color:#666;margin-bottom:0.4rem">
+      Rango calculado con <strong>US Class 8 Day Cab</strong> (tracto frontera Laredo/El Paso).
       Rango: mínimo (tanque vacío) → máximo (tanque lleno + conductor).
       Estado: ✓ Seguro — no fallará · ⚠ Condicional — depende del combustible · ✗ Falla — excede en cualquier condición.
       Margen de seguridad aplicado: <span x-text="(contenedor?.margenSeguridadPct ?? 2) + '%'"></span>.
@@ -3010,7 +3011,7 @@ function app() {
       <thead>
         <tr>
           <th>Eje</th>
-          <th>Rango calculado (kg)</th>
+          <th>Rango US Class 8 (kg / lb)</th>
           <th>Lím. FHWA (kg)</th>
           <th>Estado FHWA</th>
           <th>Lím. NOM-012 (kg)</th>
@@ -3020,7 +3021,7 @@ function app() {
       <tbody>
         <tr>
           <td><strong>STEER AXLE</strong> — Eje Direccional (W1)</td>
-          <td x-text="(contenedor?.pesoEjeDelanteroMinKg??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + '–' + (contenedor?.pesoEjeDelanteroMaxKg??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + ' kg / ' + toLb(contenedor?.pesoEjeDelanteroMinKg).toLocaleString('es-MX') + '–' + toLb(contenedor?.pesoEjeDelanteroMaxKg).toLocaleString('es-MX') + ' lb'"></td>
+          <td x-text="(contenedor?.pesoEjeDelanteroUsMinKg??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + '–' + (contenedor?.pesoEjeDelanteroUsMaxKg??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + ' kg / ' + toLb(contenedor?.pesoEjeDelanteroUsMinKg).toLocaleString('es-MX') + '–' + toLb(contenedor?.pesoEjeDelanteroUsMaxKg).toLocaleString('es-MX') + ' lb'"></td>
           <td>5,443 kg / 12,000 lb</td>
           <td :class="contenedor?.estadoFhwaW1==='Falla'?'pr-err':contenedor?.estadoFhwaW1==='Condicional'?'pr-warn':'pr-ok'"
               x-text="contenedor?.estadoFhwaW1==='Falla'?'✗ FALLA':contenedor?.estadoFhwaW1==='Condicional'?'⚠ CONDICIONAL':'✓ SEGURO'"></td>
@@ -3030,7 +3031,7 @@ function app() {
         </tr>
         <tr>
           <td><strong>DRIVE AXLE</strong> — Eje Motriz tándem (W2)</td>
-          <td x-text="(contenedor?.pesoEjeTractorMinKg??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + '–' + (contenedor?.pesoEjeTractorMaxKg??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + ' kg / ' + toLb(contenedor?.pesoEjeTractorMinKg).toLocaleString('es-MX') + '–' + toLb(contenedor?.pesoEjeTractorMaxKg).toLocaleString('es-MX') + ' lb'"></td>
+          <td x-text="(contenedor?.pesoEjeTractorUsMinKg??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + '–' + (contenedor?.pesoEjeTractorUsMaxKg??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + ' kg / ' + toLb(contenedor?.pesoEjeTractorUsMinKg).toLocaleString('es-MX') + '–' + toLb(contenedor?.pesoEjeTractorUsMaxKg).toLocaleString('es-MX') + ' lb'"></td>
           <td>15,422 kg / 34,000 lb</td>
           <td :class="contenedor?.estadoFhwaW2==='Falla'?'pr-err':contenedor?.estadoFhwaW2==='Condicional'?'pr-warn':'pr-ok'"
               x-text="contenedor?.estadoFhwaW2==='Falla'?'✗ FALLA':contenedor?.estadoFhwaW2==='Condicional'?'⚠ CONDICIONAL':'✓ SEGURO'"></td>
@@ -3040,7 +3041,7 @@ function app() {
         </tr>
         <tr>
           <td><strong>TRAILER AXLE</strong> — Eje del Remolque tándem (Wr)</td>
-          <td x-text="(contenedor?.pesoEjeRemolqueKg??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + ' kg / ' + toLb(contenedor?.pesoEjeRemolqueKg).toLocaleString('es-MX') + ' lb (fijo)'"></td>
+          <td x-text="(contenedor?.pesoEjeRemolqueKg??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + ' kg / ' + toLb(contenedor?.pesoEjeRemolqueKg).toLocaleString('es-MX') + ' lb'"></td>
           <td>15,422 kg / 34,000 lb</td>
           <td :class="contenedor?.estadoFhwaWr==='Falla'?'pr-err':contenedor?.estadoFhwaWr==='Condicional'?'pr-warn':'pr-ok'"
               x-text="contenedor?.estadoFhwaWr==='Falla'?'✗ FALLA':contenedor?.estadoFhwaWr==='Condicional'?'⚠ CONDICIONAL':'✓ SEGURO'"></td>
@@ -3050,13 +3051,13 @@ function app() {
         </tr>
         <tr style="font-weight:700">
           <td><strong>GROSS WEIGHT</strong> — Peso Bruto Total (GVW)</td>
-          <td x-text="(contenedor?.pesoTotalGVWMinKg??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + '–' + (contenedor?.pesoTotalGVWMaxKg??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + ' kg / ' + toLb(contenedor?.pesoTotalGVWMinKg).toLocaleString('es-MX') + '–' + toLb(contenedor?.pesoTotalGVWMaxKg).toLocaleString('es-MX') + ' lb'"></td>
+          <td x-text="(contenedor?.pesoTotalGVWUsMinKg??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + '–' + (contenedor?.pesoTotalGVWUsMaxKg??0).toLocaleString('es-MX',{maximumFractionDigits:0}) + ' kg / ' + toLb(contenedor?.pesoTotalGVWUsMinKg).toLocaleString('es-MX') + '–' + toLb(contenedor?.pesoTotalGVWUsMaxKg).toLocaleString('es-MX') + ' lb'"></td>
           <td>36,287 kg / 80,000 lb</td>
-          <td :class="(contenedor?.pesoTotalGVWMaxKg??0) > 36287 ? 'pr-err' : 'pr-ok'"
-              x-text="(contenedor?.pesoTotalGVWMaxKg??0) > 36287 ? '✗ EXCEDE' : '✓ OK'"></td>
+          <td :class="(contenedor?.pesoTotalGVWUsMaxKg??0) > 36287 ? 'pr-err' : 'pr-ok'"
+              x-text="(contenedor?.pesoTotalGVWUsMaxKg??0) > 36287 ? '✗ EXCEDE' : '✓ OK'"></td>
           <td>48,000 kg / 105,822 lb</td>
-          <td :class="(contenedor?.pesoTotalGVWMaxKg??0) > 48000 ? 'pr-err' : 'pr-ok'"
-              x-text="(contenedor?.pesoTotalGVWMaxKg??0) > 48000 ? '✗ EXCEDE' : '✓ OK'"></td>
+          <td :class="(contenedor?.pesoTotalGVWUsMaxKg??0) > 48000 ? 'pr-err' : 'pr-ok'"
+              x-text="(contenedor?.pesoTotalGVWUsMaxKg??0) > 48000 ? '✗ EXCEDE' : '✓ OK'"></td>
         </tr>
       </tbody>
     </table>
