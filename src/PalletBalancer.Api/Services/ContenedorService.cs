@@ -195,9 +195,15 @@ public class ContenedorService
             var _pos     = new List<PosicionResultadoDto>();
             var _dInfos  = new List<DestinoInfoDto>();
             double _pI = 0, _pD = 0;
-            // Empezar desde filas traseras (puertas) cuando hay espacio sobrante,
-            // para alejar el CG del king pin y reducir carga en eje motriz (W2).
-            int _fA = Math.Max(1, filasPorLado - rowsTotalesNecesarios + 1);
+            // Posicionar la carga al 60% del KP→eje: aleja el CG del king pin (↓W2)
+            // sin sobrecargar el eje remolque (↓Wr). El clamp evita salirse del contenedor.
+            double _cgTarget      = spec.KingPinAEjeCm * 0.60;
+            double _avgRowTarget  = palletLargo > 0
+                ? (_cgTarget + spec.KingPinOffsetCm) / palletLargo + 0.5
+                : filasPorLado / 2.0;
+            int startFromPhysics  = Math.Max(1, (int)Math.Round(_avgRowTarget - rowsTotalesNecesarios / 2.0));
+            int startFromSpare    = Math.Max(1, filasPorLado - rowsTotalesNecesarios + 1);
+            int _fA               = Math.Clamp(startFromPhysics, 1, startFromSpare);
             foreach (var dest in ordenCarga)
             {
                 var stacks = stacksPorDestino.GetValueOrDefault(dest, []);
