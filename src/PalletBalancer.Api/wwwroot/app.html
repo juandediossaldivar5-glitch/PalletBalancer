@@ -438,6 +438,16 @@
     }
     .cont-cell.ocupada { border-color: transparent; }
     .cont-cell.ocupada:hover { transform: scale(1.03); z-index: 2; }
+    .cont-cell.dummy {
+      background: repeating-linear-gradient(
+        45deg,
+        rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 3px,
+        transparent 3px, transparent 9px
+      );
+      border: 1px dashed rgba(255,255,255,0.1);
+      align-items: center; justify-content: center;
+      color: rgba(255,255,255,0.18); font-size: 0.72rem; font-weight: 600; letter-spacing: 1px;
+    }
     .cont-cell .cn  { font-size: 0.8rem; font-weight: 800; letter-spacing: 0.2px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; }
     .cont-cell .cq  { font-size: 0.73rem; font-weight: 600; color: rgba(255,255,255,0.75); line-height: 1.2; }
     .cont-cell .cw  { font-size: 0.72rem; font-weight: 500; color: rgba(255,255,255,0.5); line-height: 1.2; }
@@ -522,6 +532,7 @@
       .pr-topdown .td-fila { text-align:center;font-weight:700;font-size:8pt;color:#333;background:#f0f0f0;width:22pt; }
       .pr-topdown .td-cell { position:relative;padding:0;border:0.5pt solid #ccc;border-radius:3pt;overflow:hidden; }
       .pr-topdown .td-cell.ocupada { border-width:1pt; }
+      .pr-topdown .td-cell.dummy { background:repeating-linear-gradient(45deg,rgba(0,0,0,0.03) 0,rgba(0,0,0,0.03) 2pt,transparent 2pt,transparent 7pt);border:0.5pt dashed #bbb;text-align:center;font-size:6pt;color:#bbb;vertical-align:middle; }
       .pr-topdown .encima { padding:1pt 4pt;font-size:6pt;font-weight:800;color:#c05000;background:rgba(245,166,35,0.18);border-bottom:0.75pt dashed rgba(192,80,0,0.55);display:flex;justify-content:space-between;line-height:1.1; }
       .pr-topdown .piso   { padding:1pt 4pt;font-size:6.5pt;color:#111;line-height:1.15;display:flex;flex-direction:column;justify-content:center; }
       .pr-topdown .piso .p-model { font-weight:700; }
@@ -1335,7 +1346,7 @@
                     </div>
                   </template>
                   <template x-if="!posicionEn(fila, 'Izquierdo')">
-                    <div class="cont-cell"></div>
+                    <div class="cont-cell dummy">—</div>
                   </template>
                   <!-- Derecho -->
                   <template x-if="posicionEn(fila, 'Derecho')">
@@ -1366,7 +1377,7 @@
                     </div>
                   </template>
                   <template x-if="!posicionEn(fila, 'Derecho')">
-                    <div class="cont-cell"></div>
+                    <div class="cont-cell dummy">—</div>
                   </template>
                 </div>
               </div>
@@ -2039,6 +2050,27 @@ function app() {
         }
       });
 
+      // ── Ghost boxes para slots vacíos ───────────────────────────
+      const usedSlots = new Set(pos.map(p => `${p.fila}_${p.lado}`));
+      const ghostPh   = 150;
+      const ghostMat  = new THREE.MeshBasicMaterial({ color: 0x8899bb, transparent: true, opacity: 0.06 });
+      const ghostEdgeMat = new THREE.LineBasicMaterial({ color: 0x8899bb, transparent: true, opacity: 0.20 });
+      for (let f = 1; f <= filas; f++) {
+        for (const lado of ['Izquierdo', 'Derecho']) {
+          if (!usedSlots.has(`${f}_${lado}`)) {
+            const gx = lado === 'Izquierdo' ? -(anchoCm / 2 + 2) : (anchoCm / 2 + 2);
+            const gz = (f - 0.5) * largoCm;
+            const geo = new THREE.BoxGeometry(anchoCm - 4, ghostPh - 2, largoCm - 4);
+            const gMesh = new THREE.Mesh(geo, ghostMat);
+            gMesh.position.set(gx, ghostPh / 2, gz);
+            scene.add(gMesh);
+            const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo), ghostEdgeMat);
+            edges.position.copy(gMesh.position);
+            scene.add(edges);
+          }
+        }
+      }
+
       // ── OrbitControls ───────────────────────────────────────────
       const controls        = new OrbitControls(camera, renderer.domElement);
       controls.target.set(0, containerH * 0.35, containerL / 2);
@@ -2555,6 +2587,22 @@ function app() {
         }
       });
 
+      // Dummy boxes para slots vacíos (fila sin pallet en capa 1)
+      let dummies = '';
+      const defaultHcm = 150;
+      const dummyH = defaultHcm * scaleY;
+      const dummyFc = forPrint ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)';
+      const dummySc = forPrint ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.12)';
+      for (let f = 1; f <= FILAS; f++) {
+        if (!slots[f] || !slots[f][1]) {
+          const xBase = PAD_L + (f - 1) * cellW;
+          const w = cellW - 2;
+          const x = xBase + (cellW - w) / 2;
+          const y = floorY - dummyH;
+          dummies += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${dummyH.toFixed(1)}" fill="${dummyFc}" stroke="${dummySc}" stroke-width="0.8" stroke-dasharray="3,3" rx="2"/>`;
+        }
+      }
+
       // Pallets (dibujados desde piso hacia arriba; capa 2 sobre capa 1)
       let pallets = '';
       for (const [fila, capaMap] of Object.entries(slots)) {
@@ -2641,7 +2689,7 @@ function app() {
       const contorno = `<rect x="${PAD_L}" y="${PAD_T}" width="${innerW}" height="${innerH}" fill="none" stroke="${sCt}" stroke-width="1" rx="4"/>`;
 
       return `<svg viewBox="0 0 ${VW} ${VH}" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block">
-        ${contorno}${fondos}${separadores}${piso}${pallets}${nums}${cabLabel}${puerLabel}
+        ${contorno}${fondos}${separadores}${dummies}${piso}${pallets}${nums}${cabLabel}${puerLabel}
       </svg>`;
     },
 
@@ -3133,51 +3181,55 @@ function app() {
       </thead>
       <tbody>
         <template x-for="fila in (contenedor?.filasDisponibles || 26)" :key="'td_'+fila">
-          <template x-if="posicionEn(fila,'Izquierdo') || posicionEn(fila,'Derecho')">
-            <tr>
-              <td class="td-fila" x-text="fila"></td>
-              <!-- Izquierdo -->
-              <td class="td-cell"
-                  :class="posicionEn(fila,'Izquierdo') ? 'ocupada' : ''"
-                  :style="posicionEn(fila,'Izquierdo') ? 'background:' + palletColor(posicionEn(fila,'Izquierdo')) + '22;border-color:' + palletColor(posicionEn(fila,'Izquierdo')) : ''">
-                <template x-if="posicion2En(fila,'Izquierdo')">
-                  <div class="encima">
-                    <span>▲ ENCIMA</span>
-                    <span x-text="posicion2En(fila,'Izquierdo').modelNo + ' · ' + posicion2En(fila,'Izquierdo').piezas + 'p · ' + posicion2En(fila,'Izquierdo').pesoKg.toFixed(0) + 'kg'"></span>
-                  </div>
-                </template>
-                <template x-if="posicionEn(fila,'Izquierdo')">
-                  <div class="piso">
-                    <span class="p-model">
-                      <template x-if="posicion2En(fila,'Izquierdo')"><span class="arrow-down">▼ </span></template>
-                      <span x-text="posicionEn(fila,'Izquierdo').modelNo"></span>
-                    </span>
-                    <span class="p-info" x-text="posicionEn(fila,'Izquierdo').piezas + ' pzs · ' + posicionEn(fila,'Izquierdo').pesoKg.toFixed(0) + ' kg' + (!posicionEn(fila,'Izquierdo').apilable ? ' · NO APILAR' : posicionEn(fila,'Izquierdo').esParcial ? ' · PARCIAL' : '')"></span>
-                  </div>
-                </template>
-              </td>
-              <!-- Derecho -->
-              <td class="td-cell"
-                  :class="posicionEn(fila,'Derecho') ? 'ocupada' : ''"
-                  :style="posicionEn(fila,'Derecho') ? 'background:' + palletColor(posicionEn(fila,'Derecho')) + '22;border-color:' + palletColor(posicionEn(fila,'Derecho')) : ''">
-                <template x-if="posicion2En(fila,'Derecho')">
-                  <div class="encima">
-                    <span>▲ ENCIMA</span>
-                    <span x-text="posicion2En(fila,'Derecho').modelNo + ' · ' + posicion2En(fila,'Derecho').piezas + 'p · ' + posicion2En(fila,'Derecho').pesoKg.toFixed(0) + 'kg'"></span>
-                  </div>
-                </template>
-                <template x-if="posicionEn(fila,'Derecho')">
-                  <div class="piso">
-                    <span class="p-model">
-                      <template x-if="posicion2En(fila,'Derecho')"><span class="arrow-down">▼ </span></template>
-                      <span x-text="posicionEn(fila,'Derecho').modelNo"></span>
-                    </span>
-                    <span class="p-info" x-text="posicionEn(fila,'Derecho').piezas + ' pzs · ' + posicionEn(fila,'Derecho').pesoKg.toFixed(0) + ' kg' + (!posicionEn(fila,'Derecho').apilable ? ' · NO APILAR' : posicionEn(fila,'Derecho').esParcial ? ' · PARCIAL' : '')"></span>
-                  </div>
-                </template>
-              </td>
-            </tr>
-          </template>
+          <tr>
+            <td class="td-fila" x-text="fila"></td>
+            <!-- Izquierdo -->
+            <td class="td-cell"
+                :class="posicionEn(fila,'Izquierdo') ? 'ocupada' : 'dummy'"
+                :style="posicionEn(fila,'Izquierdo') ? 'background:' + palletColor(posicionEn(fila,'Izquierdo')) + '22;border-color:' + palletColor(posicionEn(fila,'Izquierdo')) : ''">
+              <template x-if="posicion2En(fila,'Izquierdo')">
+                <div class="encima">
+                  <span>▲ ENCIMA</span>
+                  <span x-text="posicion2En(fila,'Izquierdo').modelNo + ' · ' + posicion2En(fila,'Izquierdo').piezas + 'p · ' + posicion2En(fila,'Izquierdo').pesoKg.toFixed(0) + 'kg'"></span>
+                </div>
+              </template>
+              <template x-if="posicionEn(fila,'Izquierdo')">
+                <div class="piso">
+                  <span class="p-model">
+                    <template x-if="posicion2En(fila,'Izquierdo')"><span class="arrow-down">▼ </span></template>
+                    <span x-text="posicionEn(fila,'Izquierdo').modelNo"></span>
+                  </span>
+                  <span class="p-info" x-text="posicionEn(fila,'Izquierdo').piezas + ' pzs · ' + posicionEn(fila,'Izquierdo').pesoKg.toFixed(0) + ' kg' + (!posicionEn(fila,'Izquierdo').apilable ? ' · NO APILAR' : posicionEn(fila,'Izquierdo').esParcial ? ' · PARCIAL' : '')"></span>
+                </div>
+              </template>
+              <template x-if="!posicionEn(fila,'Izquierdo')">
+                <span>—</span>
+              </template>
+            </td>
+            <!-- Derecho -->
+            <td class="td-cell"
+                :class="posicionEn(fila,'Derecho') ? 'ocupada' : 'dummy'"
+                :style="posicionEn(fila,'Derecho') ? 'background:' + palletColor(posicionEn(fila,'Derecho')) + '22;border-color:' + palletColor(posicionEn(fila,'Derecho')) : ''">
+              <template x-if="posicion2En(fila,'Derecho')">
+                <div class="encima">
+                  <span>▲ ENCIMA</span>
+                  <span x-text="posicion2En(fila,'Derecho').modelNo + ' · ' + posicion2En(fila,'Derecho').piezas + 'p · ' + posicion2En(fila,'Derecho').pesoKg.toFixed(0) + 'kg'"></span>
+                </div>
+              </template>
+              <template x-if="posicionEn(fila,'Derecho')">
+                <div class="piso">
+                  <span class="p-model">
+                    <template x-if="posicion2En(fila,'Derecho')"><span class="arrow-down">▼ </span></template>
+                    <span x-text="posicionEn(fila,'Derecho').modelNo"></span>
+                  </span>
+                  <span class="p-info" x-text="posicionEn(fila,'Derecho').piezas + ' pzs · ' + posicionEn(fila,'Derecho').pesoKg.toFixed(0) + ' kg' + (!posicionEn(fila,'Derecho').apilable ? ' · NO APILAR' : posicionEn(fila,'Derecho').esParcial ? ' · PARCIAL' : '')"></span>
+                </div>
+              </template>
+              <template x-if="!posicionEn(fila,'Derecho')">
+                <span>—</span>
+              </template>
+            </td>
+          </tr>
         </template>
       </tbody>
     </table>
