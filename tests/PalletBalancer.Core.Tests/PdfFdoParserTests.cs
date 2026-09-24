@@ -58,4 +58,25 @@ public class PdfFdoParserTests
         Assert.Equal("", dto.FdoSlipNo);
         Assert.Empty(dto.Lineas);
     }
+
+    [Fact]
+    public void ParsearLineas_ModeloCorto3ST_DetectaFormatos()
+    {
+        // 3ST0FP / 3ST0G0: 1D+2L+3AN — patrón distinto a 3ST08H (1D+2L+2D+1L)
+        var lineas = new[]
+        {
+            "20260928-01 2612971 4011891802 3ST0FP - 902 - LCM",
+            "36 36 0 36 0 0 36 PC",
+            "20260928-01 2612971 4314498702 3ST0G0 - 902 - LCM",
+            "37 37 0 36 0 0 36 PC"
+        };
+
+        var dto = PdfFdoParser.ParsearLineas(lineas);
+
+        Assert.Equal(2,       dto.Lineas.Count);
+        Assert.Equal("3ST0FP", dto.Lineas[0].ModelNo);
+        Assert.Equal(36,       dto.Lineas[0].ReqQty);
+        Assert.Equal("3ST0G0", dto.Lineas[1].ModelNo);
+        Assert.Equal(36,       dto.Lineas[1].ReqQty);
+    }
 }
