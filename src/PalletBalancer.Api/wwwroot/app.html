@@ -2051,20 +2051,20 @@ function app() {
       });
 
       // ── Ghost boxes para slots vacíos ───────────────────────────
-      const usedSlots = new Set(pos.map(p => `${p.fila}_${p.lado}`));
-      const ghostPh   = 150;
-      const ghostMat  = new THREE.MeshBasicMaterial({ color: 0x8899bb, transparent: true, opacity: 0.06 });
-      const ghostEdgeMat = new THREE.LineBasicMaterial({ color: 0x8899bb, transparent: true, opacity: 0.20 });
+      const usedSlots   = new Set(pos.map(p => `${p.fila}_${p.lado}`));
+      const dummyPh     = 150;
+      const dummySlotMat = new THREE.MeshBasicMaterial({ color: 0x8899bb, transparent: true, opacity: 0.06 });
+      const dummyEdgeMat = new THREE.LineBasicMaterial({ color: 0x8899bb, transparent: true, opacity: 0.20 });
       for (let f = 1; f <= filas; f++) {
         for (const lado of ['Izquierdo', 'Derecho']) {
           if (!usedSlots.has(`${f}_${lado}`)) {
             const gx = lado === 'Izquierdo' ? -(anchoCm / 2 + 2) : (anchoCm / 2 + 2);
             const gz = (f - 0.5) * largoCm;
-            const geo = new THREE.BoxGeometry(anchoCm - 4, ghostPh - 2, largoCm - 4);
-            const gMesh = new THREE.Mesh(geo, ghostMat);
-            gMesh.position.set(gx, ghostPh / 2, gz);
+            const geo = new THREE.BoxGeometry(anchoCm - 4, dummyPh - 2, largoCm - 4);
+            const gMesh = new THREE.Mesh(geo, dummySlotMat);
+            gMesh.position.set(gx, dummyPh / 2, gz);
             scene.add(gMesh);
-            const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo), ghostEdgeMat);
+            const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo), dummyEdgeMat);
             edges.position.copy(gMesh.position);
             scene.add(edges);
           }
