@@ -2026,7 +2026,7 @@ function app() {
         const x = p.lado === 'Izquierdo' ? -(pw / 2 + 2) : (pw / 2 + 2);
         const z = (p.fila - 0.5) * largoCm;
 
-        const geo = new THREE.BoxGeometry(pw - 2, ph - 1, pd - 2);
+        const geo = new THREE.BoxGeometry(pw - 0.5, ph, pd - 0.5);
 
         // Color único por modelo; opacidad reducida si es parcial
         const col = new THREE.Color(this.colorModelo(p.modelNo));
@@ -2052,19 +2052,56 @@ function app() {
 
       // ── Ghost boxes para slots vacíos ───────────────────────────
       const usedSlots   = new Set(pos.map(p => `${p.fila}_${p.lado}`));
-      const dummyPh     = 150;
-      const dummySlotMat = new THREE.MeshBasicMaterial({ color: 0x8899bb, transparent: true, opacity: 0.06 });
-      const dummyEdgeMat = new THREE.LineBasicMaterial({ color: 0x8899bb, transparent: true, opacity: 0.20 });
+      const dummyPh      = 150;
+      const dummySlotMat = new THREE.MeshBasicMaterial({ color: 0x8899bb, transparent: true, opacity: 0.10 });
+      const dummyEdgeMat = new THREE.LineBasicMaterial({ color: 0x8899bb, transparent: true, opacity: 0.30 });
       for (let f = 1; f <= filas; f++) {
         for (const lado of ['Izquierdo', 'Derecho']) {
           if (!usedSlots.has(`${f}_${lado}`)) {
             const gx = lado === 'Izquierdo' ? -(anchoCm / 2 + 2) : (anchoCm / 2 + 2);
             const gz = (f - 0.5) * largoCm;
-            const geo = new THREE.BoxGeometry(anchoCm - 4, dummyPh - 2, largoCm - 4);
+            const geo = new THREE.BoxGeometry(anchoCm - 0.5, dummyPh, largoCm - 0.5);
             const gMesh = new THREE.Mesh(geo, dummySlotMat);
             gMesh.position.set(gx, dummyPh / 2, gz);
             scene.add(gMesh);
             const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo), dummyEdgeMat);
+            edges.position.copy(gMesh.position);
+            scene.add(edges);
+          }
+        }
+      }
+
+      // ── Gatas (barras de seguridad) en frente y fondo de la carga ──
+      if (pos.length > 0) {
+        const fs3d       = pos.map(p => p.fila);
+        const filaMin3d  = Math.min(...fs3d);
+        const filaMax3d  = Math.max(...fs3d);
+        const nivelMax3d = Math.max(...pos.map(p => p.capa));
+        const altoCapa1  = pos.filter(p => p.capa === 1)
+                              .reduce((a, p) => Math.max(a, p.altoCm ?? 150), 150);
+        const altoCapa2  = pos.filter(p => p.capa === 2)
+                              .reduce((a, p) => Math.max(a, p.altoCm ?? 150), 0);
+        const gataW = containerW - 4;
+        const gataH = 10;
+        const gataD = 14;
+        const gataMat  = new THREE.MeshLambertMaterial({ color: 0xf5a623 });
+        const gataGeo  = new THREE.BoxGeometry(gataW, gataH, gataD);
+        const gataEdge = new THREE.LineBasicMaterial({ color: 0xc07000 });
+
+        const levelHeights = [altoCapa1];
+        if (nivelMax3d >= 2) levelHeights.push(altoCapa1 + altoCapa2);
+
+        const gataPositions = [];
+        if (filaMin3d > 1)     gataPositions.push((filaMin3d - 1) * largoCm);  // frente
+        if (filaMax3d < filas) gataPositions.push(filaMax3d * largoCm);        // fondo
+
+        for (const gz of gataPositions) {
+          for (const yTop of levelHeights) {
+            const gMesh = new THREE.Mesh(gataGeo, gataMat);
+            gMesh.position.set(0, yTop - gataH / 2, gz);
+            scene.add(gMesh);
+            const eGeo  = new THREE.EdgesGeometry(gataGeo);
+            const edges = new THREE.LineSegments(eGeo, gataEdge);
             edges.position.copy(gMesh.position);
             scene.add(edges);
           }
@@ -2185,6 +2222,28 @@ function app() {
         seen.add(p.modelNo);
         return true;
       });
+    },
+
+    aseguramientoSugerido() {
+      const pos = this.contenedor?.posiciones ?? [];
+      if (!pos.length) return null;
+      const fs = pos.map(p => p.fila);
+      const filaMin   = Math.min(...fs);
+      const filaMax   = Math.max(...fs);
+      const total     = this.contenedor.filasDisponibles || 26;
+      const nivelMax  = Math.max(...pos.map(p => p.capa));
+      const hFrente   = filaMin - 1;
+      const hAtras    = total - filaMax;
+      return {
+        hFrente,
+        hAtras,
+        cajasFrente: hFrente * 2,   // izquierdo + derecho por fila vacía
+        cajasAtras:  hAtras  * 2,
+        gatasFrente: hFrente > 0 ? nivelMax : 0,
+        gatasAtras:  hAtras  > 0 ? nivelMax : 0,
+        nivelMax,
+        sinGatas: hFrente === 0 && hAtras === 0,
+      };
     },
 
     init() {
@@ -3125,6 +3184,51 @@ function app() {
         <td x-text="contenedor?.cgLongitudinalPct?.toFixed(1)+'% del KP→eje'"></td>
       </tr>
     </table>
+
+    <!-- Materiales de aseguramiento sugeridos -->
+    <div class="pr-sub" style="margin-top:8pt">Materiales de Aseguramiento Sugeridos</div>
+    <div style="font-size:6.5pt;color:#555;margin-bottom:3pt">
+      Cajas dummy = espacios vacíos a rellenar (1 por huella, izquierdo + derecho).
+      Gatas = barras de seguridad horizontales por nivel de estiba.
+    </div>
+    <template x-if="aseguramientoSugerido()?.sinGatas">
+      <div style="background:#e8f5e9;border:0.5pt solid #2e7d32;border-radius:3pt;padding:4pt 8pt;font-size:7pt;color:#1b5e20;font-weight:700">
+        ✓ Contenedor cargado de frente a fondo — sin espacios vacíos, sin gatas necesarias.
+      </div>
+    </template>
+    <template x-if="!aseguramientoSugerido()?.sinGatas">
+      <table class="pr-table">
+        <thead>
+          <tr>
+            <th>Posición</th>
+            <th>Filas vacías</th>
+            <th>Cajas dummy</th>
+            <th>Gatas (por nivel)</th>
+            <th>Nivel máx. estiba</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-if="aseguramientoSugerido()?.hFrente > 0">
+            <tr>
+              <td><strong>Frente</strong> — Lado cabina</td>
+              <td x-text="aseguramientoSugerido().hFrente"></td>
+              <td x-text="aseguramientoSugerido().cajasFrente + ' cajas'"></td>
+              <td x-text="aseguramientoSugerido().gatasFrente + ' gata(s)'"></td>
+              <td x-text="aseguramientoSugerido().nivelMax + ' nivel(es)'"></td>
+            </tr>
+          </template>
+          <template x-if="aseguramientoSugerido()?.hAtras > 0">
+            <tr>
+              <td><strong>Fondo</strong> — Lado puertas</td>
+              <td x-text="aseguramientoSugerido().hAtras"></td>
+              <td x-text="aseguramientoSugerido().cajasAtras + ' cajas'"></td>
+              <td x-text="aseguramientoSugerido().gatasAtras + ' gata(s)'"></td>
+              <td x-text="aseguramientoSugerido().nivelMax + ' nivel(es)'"></td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </template>
 
   </div><!-- /pr-page (contenido principal) -->
 
