@@ -2026,7 +2026,7 @@ function app() {
         const x = p.lado === 'Izquierdo' ? -(pw / 2 + 2) : (pw / 2 + 2);
         const z = (p.fila - 0.5) * largoCm;
 
-        const geo = new THREE.BoxGeometry(pw - 0.5, ph, pd - 0.5);
+        const geo = new THREE.BoxGeometry(pw - 2, ph - 1, pd - 2);
 
         // Color único por modelo; opacidad reducida si es parcial
         const col = new THREE.Color(this.colorModelo(p.modelNo));
