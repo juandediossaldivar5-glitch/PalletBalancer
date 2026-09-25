@@ -77,14 +77,16 @@ public class ContenedorService
             }
         }
 
-        // Dimensión modal de tarima (para cálculo de filas y CG)
+        // Dimensión modal de tarima (para visual y CG de referencia)
         var todosPallets = palletsPorDestino.Values.SelectMany(x => x).Select(x => x.P).ToList();
-        double palletLargo = todosPallets
-            .Where(p => p.LargoCm > 0)
-            .GroupBy(p => p.LargoCm)
+        var largosValidos = todosPallets.Where(p => p.LargoCm > 0).Select(p => p.LargoCm).ToList();
+        double palletLargo = largosValidos
+            .GroupBy(v => v)
             .OrderByDescending(g => g.Count())
             .Select(g => g.Key)
             .FirstOrDefault(120.0);
+        // Mínimo largo: determina cuántas filas caben (pallets cortos → más filas)
+        double palletLargoMin = largosValidos.Count > 0 ? largosValidos.Min() : palletLargo;
         double palletAncho = todosPallets
             .Where(p => p.AnchoCm > 0)
             .GroupBy(p => p.AnchoCm)
@@ -92,8 +94,9 @@ public class ContenedorService
             .Select(g => g.Key)
             .FirstOrDefault(100.0);
 
-        int filasPorLado = palletLargo > 0
-            ? (int)Math.Floor((double)spec.LargoCm / palletLargo)
+        // Filas disponibles usando el pallet MÁS CORTO (máximo filas posibles)
+        int filasPorLado = palletLargoMin > 0
+            ? (int)Math.Floor((double)spec.LargoCm / palletLargoMin)
             : 26;
         if (filasPorLado < 1) filasPorLado = 1;
 
